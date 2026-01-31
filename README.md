@@ -9,7 +9,6 @@
 * **Entity Framework Core** – Database
 * **JWT + Google/GitHub OAuth** – Authentication
 
----
 
 ## 📁 Root Structure
 
@@ -24,7 +23,7 @@ Jobify/
 └── README.md
 ```
 
----
+
 
 ## 🔹 Backend – `Jobify/`
 
@@ -68,7 +67,7 @@ Jobify/
 * App entry point
 * Configures authentication, database, CORS, middleware
 
----
+
 
 ## 🔹 Frontend – React
 
@@ -88,7 +87,6 @@ Jobify/
 
 * Routing and app bootstrap
 
----
 
 ## 🔐 Authentication
 
@@ -97,7 +95,6 @@ Jobify/
 * GitHub OAuth
 * Password reset via tokens
 
----
 
 ## ✅ Summary
 

@@ -141,7 +141,7 @@ public class AuthController : ControllerBase
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
         // Frontend base URL (configure in appsettings; fallback to local dev)
-        var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:63303";
+        var frontendUrl = _config["FrontendUrl"] ?? "https://localhost:63303";
 
         // IMPORTANT: encode token + email so the link is safe in a URL
         var resetLink =

@@ -6,6 +6,10 @@ using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Mail;
 
+// ✅ ADDED (for Google/GitHub OAuth)
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+
 namespace Jobify.Api.Controllers;
 
 [ApiController]
@@ -141,7 +145,7 @@ public class AuthController : ControllerBase
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
         // Frontend base URL (configure in appsettings; fallback to local dev)
-        var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:63303";
+        var frontendUrl = _config["FrontendUrl"] ?? "https://localhost:63303";
 
         // IMPORTANT: encode token + email so the link is safe in a URL
         var resetLink =
@@ -296,6 +300,77 @@ public class AuthController : ControllerBase
 
         return Ok("Password reset successfully.");
     }
+
+    // =========================
+    // EXTERNAL LOGIN (Google/GitHub) - TEMP TEST
+    // =========================
+    [HttpGet("external/{provider}")]
+    public IActionResult ExternalLogin(string provider)
+    {
+        if (provider is not ("Google" or "GitHub"))
+            return BadRequest("Unsupported provider");
+
+        var redirectUrl = Url.Action(nameof(ExternalCallback), "Auth", null, Request.Scheme);
+
+        var props = new AuthenticationProperties
+        {
+            RedirectUri = redirectUrl
+        };
+
+        return Challenge(props, provider);
+    }
+
+    [HttpGet("external-callback")]
+    public async Task<IActionResult> ExternalCallback()
+    {
+        var result = await HttpContext.AuthenticateAsync("External");
+        if (!result.Succeeded || result.Principal == null)
+            return Unauthorized("External authentication failed");
+
+        // Get email from provider
+        var email =
+            result.Principal.FindFirstValue(ClaimTypes.Email) ??
+            result.Principal.FindFirstValue("email");
+
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest("No email returned from provider");
+
+        // Find or create user
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            user = new IdentityUser
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true
+            };
+
+            var createRes = await _userManager.CreateAsync(user);
+            if (!createRes.Succeeded)
+                return BadRequest(createRes.Errors.Select(e => e.Description));
+
+            // Default role for OAuth users (change if you want)
+            var role = "Student";
+
+            if (!await _roleManager.RoleExistsAsync(role))
+                await _roleManager.CreateAsync(new IdentityRole(role));
+
+            await _userManager.AddToRoleAsync(user, role);
+        }
+
+        // Get roles and issue JWT
+        var roles = await _userManager.GetRolesAsync(user);
+        var token = _jwt.CreateToken(user, roles, out var expiresAt);
+
+        // Redirect back to frontend with token
+        var frontendBase = _config["Frontend:BaseUrl"] ?? "https://localhost:63303";
+        var redirectUrl =
+            $"{frontendBase}/oauth-callback?token={Uri.EscapeDataString(token)}&expiresAt={Uri.EscapeDataString(expiresAt.ToString("o"))}";
+
+        return Redirect(redirectUrl);
+    }
+
 
     // =========================
     // DTOs

@@ -97,6 +97,16 @@ export default function SignupPage() {
         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL) ||
         "https://localhost:7176";
 
+    // ✅ OAuth redirect helpers
+    const loginWithGoogle = () => {
+        window.location.href = `${API_URL}/api/Auth/external/Google`;
+    };
+
+    const loginWithGitHub = () => {
+        window.location.href = `${API_URL}/api/Auth/external/GitHub`;
+    };
+
+
     /** Theme state (local UI only) */
     const [darkMode, setDarkMode] = useState(false);
     const toggleDarkMode = () => setDarkMode((d) => !d);
@@ -542,13 +552,14 @@ export default function SignupPage() {
                                 </div>
 
                                 <div className="lp-social">
-                                    <button type="button" className="lp-socialbtn">
+                                    <button type="button" className="lp-socialbtn" onClick={loginWithGoogle}>
                                         Google
                                     </button>
-                                    <button type="button" className="lp-socialbtn">
+                                    <button type="button" className="lp-socialbtn" onClick={loginWithGitHub}>
                                         GitHub
                                     </button>
                                 </div>
+
 
                                 {/* Existing account link */}
                                 <div className="lp-forgot" style={{ marginTop: 14, justifyContent: "center" }}>

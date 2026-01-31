@@ -1,5 +1,6 @@
 using Jobify.Api.Data;
 using Jobify.Api.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -56,33 +57,57 @@ builder.Services.AddCors(options =>
 // JwtTokenService is used by AuthController to generate signed JWT tokens.
 builder.Services.AddScoped<JwtTokenService>();
 
-// JWT Authentication
-// Configures JWT bearer authentication so [Authorize] works and API can validate tokens.
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// JWT + OAuth Authentication
+// - JWT bearer stays the default for your API calls
+// - External cookie is used only during Google/GitHub OAuth handshake
+builder.Services
+    .AddAuthentication(options =>
     {
-        // Validate issuer + audience from token claims
-        ValidateIssuer = true,
-        ValidateAudience = true,
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            // Validate issuer + audience from token claims
+            ValidateIssuer = true,
+            ValidateAudience = true,
 
-        // Validate token expiry (rejects expired tokens)
-        ValidateLifetime = true,
+            // Validate token expiry (rejects expired tokens)
+            ValidateLifetime = true,
 
-        // Validate token signature using the configured signing key
-        ValidateIssuerSigningKey = true,
+            // Validate token signature using the configured signing key
+            ValidateIssuerSigningKey = true,
 
-        // Expected issuer/audience values (must match what JwtTokenService issues)
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+            // Expected issuer/audience values (must match what JwtTokenService issues)
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
 
-        // Symmetric key used to verify token signature
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-        )
-    };
-});
+            // Symmetric key used to verify token signature
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
+            )
+        };
+    })
+    .AddCookie("External")
+    .AddGoogle("Google", options =>
+    {
+        options.SignInScheme = "External";
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+        options.SaveTokens = true;
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+    })
+    .AddGitHub("GitHub", options =>
+    {
+        options.SignInScheme = "External";
+        options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
+        options.SaveTokens = true;
+        options.Scope.Add("user:email");
+    });
 
 // Authorization
 // Enables authorization attributes like [Authorize] and role policies.

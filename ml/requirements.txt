@@ -1,0 +1,18 @@
+# Core ML
+tensorflow>=2.12
+numpy
+scikit-learn
+
+# Hugging Face
+transformers>=4.34.0
+tokenizers
+datasets
+
+# Reading Input
+pdfplumber
+pypandoc
+re
+os
+
+# Evaluation
+seqeval

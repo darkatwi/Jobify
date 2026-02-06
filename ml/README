@@ -1,0 +1,136 @@
+# jobify-jobbert-skillner
+
+---
+
+**Project Name:** jobify-jobbert-skillner
+**Start Date:** June 2025  
+**Last Updated:**  
+**Author:** Elio Ishak (CS student at AUB)  
+
+---
+
+jobify-jobbert-skillner is the machine learning component of **Jobify**, focused on **automatic skill extraction** from resumes and job descriptions using **Named Entity Recognition (NER)**.
+
+The project combines a strong pretrained baseline with a custom fine-tuned model to extract, evaluate, and standardize skills from unstructured text, and is designed to integrate directly with the Jobify backend.
+
+---
+
+## Project Goals
+
+- Extract technical and professional skills from unstructured text (CVs, job descriptions)
+- Compare pretrained vs fine-tuned NER models in a job-domain setting
+- Build a reusable ML pipeline that can be integrated into a production system
+
+---
+
+## Models
+
+> Note: Accuracy is reported for completeness but is not a reliable metric for NER; entity-level F1 is the primary evaluation measure.
+
+### SkillNER (Pretrained Baseline)
+
+This model is the pretrained **SkillNER** model (`ihk/skillner`) used as a baseline for skill extraction via token classification.
+
+It achieves the following results on the evaluation set:
+
+- **Loss:** 0.1244  
+- **Accuracy:** 0.9701  
+- **Precision:** 0.5581  
+- **Recall:** 0.6814  
+- **F1:** 0.6136  
+
+These results serve as a baseline for comparison against the fine-tuned JobBERT model.
+
+
+### JobBERT (Fine-Tuned Model)
+
+- Backbone: `jjzha/jobbert-base-cased`
+- Pretraining: Masked Language Modeling on job postings
+- Fine-tuning: Supervised NER on SkillSpan using BIO tags (`B-SKILL`, `I-SKILL`, `O`)
+- Framework: TensorFlow / Keras
+- Evaluation: Entity-level F1 score (seqeval)
+
+> **Status:** This model is currently under active fine-tuning and evaluation. 
+
+> The goal is to achieve higher performance on the skill extraction task, particularly in terms of entity-level F1, in comparison to the pretrained SkillNER baseline.
+
+---
+
+## Data
+
+- **SkillSpan dataset**
+  - Job-related text annotated with skill entities
+  - BIO tagging scheme (`O`, `B-SKILL`, `I-SKILL`)
+  - Uses official train / validation / test splits
+
+  The SkillSpan dataset used for training and evaluation was introduced by
+  Zhang et al. (2022) at NAACL-HLT  
+  (https://aclanthology.org/2022.naacl-main.366).
+
+---
+
+## Training Pipeline (JobBERT)
+
+1. Load SkillSpan official splits
+2. Tokenize word-level input and align labels to subwords
+3. Apply label masking for ignored tokens (special tokens and subwords)
+4. Train JobBERT token-classification head
+5. Monitor validation loss during training
+6. Evaluate using **entity-level F1 (seqeval)**
+
+> Token-level accuracy is intentionally avoided, as it is misleading for NER tasks.
+
+---
+
+## Evaluation
+
+- Metric: **Entity-level Precision / Recall / F1 (seqeval)**
+- Mask-aware evaluation to ignore padded and subword tokens
+- Enables fair comparison between pretrained SkillNER and fine-tuned JobBERT
+
+---
+
+## Usage
+
+### Skill Extraction with SkillNER
+
+{```python
+from transformers import pipeline
+
+ner = pipeline(
+    "token-classification",
+    model="ihk/skillner",
+    aggregation_strategy="simple"
+)
+
+ner("Experienced with Python, SQL, Docker, and FastAPI.")
+}
+
+---
+
+## Upcoming Work
+
+- Integrate the **ESCO skills taxonomy** as a post-processing layer to:
+  - identify skills missed by the NER model,
+  - validate and enrich low-confidence extractions,
+  - normalize extracted skills to standardized ESCO identifiers.
+
+- Connect the skill extraction pipeline to the **Jobify database** to persist,
+  index, and query extracted skills for downstream matching and analytics.
+
+- Continue improving performance by **fine-tuning JobBERT base-cased** on
+  domain-specific data and evaluating against the pretrained SkillNER baseline.
+
+---
+
+## License
+- This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
+
+## References
+
+- Zhang, M., Jensen, K. N., Sonniks, S., & Plank, B. (2022).
+  *SkillSpan: Hard and Soft Skill Extraction from English Job Postings*.
+  NAACL-HLT 2022.  
+  https://aclanthology.org/2022.naacl-main.366

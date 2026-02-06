@@ -36,7 +36,7 @@ import {
     Trophy,
 } from "lucide-react";
 
-import "./styles/login.css";
+import "../styles/login.css";
 
 /**
  * Decorative floating icons displayed on the left side of the layout.
@@ -442,19 +442,23 @@ export default function LoginPage() {
                                     </button>
                                 </form>
 
-                                <div className="lp-divider">
-                                    <span>OR CONTINUE WITH</span>
-                                </div>
+                                {userRole === "candidate" && (
+                                    <>
+                                        <div className="lp-divider">
+                                            <span>OR CONTINUE WITH</span>
+                                        </div>
 
-                                {/* OAuth buttons are placeholders for future integration */}
-                                <div className="lp-social">
-                                    <button type="button" className="lp-socialbtn" onClick={loginWithGoogle}>
-                                        Google
-                                    </button>
-                                    <button type="button" className="lp-socialbtn" onClick={loginWithGitHub}>
-                                        GitHub
-                                    </button>
-                                </div>
+                                        <div className="lp-social">
+                                            <button type="button" className="lp-socialbtn" onClick={loginWithGoogle}>
+                                                Google
+                                            </button>
+                                            <button type="button" className="lp-socialbtn" onClick={loginWithGitHub}>
+                                                GitHub
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+
 
                                 {/* Sign up navigation */}
                                 <div className="lp-forgot" style={{ marginTop: 14, justifyContent: "center" }}>

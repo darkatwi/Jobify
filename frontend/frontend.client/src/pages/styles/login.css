@@ -217,7 +217,7 @@ body {
     grid-template-columns: repeat(2, 240px);
     gap: 16px;
     justify-content: flex-start;
-    margin: 22px 0 32px 0;
+    margin: 22px 0 10px 0;
 }
 
 @media (max-width: 640px) {
@@ -801,4 +801,101 @@ body {
 .lp-centerlink {
     display: flex;
     justify-content: center;
+}
+
+
+/* ✅ IMPORTANT: stack left panel content vertically */
+.lp-left {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* children take full width */
+    justify-content: flex-start;
+}
+
+/* full width wrapper under stats */
+.lp-left-wide {
+    width: 100%;
+    margin-top: 28px;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* Plain text block under stats — LEFT ALIGNED */
+.lp-signup-note {
+    width: 100%;
+    margin-top: 0px;
+    padding: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start; /* 👈 important */
+
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+/* optional icon (small, aligned with text start) */
+.lp-signup-note-icon {
+    margin-top: 2px;
+    margin-right: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+/* text wrapper */
+.lp-signup-note > div {
+    max-width: 820px; /* same feel as your paragraph */
+}
+
+/* title — aligned like a section label */
+.lp-signup-note-title {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.98);
+    text-align: left; /* 👈 force left */
+}
+
+/* main sentence */
+.lp-signup-note-text {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.75;
+    color: rgba(255, 255, 255, 0.92);
+    text-align: left; /* 👈 force left */
+    white-space: normal;
+}
+
+/* subtle line */
+.lp-signup-note-subtle {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.75);
+    text-align: left; /* 👈 force left */
+}
+
+.lp-signup-note {
+    align-self: flex-start; /* 👈 breaks out of centering */
+    text-align: left;
+}
+
+    .lp-signup-note > div {
+        margin-left: 0;
+        margin-right: auto; /* 👈 prevents centering */
+        text-align: left;
+    }
+
+.lp-signup-note {
+    margin-left: 0 !important;
+    margin-right: auto !important;
 }

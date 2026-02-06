@@ -42,7 +42,7 @@ import {
     Mail,
 } from "lucide-react";
 
-import "./styles/login.css";
+import "../styles/login.css";
 
 /**
  * Decorative floating icons used for the left panel background.
@@ -106,7 +106,6 @@ export default function SignupPage() {
         window.location.href = `${API_URL}/api/Auth/external/GitHub`;
     };
 
-
     /** Theme state (local UI only) */
     const [darkMode, setDarkMode] = useState(false);
     const toggleDarkMode = () => setDarkMode((d) => !d);
@@ -119,6 +118,11 @@ export default function SignupPage() {
 
     // Recruiter fields
     const [companyName, setCompanyName] = useState("");
+
+    // ✅ Recruiter verification links (at least 1 required for recruiters)
+    const [websiteUrl, setWebsiteUrl] = useState("");
+    const [linkedinUrl, setLinkedinUrl] = useState("");
+    const [instagramUrl, setInstagramUrl] = useState("");
 
     // Shared fields (email/password)
     const [email, setEmail] = useState("");
@@ -137,6 +141,7 @@ export default function SignupPage() {
     const [errors, setErrors] = useState({
         fullName: "",
         companyName: "",
+        websiteUrl: "",
         email: "",
         password: "",
     });
@@ -200,7 +205,10 @@ export default function SignupPage() {
 
         if (field === "email") {
             if (!email)
-                setFieldError("email", userRole === "recruiter" ? "Company email is required" : "Email is required");
+                setFieldError(
+                    "email",
+                    userRole === "recruiter" ? "Company email is required" : "Email is required"
+                );
             else if (!validateEmail(email)) setFieldError("email", "Please enter a valid email address");
             else setFieldError("email", "");
         }
@@ -225,12 +233,24 @@ export default function SignupPage() {
                 ok = false;
             } else setFieldError("fullName", "");
             setFieldError("companyName", "");
+            setFieldError("websiteUrl", "");
         } else {
             if (!companyName.trim()) {
                 setFieldError("companyName", "Company name is required");
                 ok = false;
             } else setFieldError("companyName", "");
             setFieldError("fullName", "");
+
+            // ✅ Recruiter must provide at least 1 link
+            const hasAnyLink =
+                !!websiteUrl.trim() || !!linkedinUrl.trim() || !!instagramUrl.trim();
+
+            if (!hasAnyLink) {
+                setFieldError("websiteUrl", "Provide at least one link (Website, LinkedIn, or Instagram).");
+                ok = false;
+            } else {
+                setFieldError("websiteUrl", "");
+            }
         }
 
         // Email
@@ -279,6 +299,11 @@ export default function SignupPage() {
                     password,
                     // Backend role mapping: Recruiter vs Student
                     role: userRole === "recruiter" ? "Recruiter" : "Student",
+                    // ✅ FIX: send companyName for recruiter registration
+                    companyName: userRole === "recruiter" ? companyName : null,
+                    websiteUrl: userRole === "recruiter" ? websiteUrl : null,
+                    linkedinUrl: userRole === "recruiter" ? linkedinUrl : null,
+                    instagramUrl: userRole === "recruiter" ? instagramUrl : null,
                 }),
             });
 
@@ -331,7 +356,6 @@ export default function SignupPage() {
         <div className={`lp-root ${darkMode ? "lp-dark" : ""}`}>
             <div className="lp-page">
                 <div className="lp-grid">
-                    {/* LEFT PANEL: Branding + stats */}
                     <div className="lp-left">
                         <FloatingIcons />
 
@@ -351,7 +375,8 @@ export default function SignupPage() {
                                 transition={{ delay: 0.2, duration: 0.6 }}
                                 className="lp-desc"
                             >
-                                Create your account and start matching with opportunities based on skills, interests, and experience.
+                                Create your account and start matching with opportunities based on skills, interests,
+                                and experience.
                             </motion.p>
 
                             <div className="lp-stats">
@@ -377,14 +402,52 @@ export default function SignupPage() {
                                 })}
                             </div>
                         </div>
+
+                        {/* ✅ FULL WIDTH SECTION (spans all left panel) */}
+                        <div className="lp-left-wide">
+                            <div className="lp-signup-note" role="note" aria-live="polite">
+
+                                <div>
+                                    {userRole === "recruiter" ? (
+                                        <>
+                                            <div className="lp-signup-note-title">What happens next?</div>
+                                            <div className="lp-signup-note-text">
+                                                We’ll email you a confirmation and submit your organization for admin review.
+                                                Once approved, you’ll be able to post jobs and manage applications.
+                                            </div>
+                                            <div className="lp-signup-note-subtle">
+                                                Approval is usually quick. You’ll get an email once it’s done.
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="lp-signup-note-title">Next steps</div>
+                                            <div className="lp-signup-note-text">
+                                                After signing up, we’ll assess your profile to improve matching and recommendations.
+                                                You can start exploring opportunities right away.
+                                            </div>
+                                            <div className="lp-signup-note-subtle">
+                                                Your data is used only to enhance your Jobify experience.
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
 
                     {/* RIGHT PANEL: Form */}
                     <div className="lp-right">
                         <div className="lp-card">
                             {/* Desktop theme toggle */}
                             <div className="lp-darktoggle-desktop">
-                                <button className="lp-iconbtn" onClick={toggleDarkMode} type="button" aria-label="Toggle theme">
+                                <button
+                                    className="lp-iconbtn"
+                                    onClick={toggleDarkMode}
+                                    type="button"
+                                    aria-label="Toggle theme"
+                                >
                                     {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                                 </button>
                             </div>
@@ -400,14 +463,16 @@ export default function SignupPage() {
                                         <button
                                             type="button"
                                             onClick={() => setUserRole("candidate")}
-                                            className={`lp-rolebtn ${userRole === "candidate" ? "lp-rolebtn--active" : ""}`}
+                                            className={`lp-rolebtn ${userRole === "candidate" ? "lp-rolebtn--active" : ""
+                                                }`}
                                         >
                                             Candidate
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setUserRole("recruiter")}
-                                            className={`lp-rolebtn ${userRole === "recruiter" ? "lp-rolebtn--active" : ""}`}
+                                            className={`lp-rolebtn ${userRole === "recruiter" ? "lp-rolebtn--active" : ""
+                                                }`}
                                         >
                                             Recruiter
                                         </button>
@@ -450,27 +515,70 @@ export default function SignupPage() {
                                             {errors.fullName && <div className="lp-error">{errors.fullName}</div>}
                                         </div>
                                     ) : (
-                                        <div className="lp-field">
-                                            <label className="lp-label" htmlFor="companyName">
-                                                Company name
-                                            </label>
-                                            <div className="lp-password">
-                                                <input
-                                                    id="companyName"
-                                                    className={`lp-input ${errors.companyName ? "lp-input--error" : ""}`}
-                                                    type="text"
-                                                    value={companyName}
-                                                    onChange={(e) => setCompanyName(e.target.value)}
-                                                    onBlur={() => handleBlur("companyName")}
-                                                    placeholder="Company / Organization name"
-                                                    autoComplete="organization"
-                                                />
-                                                <div className="lp-eye" aria-hidden="true">
-                                                    <Building size={18} />
+                                        <>
+                                            <div className="lp-field">
+                                                <label className="lp-label" htmlFor="companyName">
+                                                    Company name
+                                                </label>
+                                                <div className="lp-password">
+                                                    <input
+                                                        id="companyName"
+                                                        className={`lp-input ${errors.companyName ? "lp-input--error" : ""}`}
+                                                        type="text"
+                                                        value={companyName}
+                                                        onChange={(e) => setCompanyName(e.target.value)}
+                                                        onBlur={() => handleBlur("companyName")}
+                                                        placeholder="Company / Organization name"
+                                                        autoComplete="organization"
+                                                    />
+                                                    <div className="lp-eye" aria-hidden="true">
+                                                        <Building size={18} />
+                                                    </div>
                                                 </div>
+                                                {errors.companyName && <div className="lp-error">{errors.companyName}</div>}
                                             </div>
-                                            {errors.companyName && <div className="lp-error">{errors.companyName}</div>}
-                                        </div>
+
+                                            {/* ✅ Recruiter verification links */}
+                                            <div className="lp-field">
+                                                <label className="lp-label" htmlFor="websiteUrl">
+                                                    Website / LinkedIn / Instagram (at least 1)
+                                                </label>
+
+                                                <input
+                                                    id="websiteUrl"
+                                                    className={`lp-input ${errors.websiteUrl ? "lp-input--error" : ""}`}
+                                                    type="url"
+                                                    value={websiteUrl}
+                                                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                                                    placeholder="https://company.com"
+                                                    autoComplete="url"
+                                                />
+
+                                                <div style={{ marginTop: 10 }}>
+                                                    <input
+                                                        className={`lp-input ${errors.websiteUrl ? "lp-input--error" : ""}`}
+                                                        type="url"
+                                                        value={linkedinUrl}
+                                                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                                                        placeholder="https://linkedin.com/company/..."
+                                                        autoComplete="url"
+                                                    />
+                                                </div>
+
+                                                <div style={{ marginTop: 10 }}>
+                                                    <input
+                                                        className={`lp-input ${errors.websiteUrl ? "lp-input--error" : ""}`}
+                                                        type="url"
+                                                        value={instagramUrl}
+                                                        onChange={(e) => setInstagramUrl(e.target.value)}
+                                                        placeholder="https://instagram.com/..."
+                                                        autoComplete="url"
+                                                    />
+                                                </div>
+
+                                                {errors.websiteUrl && <div className="lp-error">{errors.websiteUrl}</div>}
+                                            </div>
+                                        </>
                                     )}
 
                                     {/* Email */}
@@ -487,7 +595,9 @@ export default function SignupPage() {
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 onBlur={() => handleBlur("email")}
-                                                placeholder={userRole === "recruiter" ? "hr@company.com" : "you@example.com"}
+                                                placeholder={
+                                                    userRole === "recruiter" ? "hr@company.com" : "you@example.com"
+                                                }
                                                 autoComplete="email"
                                             />
                                             <div className="lp-eye" aria-hidden="true">
@@ -506,7 +616,8 @@ export default function SignupPage() {
                                         <div className="lp-password">
                                             <input
                                                 id="password"
-                                                className={`lp-input lp-input--padright ${errors.password ? "lp-input--error" : ""}`}
+                                                className={`lp-input lp-input--padright ${errors.password ? "lp-input--error" : ""
+                                                    }`}
                                                 type={showPassword ? "text" : "password"}
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
@@ -524,7 +635,6 @@ export default function SignupPage() {
                                             </button>
                                         </div>
 
-                                        {/* Show hint only when there is no password error */}
                                         {!!passwordHint && !errors.password && (
                                             <div className="lp-rolehint" style={{ marginTop: 6 }}>
                                                 {passwordHint}
@@ -546,22 +656,24 @@ export default function SignupPage() {
                                     </button>
                                 </form>
 
-                                {/* Social signup buttons are placeholders for future OAuth integration */}
-                                <div className="lp-divider">
-                                    <span>OR CONTINUE WITH</span>
-                                </div>
+                                {userRole === "candidate" && (
+                                    <>
+                                        <div className="lp-divider">
+                                            <span>OR CONTINUE WITH</span>
+                                        </div>
 
-                                <div className="lp-social">
-                                    <button type="button" className="lp-socialbtn" onClick={loginWithGoogle}>
-                                        Google
-                                    </button>
-                                    <button type="button" className="lp-socialbtn" onClick={loginWithGitHub}>
-                                        GitHub
-                                    </button>
-                                </div>
+                                        <div className="lp-social">
+                                            <button type="button" className="lp-socialbtn" onClick={loginWithGoogle}>
+                                                Google
+                                            </button>
+                                            <button type="button" className="lp-socialbtn" onClick={loginWithGitHub}>
+                                                GitHub
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
 
 
-                                {/* Existing account link */}
                                 <div className="lp-forgot" style={{ marginTop: 14, justifyContent: "center" }}>
                                     <button type="button" className="lp-link" onClick={goLogin}>
                                         Already have an account? Sign in

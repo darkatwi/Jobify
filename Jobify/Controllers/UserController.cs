@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Jobify.Api.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jobify.Api.Controllers;
 
-//later we will add authorization once we add other things 
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
@@ -17,7 +17,7 @@ public class UsersController : ControllerBase
         _userManager = userManager;
     }
 
-    // ✅ GET: /api/users
+    // GET: /api/users
     // Returns a list of users with basic identity info + roles.
     //
     // Notes:
@@ -53,7 +53,7 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
-    // ✅ GET: /api/users/{id}
+    // GET: /api/users/{id}
     // Returns one user's basic identity info + roles by userId.
     //
     // Notes:
@@ -80,6 +80,47 @@ public class UsersController : ControllerBase
             Roles: roles.ToList()
         ));
     }
+
+    //DELETE: /api/users/{id}
+    // Deletes a user and related data (RecruiterProfile if exists)
+    //
+    // Security: Admin only
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        // Find user
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null)
+            return NotFound("User not found.");
+
+        // If user is a recruiter, delete recruiter profile first
+        // (prevents FK issues + keeps DB clean)
+        var recruiterProfile = await HttpContext.RequestServices
+            .GetRequiredService<AppDbContext>()
+            .RecruiterProfiles
+            .FirstOrDefaultAsync(r => r.UserId == id);
+
+        if (recruiterProfile != null)
+        {
+            HttpContext.RequestServices
+                .GetRequiredService<AppDbContext>()
+                .RecruiterProfiles
+                .Remove(recruiterProfile);
+
+            await HttpContext.RequestServices
+                .GetRequiredService<AppDbContext>()
+                .SaveChangesAsync();
+        }
+
+        // Delete Identity user
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        return Ok(new { message = "User deleted successfully." });
+    }
+
 
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);

@@ -36,7 +36,7 @@ import {
     Building2,
 } from "lucide-react";
 
-import "./styles/login.css";
+import "../styles/login.css";
 
 /**
  * Decorative floating icons displayed on the left panel.

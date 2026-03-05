@@ -1094,4 +1094,51 @@ public class ApplicationsController : ControllerBase
         return Ok(apps);
     }
 
+
+    // GET application details (for recruiter)
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("recruiter/{applicationId:int}")]
+    public async Task<IActionResult> GetApplicationDetailsForRecruiter(int applicationId)
+    {
+        var recruiterId = CurrentUserId();
+        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
+
+        var recruiter = await _db.RecruiterProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.UserId == recruiterId);
+
+        if (recruiter == null) return Forbid();
+
+        var app = await _db.Applications
+            .Include(a => a.Opportunity)
+            .Include(a => a.Assessment)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (app == null) return NotFound();
+
+        if (!string.Equals(app.Opportunity.CompanyName, recruiter.CompanyName, StringComparison.OrdinalIgnoreCase))
+            return Forbid();
+
+        return Ok(new
+        {
+            applicationId = app.Id,
+            opportunityId = app.OpportunityId,
+            opportunityTitle = app.Opportunity.Title,
+            studentUserId = app.UserId,
+            status = app.Status.ToString(),
+            note = app.Note,
+            createdAtUtc = app.CreatedAtUtc,
+            updatedAtUtc = app.UpdatedAtUtc,
+
+            assessment = app.Assessment == null ? null : new
+            {
+                score = app.Assessment.Score,
+                startedAtUtc = app.Assessment.StartedAtUtc,
+                submittedAtUtc = app.Assessment.SubmittedAtUtc,
+                flagged = app.Assessment.Flagged,
+                flagReason = app.Assessment.FlagReason
+            }
+        });
+    }
+
 }

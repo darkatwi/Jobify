@@ -235,6 +235,7 @@ public class ApplicationsController : ControllerBase
                 Status = a.Status.ToString(),
                 CreatedAtUtc = a.CreatedAtUtc,
                 HasAssessment = a.Opportunity.AssessmentJson != null && a.Opportunity.AssessmentJson != ""
+                Note = a.Note
             })
             .ToListAsync();
 
@@ -989,7 +990,7 @@ public class ApplicationsController : ControllerBase
         });
     }
 
-
+    // GET my application status + recruiter notes (for dashboard)
     [Authorize(Roles = "Student")]
     [HttpGet("{applicationId:int}/summary")]
     public async Task<IActionResult> GetMyApplicationSummary(int applicationId)
@@ -1008,12 +1009,11 @@ public class ApplicationsController : ControllerBase
         {
             applicationId = app.Id,
             status = app.Status.ToString(),
-            note = app.Note,                 // remove this line if students must NOT see recruiter note
+            note = app.Note,
             updatedAtUtc = app.UpdatedAtUtc,
             companyName = app.Opportunity?.CompanyName,
             opportunityTitle = app.Opportunity?.Title
         });
     }
-
 
 }

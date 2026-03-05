@@ -39,9 +39,9 @@ public class Application
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Draft;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? WithdrawndAt { get; set; };
 
     public string? Note { get; set; }
 

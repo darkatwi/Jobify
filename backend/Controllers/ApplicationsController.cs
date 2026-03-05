@@ -1016,4 +1016,40 @@ public class ApplicationsController : ControllerBase
         });
     }
 
+
+    // GET all applications for recruiter's company
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("recruiter/applications")]
+    public async Task<IActionResult> GetCompanyApplications()
+    {
+        var recruiterId = CurrentUserId();
+        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
+
+        var recruiter = await _db.RecruiterProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.UserId == recruiterId);
+
+        if (recruiter == null) return Forbid();
+
+        var apps = await _db.Applications
+            .AsNoTracking()
+            .Include(a => a.Opportunity)
+            .Where(a => a.Opportunity != null &&
+                        a.Opportunity.CompanyName.ToLower() == recruiter.CompanyName.ToLower())
+            .OrderByDescending(a => a.UpdatedAtUtc)
+            .Select(a => new
+            {
+                applicationId = a.Id,
+                opportunityId = a.OpportunityId,
+                opportunityTitle = a.Opportunity!.Title,
+                studentUserId = a.UserId,
+                status = a.Status.ToString(),
+                note = a.Note,
+                updatedAtUtc = a.UpdatedAtUtc
+            })
+            .ToListAsync();
+
+        return Ok(apps);
+    }
+
 }

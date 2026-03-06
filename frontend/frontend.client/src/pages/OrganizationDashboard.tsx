@@ -1078,6 +1078,10 @@ export default function OrganizationDashboard() {
                 </div>
               </div>
             ))}
+
+            {applications.length===0 && !loadingApplications && (
+              <p style={styles.small}>No applications for this opportunity yet.</p>
+            )}
           </div>
         </div>
 

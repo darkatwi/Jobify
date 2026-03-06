@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect} from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import {
   Briefcase,
   MapPin,
@@ -296,6 +297,12 @@ export default function OrganizationDashboard() {
   const [recruiterNote, setRecruiterNote] = useState("");
   const [newStatus, setNewStatus] = useState("");
 
+  // Application Notes
+  const [applicationNotes, setApplicationNotes] = useState<Record<number, string>>({});
+
+  // Application Statuses
+  const [applicationStatuses, setApplicationStatuses] = useState<Record<number, string>>({});
+
   // Required skills
   const [skillsRequired, setSkillsRequired] = useState<string[]>(["React", "JavaScript"]);
   const [requiredInput, setRequiredInput] = useState("");
@@ -316,12 +323,14 @@ export default function OrganizationDashboard() {
     longitude: "",
   });
 
+  const navigate = useNavigate();
+
   // Recruiter listings fetch function
   async function fetchListings() {
     try {
       setLoadingListings(true);
       setListingsError("");
-
+      
       const token = localStorage.getItem("token");
 
       const res = await fetch(`${API_BASE}/opportunities/recruiter`, {
@@ -386,6 +395,18 @@ export default function OrganizationDashboard() {
 
       const data = await res.json();
       setApplications(data);
+
+      const initialNotes: Record<number, string> = {};
+      const initialStatuses: Record<number, string> = {};
+
+      data.forEach((application: any) => {
+        initialNotes[application.applicationId] = application.note || "";
+        initialStatuses[application.applicationId] = application.status || "";
+      })
+
+      setApplicationNotes(initialNotes);
+      setApplicationStatuses(initialStatuses);
+
       setActiveTab("applications");
     }
     catch(err: any) {
@@ -405,7 +426,7 @@ export default function OrganizationDashboard() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${API_BASE}/applications/${applicationId}`, {
+      const res = await fetch(`${API_BASE}/applications/recruiter/${applicationId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -440,8 +461,8 @@ export default function OrganizationDashboard() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
-          status: newStatus,
-          note: recruiterNote
+          status: applicationStatuses[applicationId] || "Pending",
+          note: applicationNotes[applicationId] || ""
         })
       });
 
@@ -965,8 +986,8 @@ export default function OrganizationDashboard() {
                   <span style={{fontWeight: 700}}>
                     Applicants: {job.applicants}
                   </span>
-                  
-                  <button type="button" style={styles.outileBtn} onClick={() => fetchApplicationsForOpportunity(job.id)}>
+
+                  <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationsForOpportunity(job.id)}>
                       View Applicants
                   </button>
                 </div>
@@ -974,6 +995,132 @@ export default function OrganizationDashboard() {
             ))}
           </div>
         </motion.div>
+      )}
+
+      {/* APPLICATIONS TAB */}
+      {activeTab==="applications" && (
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+        <div style={styles.card}>
+          <h2 style={styles.sectionTitle}>
+            <Users size={18} />Applications</h2>
+
+          <div style={styles.divider} />
+
+          {selectedOpportunityId === null && (
+            <p style={styles.muted}>Choose a Listing and Click on "View Applicants".</p>
+          )}
+
+          {loadingApplications && (
+            <p style={styles.small}>Loading applications...</p>
+          )}
+
+          {applicationsError && (
+            <p style={{ ...styles.small, color: "#b91c1c" }}>{applicationsError}</p>
+          )}
+
+          <div style={{ display: "grid", gap: 12 }}>
+            {applications.map((application) => (
+              <div key={application.applicationId} style={styles.listingCard}>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <strong style={{ fontSize: 16 }}>Application: {application.applicationId}</strong>
+
+                  <p style={styles.small}>
+                    <b>Student:</b> {application.studentUserId}
+                  </p>
+
+                  <p style={styles.small}>
+                    <b>Status:</b> {application.status}
+                  </p>
+
+                  <p style={styles.small}>
+                    <b>Created At:</b> {fmtDate(application.createdAtUtc)}
+                  </p>
+
+                  <div style={styles.field}>
+                    <label style={styles.label}>Recruiter Note</label>
+                    <textarea
+                      style={styles.textarea}
+                      placeholder="Add recruiter note"
+                      value={applicationNotes[application.applicationId] || ""}
+                      onChange={(e) =>
+                        setApplicationNotes({...applicationNotes, [application.applicationId]: e.target.value})}
+                    />
+                  </div>
+
+                  <div style={styles.field}>
+                    <label style={styles.label}>Update Status</label>
+                    <select
+                      style={styles.input}
+                      value={applicationStatuses[application.applicationId] || "Pending"}
+                      onChange={(e) =>
+                        setApplicationStatuses({...applicationStatuses, [application.applicationId]: e.target.value})}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="InReview">In Review</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.actions}>
+                    <button type="button" style={styles.primaryBtn} onClick={() => updateApplication(application.applicationId)}>
+                      Update Application
+                    </button>
+
+                    <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationDetails(application.applicationId)}>
+                      View Details
+                    </button>
+
+                    <button type="button" style={styles.outlineBtn} onClick={() => navigate(`/student-profile/${application.studentUserId}`)}>
+                      View Profile
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={styles.divider} />
+
+        {loadingApplicationDetails && (
+          <p style={styles.small}>Loading application details...</p>
+        )}
+
+        {applicationDetailsError && (
+          <p style={{ ...styles.small, color: "#b91c1c" }}>
+            {applicationDetailsError}
+          </p>
+        )}
+
+        {selectedApplication && (
+          <div style={styles.card}>
+            <h3 style={{ marginTop: 0, marginBottom: 10 }}>Selected Application Details</h3>
+
+            <div style={styles.small}>
+              <b>Application ID:</b> {selectedApplication.applicationId}
+            </div>
+            <div style={styles.small}>
+              <b>Opportunity:</b> {selectedApplication.opportunityTitle}
+            </div>
+            <div style={styles.small}>
+              <b>Student:</b> {selectedApplication.studentUserId}
+            </div>
+            <div style={styles.small}>
+              <b>Status:</b> {selectedApplication.status}
+            </div>
+            <div style={styles.small}>
+              <b>Score:</b> {selectedApplication.assessment?.score ?? "—"}
+            </div>
+            <div style={styles.small}>
+              <b>Flagged:</b> {selectedApplication.assessment?.flagged ? "Yes" : "No"}
+            </div>
+            <div style={styles.small}>
+              <b>Flag Reason:</b> {selectedApplication.assessment?.flagReason || "—"}
+            </div>
+          </div>
+        )}
+      </motion.div>
       )}
     </div>
   );

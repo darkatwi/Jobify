@@ -5,7 +5,6 @@ using Jobify.Api.Services;
 using Jobify.Api.Services.SkillServices;
 using Jobify.Api.Swagger;
 
-
 // Authentication / Authorization
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -40,6 +39,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Register RecommendationService for recommendation system
 builder.Services.AddScoped<Jobify.Api.Services.RecommendationService>();
+
+// Register ML extraction service
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<MlExtractionService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
@@ -84,12 +88,6 @@ builder.Services.AddScoped<JwtTokenService>();
 
 // Skill extraction services
 builder.Services.AddScoped<SkillService>();
-builder.Services.AddHttpClient<MlSkillClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["MlService:BaseUrl"]!);
-});
-
-builder.Services.AddHttpClient();
 
 // Authentication
 builder.Services
@@ -231,7 +229,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Middleware pipeline
-
 if (app.Environment.IsDevelopment())
 {
     // Enable Swagger UI only in development

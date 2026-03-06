@@ -330,7 +330,7 @@ export default function OrganizationDashboard() {
         },
       });
 
-      if (!res.ok) {
+      if(!res.ok) {
         throw new Error("Failed to fetch recruiter listings.");
       }
 
@@ -356,7 +356,7 @@ export default function OrganizationDashboard() {
 
       setListings(mapped);
     } 
-    catch (err: any) {
+    catch(err: any) {
       setListingsError(err.message || "Something went wrong.");
     } 
     finally {
@@ -380,7 +380,7 @@ export default function OrganizationDashboard() {
         },
       });
 
-      if (!res.ok) {
+      if(!res.ok) {
         throw new Error("Failed to fetch applications.");
       }
 
@@ -388,11 +388,43 @@ export default function OrganizationDashboard() {
       setApplications(data);
       setActiveTab("applications");
     }
-    catch (err: any) {
+    catch(err: any) {
       setApplicationsError(err.message || "Something went wrong.");
     } 
     finally {
       setLoadingApplications(false);
+    }
+  }
+
+  //Single application details fetch function
+  async function fetchApplicationDetails(applicationId: number) {
+    try {
+      setSelectedApplication(null);
+      setLoadingApplicationDetails(true);
+      setApplicationDetailsError("");
+
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(`${API_BASE}/applications/${applicationId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if(!res.ok) {
+        throw new Error("Failed to fetch application details.");
+      }
+
+      const data = await res.json();
+      setSelectedApplication(data);
+      setRecruiterNote(data.note || "");
+      setNewStatus(data.status || "");
+    }
+    catch(err: any) {
+      setApplicationDetailsError(err.message || "Something went wrong.");
+    }
+    finally {
+      setLoadingApplicationDetails(false);
     }
   }
 

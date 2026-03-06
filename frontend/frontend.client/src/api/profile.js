@@ -1,21 +1,26 @@
-
-
 const API_BASE =
     import.meta.env.VITE_API_URL ||
-    import.meta.env.VITE_API_BASE ||
     "https://localhost:7176";
 
 function getToken() {
-    const token =
+    const direct =
         localStorage.getItem("jobify_token") ||
         localStorage.getItem("token") ||
         localStorage.getItem("jwt") ||
         localStorage.getItem("authToken");
 
-    return token && token.trim().length > 0 ? token : null;
+    if (direct && direct.trim().length > 0) return direct.trim();
+
+    try {
+        const stored = JSON.parse(localStorage.getItem("jobify_user") || "{}");
+        const t = stored?.token;
+        return t && String(t).trim().length > 0 ? String(t).trim() : null;
+    } catch {
+        return null;
+    }
 }
 
-async function request(path, options = {}) {
+export async function rawRequest(path, options = {}) {
     const token = getToken();
     if (!token) throw new Error("No token found. Please login again.");
 
@@ -27,15 +32,18 @@ async function request(path, options = {}) {
         },
     });
 
-    if (res.status === 401) {
-        throw new Error("Unauthorized (401). Please login again.");
-    }
+    if (res.status === 401) throw new Error("Unauthorized (401). Please login again.");
 
     if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Request failed (${res.status})`);
     }
 
+    return res;
+}
+
+async function request(path, options = {}) {
+    const res = await rawRequest(path, options);
     return res.json();
 }
 
@@ -52,3 +60,5 @@ export async function updateProfile(payload) {
 
     return getProfile();
 }
+
+export { API_BASE };

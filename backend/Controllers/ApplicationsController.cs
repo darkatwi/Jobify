@@ -1093,8 +1093,8 @@ public class ApplicationsController : ControllerBase
                 status = a.Status.ToString(),
                 note = a.Note,
                 createdAtUtc = a.CreatedAtUtc,
-                updatedAtUtc = a.UpdatedAtUtc
-                applicantsCount = _db.Applications.Count(a => a.OpportunityId == o.Id)
+                updatedAtUtc = a.UpdatedAtUtc,
+                applicantsCount = _db.Applications.Count(o => o.OpportunityId == opportunityId)
             })
             .OrderByDescending(a => a.createdAtUtc)
             .ToListAsync();

@@ -38,13 +38,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Register RecommendationService for recommendation system
-builder.Services.AddScoped<Jobify.Api.Services.RecommendationService>();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevCors", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-});
-
 // ASP.NET Identity
 // Handles users, roles, passwords, hashing, tokens, etc.
 builder.Services
@@ -81,6 +74,8 @@ builder.Services.AddCors(options =>
 // Custom services
 // Service that creates JWT tokens on login
 builder.Services.AddScoped<JwtTokenService>();
+
+builder.Services.AddScoped<UniversityProofOcrService>();
 
 // Skill extraction services
 builder.Services.AddScoped<SkillService>();
@@ -182,6 +177,8 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<FileUploadOperationFilter>();
 });
 
+builder.Services.AddScoped<RecommendationService>();
+
 var app = builder.Build();
 
 // Seed roles + admin user
@@ -247,8 +244,6 @@ app.UseCors("AllowFrontend");
 // Authentication must come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseCors("DevCors");
 
 // Map controller endpoints
 app.MapControllers();

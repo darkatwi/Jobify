@@ -1,4 +1,3 @@
-
 // App DB + services
 using Jobify.Api.Data;
 using Jobify.Api.Services;
@@ -6,7 +5,6 @@ using Jobify.Api.Services.SkillServices;
 using Jobify.Api.Swagger;
 
 // Authentication / Authorization
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using AspNet.Security.OAuth.GitHub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,39 +24,36 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Services (Dependency Injection)
-// Enables API controllers ([ApiController])
 builder.Services.AddControllers();
 
 // Database (SQL Server)
-// Registers AppDbContext so it can be injected anywhere
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
-// Register RecommendationService for recommendation system
+// Recommendation system
 builder.Services.AddScoped<Jobify.Api.Services.RecommendationService>();
 
-// Register ML extraction service
-builder.Services.AddHttpClient();
+// ML / skill services
 builder.Services.AddScoped<MlExtractionService>();
+builder.Services.AddScoped<SkillService>();
 
-builder.Services.AddCors(options =>
+builder.Services.AddHttpClient<MlSkillClient>(client =>
 {
-    options.AddPolicy("DevCors", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+    client.BaseAddress = new Uri(
+        builder.Configuration["MlService:BaseUrl"] ?? "http://localhost:8000/"
+    );
 });
 
 // ASP.NET Identity
-// Handles users, roles, passwords, hashing, tokens, etc.
 builder.Services
     .AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
-// Token lifetime for:
-// - Email confirmation
-// - Password reset
+// Token lifetime for email confirmation / password reset
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 {
     options.TokenLifespan = TimeSpan.FromMinutes(30);
@@ -69,7 +64,6 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
         policy
-            // Only allow requests coming from localhost (dev)
             .SetIsOriginAllowed(origin =>
             {
                 if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
@@ -83,22 +77,16 @@ builder.Services.AddCors(options =>
 });
 
 // Custom services
-// Service that creates JWT tokens on login
 builder.Services.AddScoped<JwtTokenService>();
-
-// Skill extraction services
-builder.Services.AddScoped<SkillService>();
 
 // Authentication
 builder.Services
     .AddAuthentication(options =>
     {
-        // Use JWT by default
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
 
-    // JWT authentication (normal login)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -115,15 +103,12 @@ builder.Services
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
             ),
 
-            // Makes [Authorize(Roles="Admin")] work
             RoleClaimType = ClaimTypes.Role
         };
     })
 
-    // Cookie used ONLY for external OAuth (Google / GitHub)
     .AddCookie("External")
 
-    // Google OAuth login
     .AddGoogle("Google", options =>
     {
         options.SignInScheme = "External";
@@ -134,7 +119,6 @@ builder.Services
         options.Scope.Add("profile");
     })
 
-    // GitHub OAuth login
     .AddGitHub("GitHub", options =>
     {
         options.SignInScheme = "External";
@@ -147,11 +131,10 @@ builder.Services
 // Authorization
 builder.Services.AddAuthorization();
 
-// Swagger (API documentation)
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    // Tell Swagger how JWT auth works
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
@@ -162,7 +145,6 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT"
     });
 
-    // Apply JWT security to all endpoints
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -177,20 +159,19 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
     c.OperationFilter<FileUploadOperationFilter>();
 });
 
 var app = builder.Build();
 
 // Seed roles + admin user
-// Runs once at startup
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-    // Ensure required roles exist
     var roles = new[] { "Admin", "Recruiter", "Student" };
     foreach (var r in roles)
     {
@@ -198,7 +179,6 @@ using (var scope = app.Services.CreateScope())
             await roleManager.CreateAsync(new IdentityRole(r));
     }
 
-    // Optional: seed admin account from config
     var adminEmail = config["SeedAdmin:Email"];
     var adminPassword = config["SeedAdmin:Password"];
 
@@ -231,24 +211,17 @@ using (var scope = app.Services.CreateScope())
 // Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger UI only in development
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
 
-// Apply CORS policy
 app.UseCors("AllowFrontend");
 
-// Authentication must come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseCors("DevCors");
-
-// Map controller endpoints
 app.MapControllers();
 
-// Start the application
 app.Run();

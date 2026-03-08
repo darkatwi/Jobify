@@ -1,5 +1,6 @@
 // App DB + services
 using Jobify.Api.Data;
+using Jobify.Api.Models;
 using Jobify.Api.Services;
 using Jobify.Api.Services.SkillServices;
 using Jobify.Api.Swagger;
@@ -49,7 +50,7 @@ builder.Services.AddHttpClient<MlSkillClient>(client =>
 
 // ASP.NET Identity
 builder.Services
-    .AddIdentity<IdentityUser, IdentityRole>()
+    .AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -86,7 +87,6 @@ builder.Services
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
-
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -106,9 +106,7 @@ builder.Services
             RoleClaimType = ClaimTypes.Role
         };
     })
-
     .AddCookie("External")
-
     .AddGoogle("Google", options =>
     {
         options.SignInScheme = "External";
@@ -118,7 +116,6 @@ builder.Services
         options.Scope.Add("email");
         options.Scope.Add("profile");
     })
-
     .AddGitHub("GitHub", options =>
     {
         options.SignInScheme = "External";
@@ -169,7 +166,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     var roles = new[] { "Admin", "Recruiter", "Student" };
@@ -188,7 +185,7 @@ using (var scope = app.Services.CreateScope())
 
         if (admin == null)
         {
-            admin = new IdentityUser
+            admin = new ApplicationUser
             {
                 UserName = adminEmail,
                 Email = adminEmail,
@@ -197,10 +194,12 @@ using (var scope = app.Services.CreateScope())
 
             var createRes = await userManager.CreateAsync(admin, adminPassword);
             if (!createRes.Succeeded)
+            {
                 throw new Exception(
                     "Admin seed failed: " +
                     string.Join(", ", createRes.Errors.Select(e => e.Description))
                 );
+            }
         }
 
         if (!await userManager.IsInRoleAsync(admin, "Admin"))

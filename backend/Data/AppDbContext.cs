@@ -1,11 +1,10 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Jobify.Api.Models;
 
 namespace Jobify.Api.Data;
 
-public class AppDbContext : IdentityDbContext<IdentityUser>
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -46,10 +45,10 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
         base.OnModelCreating(modelBuilder);
 
         // =========================
-        // StudentProfile -> IdentityUser (1:1)
+        // StudentProfile -> ApplicationUser (1:1)
         // =========================
         modelBuilder.Entity<StudentProfile>()
-            .HasOne<IdentityUser>()
+            .HasOne<ApplicationUser>()
             .WithOne()
             .HasForeignKey<StudentProfile>(x => x.UserId)
             .OnDelete(DeleteBehavior.Cascade);

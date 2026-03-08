@@ -13,6 +13,9 @@ import "../pages/styles/layout.css";
 
 export default function AppLayout() {
   const [scrolled, setScrolled] = useState(false);
+  
+  const user = JSON.parse(localStorage.getItem("jobify_user"));
+  const role = user?.userRole;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -95,6 +98,18 @@ export default function AppLayout() {
               </span>
               <span className="al-linkText">Matches</span>
             </NavLink>
+
+            {role === "recruiter" && (
+              <NavLink
+                to="/organization"
+                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+              >
+                <span className="al-linkIcon">
+                  <LayoutGrid size={18} />
+                </span>
+                <span className="al-linkText">Organization</span>
+              </NavLink>
+            )}
 
             <NavLink
               to="/profile"

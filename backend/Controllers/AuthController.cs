@@ -262,7 +262,7 @@ public class AuthController : ControllerBase
         var frontendBase =
             _config["Frontend:BaseUrl"]
             ?? _config["FrontendUrl"]
-            ?? "http://localhost:5173";
+            ?? "http://localhost:63303";
 
         var redirectUrl = waitingAdmin
             ? $"{frontendBase}/email-confirmed?status=waiting_admin"
@@ -641,7 +641,7 @@ public class AuthController : ControllerBase
         var frontendUrl = _config["Frontend:BaseUrl"] ?? _config["FrontendUrl"] ?? "https://localhost:63303";
 
         // This goes to FRONTEND: /confirm-email page
-        var apiBase = $"{Request.Scheme}://{Request.Host}"; // https://localhost:7176
+        var apiBase = $"{Request.Scheme}://{Request.Host}";
         var confirmLink =
             $"{apiBase}/api/Auth/confirm-email?userId={Uri.EscapeDataString(user.Id)}&token={Uri.EscapeDataString(token)}";
 
@@ -844,7 +844,7 @@ public class AuthController : ControllerBase
         companyName = string.IsNullOrWhiteSpace(companyName) ? "your organization" : companyName;
         reason = string.IsNullOrWhiteSpace(reason) ? "Your organization could not be verified at this time." : reason;
 
-        var frontendUrl = _config["Frontend:BaseUrl"] ?? _config["FrontendUrl"] ?? "http://localhost:5173";
+        var frontendUrl = _config["Frontend:BaseUrl"] ?? _config["FrontendUrl"] ?? "http://localhost:63303";
         var supportLink = $"{frontendUrl}/contact"; // or just homepage
         var signupLink = $"{frontendUrl}/signup";
 

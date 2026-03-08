@@ -449,8 +449,10 @@ public class ProfileController : ControllerBase
 
     [HttpPost("student/university-proof")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadUniversityProof([FromForm] IFormFile file)
+    public async Task<IActionResult> UploadUniversityProof([FromForm] UploadResumeRequest request)
     {
+        var file = request.File;
+
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized("User not authenticated");

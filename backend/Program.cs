@@ -1,6 +1,5 @@
 // App DB + services
 using Jobify.Api.Data;
-using Jobify.Api.Models;
 using Jobify.Api.Services;
 using Jobify.Api.Services.SkillServices;
 using Jobify.Api.Swagger;
@@ -10,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using AspNet.Security.OAuth.GitHub;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 
 // Database
 using Microsoft.EntityFrameworkCore;
@@ -35,10 +35,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 // Recommendation system
-builder.Services.AddScoped<Jobify.Api.Services.RecommendationService>();
+builder.Services.AddScoped<RecommendationService>();
 
-// ML / skill services
-builder.Services.AddScoped<MlExtractionService>();
+// Skill services
 builder.Services.AddScoped<SkillService>();
 
 builder.Services.AddHttpClient<MlSkillClient>(client =>
@@ -48,9 +47,11 @@ builder.Services.AddHttpClient<MlSkillClient>(client =>
     );
 });
 
+builder.Services.AddHttpClient();
+
 // ASP.NET Identity
 builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole>()
+    .AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -80,23 +81,13 @@ builder.Services.AddCors(options =>
 // Custom services
 builder.Services.AddScoped<JwtTokenService>();
 
-builder.Services.AddScoped<UniversityProofOcrService>();
-
-// Skill extraction services
-builder.Services.AddScoped<SkillService>();
-builder.Services.AddHttpClient<MlSkillClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["MlService:BaseUrl"]!);
-});
-
-builder.Services.AddHttpClient();
-
 // Authentication
 builder.Services
     .AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = "External";
     })
     .AddJwtBearer(options =>
     {
@@ -171,15 +162,13 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<FileUploadOperationFilter>();
 });
 
-builder.Services.AddScoped<RecommendationService>();
-
 var app = builder.Build();
 
 // Seed roles + admin user
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
     var roles = new[] { "Admin", "Recruiter", "Student" };
@@ -198,7 +187,7 @@ using (var scope = app.Services.CreateScope())
 
         if (admin == null)
         {
-            admin = new ApplicationUser
+            admin = new IdentityUser
             {
                 UserName = adminEmail,
                 Email = adminEmail,
@@ -233,8 +222,6 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseCors("DevCors");
 
 // Map controller endpoints
 app.MapControllers();

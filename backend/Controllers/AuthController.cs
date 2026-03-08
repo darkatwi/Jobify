@@ -24,8 +24,8 @@ namespace Jobify.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly SignInManager<IdentityUser> _signInManager;
     private readonly RoleManager<IdentityRole> _roleManager;
 
     private readonly JwtTokenService _jwt;
@@ -35,8 +35,8 @@ public class AuthController : ControllerBase
     private static readonly Dictionary<string, (string Email, DateTime ExpiresAtUtc)> _oauthTemp = new();
 
     public AuthController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
+        UserManager<IdentityUser> userManager,
+        SignInManager<IdentityUser> signInManager,
         RoleManager<IdentityRole> roleManager,
         JwtTokenService jwt,
         IConfiguration config,
@@ -79,7 +79,7 @@ public class AuthController : ControllerBase
                 return BadRequest("Please provide at least one official link (Website, LinkedIn, or Instagram).");
         }
 
-        var user = new ApplicationUser
+        var user = new IdentityUser
         {
             UserName = email,
             Email = email,
@@ -468,7 +468,7 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
         {
-            user = new ApplicationUser
+            user = new IdentityUser
             {
                 UserName = email,
                 Email = email,
@@ -534,7 +534,7 @@ public class AuthController : ControllerBase
             await _roleManager.CreateAsync(new IdentityRole(role));
     }
 
-    private async Task SendRecruiterConfirmEmail(ApplicationUser user)
+    private async Task SendRecruiterConfirmEmail(IdentityUser user)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 

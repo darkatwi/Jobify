@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
-
+using Jobify.Api.Services;
 namespace Jobify.Api.Controllers;
+using System.Text.RegularExpressions;
+using System.Linq;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -17,12 +19,19 @@ public class ProfileController : ControllerBase
     private readonly AppDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _config;
+    private readonly UniversityProofOcrService _ocrService;
 
+    public ProfileController(
+    AppDbContext context,
+    UserManager<IdentityUser> userManager,
+    IConfiguration config,
+    UniversityProofOcrService ocrService)
     public ProfileController(AppDbContext context, UserManager<ApplicationUser> userManager, IConfiguration config)
     {
         _context = context;
         _userManager = userManager;
         _config = config;
+        _ocrService = ocrService;
     }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -111,6 +120,7 @@ public class ProfileController : ControllerBase
             return Unauthorized("User not authenticated");
 
         var ur = await GetUserAndRolesAsync(userId);
+        var userEmail = ur.Value.user.Email;
         if (ur == null)
             return NotFound("User not found");
 
@@ -135,6 +145,7 @@ public class ProfileController : ControllerBase
             return Ok(new
             {
                 role = "Student",
+                email = ur.Value.user.Email,
                 profile = new
                 {
                     userId = studentProfile.UserId,
@@ -462,38 +473,122 @@ public class ProfileController : ControllerBase
         if (file.Length > 10 * 1024 * 1024)
             return BadRequest("File too large. Max 10MB.");
 
-        var ext = SafeExt(file.FileName);
-        if (!IsAllowedProofType(file.ContentType ?? "", ext))
+        var originalName = file.FileName ?? "university_proof";
+        var ext = SafeExt(originalName);
+        var contentType = file.ContentType ?? "";
+
+        if (!IsAllowedProofType(contentType, ext))
             return BadRequest("University proof must be an image (png/jpg) or PDF.");
+
+        if (ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
+            return BadRequest("PDF OCR is not supported yet. Please upload a PNG, JPG, or JPEG image.");
 
         var studentProfile = await GetOrCreateStudentProfile(userId);
 
         var folder = BuildStudentUserFolder(userId);
         var storedName = await SaveFileAsync(file, folder, "university_proof");
+        var fullPath = Path.Combine(folder, storedName);
 
-        if (!string.IsNullOrEmpty(studentProfile.UniversityProofFileName))
+        try
         {
-            var oldPath = Path.Combine(folder, studentProfile.UniversityProofFileName);
-            if (System.IO.File.Exists(oldPath))
-                System.IO.File.Delete(oldPath);
-        }
+            var text = _ocrService.ExtractText(fullPath);
+            var normalizedText = NormalizeText(text);
+            var extractedUniversityName = ExtractUniversityName(text);
 
-        studentProfile.UniversityProofFileName = storedName;
-        studentProfile.UniversityProofOriginalFileName = file.FileName;
-        studentProfile.UniversityProofContentType = file.ContentType;
-        studentProfile.UniversityProofUploadedAtUtc = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new
-        {
-            role = "Student",
-            profile = new
+            var institutionKeywords = new[]
             {
-                hasUniversityProof = true,
-                universityProofUploadedAtUtc = studentProfile.UniversityProofUploadedAtUtc
+        "university",
+        "college",
+        "institute",
+        "school"
+    };
+
+            var proofKeywords = new[]
+            {
+        "student",
+        "student id",
+        "faculty",
+        "registrar",
+        "campus",
+        "academic",
+        "department",
+        "registration",
+        "enrollment",
+        "office of the registrar",
+        "currently registered",
+        "classes",
+        "major",
+        "semester",
+        "term",
+        "admissions"
+    };
+
+            int institutionScore = institutionKeywords.Count(k => normalizedText.Contains(k));
+            int proofScore = proofKeywords.Count(k => normalizedText.Contains(k));
+            int totalScore = institutionScore + proofScore;
+
+            bool nameMatched = false;
+            if (!string.IsNullOrWhiteSpace(studentProfile.FullName))
+            {
+                nameMatched = NameLooksPresent(text, studentProfile.FullName);
             }
-        });
+
+            bool looksLikeUniversityName = !string.IsNullOrWhiteSpace(extractedUniversityName);
+
+            if (institutionScore < 1 || (proofScore < 2 && !looksLikeUniversityName))
+            {
+                if (System.IO.File.Exists(fullPath))
+                    System.IO.File.Delete(fullPath);
+
+                return BadRequest("Uploaded document does not appear to be valid university proof.");
+            }
+
+            if (!string.IsNullOrEmpty(studentProfile.UniversityProofFileName))
+            {
+                var oldPath = Path.Combine(folder, studentProfile.UniversityProofFileName);
+                if (System.IO.File.Exists(oldPath))
+                    System.IO.File.Delete(oldPath);
+            }
+
+            studentProfile.UniversityProofFileName = storedName;
+            studentProfile.UniversityProofOriginalFileName = originalName;
+            studentProfile.UniversityProofContentType = contentType;
+            studentProfile.UniversityProofUploadedAtUtc = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                role = "Student",
+                profile = new
+                {
+                    hasUniversityProof = true,
+                    universityProofUploadedAtUtc = studentProfile.UniversityProofUploadedAtUtc
+                },
+                debug = new
+                {
+                    extractedText = text,
+                    normalizedText = normalizedText,
+                    extractedUniversityName = extractedUniversityName,
+                    institutionScore = institutionScore,
+                    proofScore = proofScore,
+                    totalScore = totalScore,
+                    nameMatched = nameMatched,
+                    firstName = string.IsNullOrWhiteSpace(studentProfile.FullName)
+                        ? null
+                        : NormalizeText(studentProfile.FullName)
+                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                            .FirstOrDefault()
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
+
+            return BadRequest($"OCR failed: {ex.Message}");
+        }
     }
 
     [HttpGet("student/university-proof")]

@@ -28,7 +28,7 @@ import AppLayout from "./layout/AppLayout";
 import { BrowseOpportunities } from "./pages/BrowseOpportunities";
 import ProfilePage from "./pages/ProfilePage";
 
-import RecruiterPosting from "./pages/RecruiterPosting";
+
 
 // placeholder pages 
 const Dashboard = () => <div>Dashboard</div>;
@@ -60,7 +60,7 @@ export default function App() {
 
                 <Route path="/matches" element={<Match />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/posting" element={<RecruiterPosting />} />
+                
 
                 <Route path="/application/:applicationId/review" element={<ApplicationReviewPage />} />
                 <Route path="/application/:applicationId/assessment/rules" element={<AssessmentRulesPage />} />

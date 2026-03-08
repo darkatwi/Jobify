@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import './styles/profile.css';
 
+import { extractSkillsFromCv } from "../api/cvExtract";
+
 /* ─────────────────────────────────────────────
    Top-level ProfilePage — keeps all API logic
 ───────────────────────────────────────────── */
@@ -34,6 +36,8 @@ const ProfilePage = () => {
     const [formData, setFormData] = useState({});
     const [darkMode, setDarkMode] = useState(false);
     const [bannerDismissed, setBannerDismissed] = useState(false);
+
+    const [skillsRefreshKey, setSkillsRefreshKey] = useState(0);
 
     useEffect(() => {
         fetchProfileData();
@@ -191,7 +195,14 @@ const ProfilePage = () => {
 
                 {/* Sections */}
                 {isStudent ? (
-                    <StudentSections profile={profile} formData={formData} onChange={handleInputChange} onProfileUpdate={setProfile} />
+                    <StudentSections
+                        profile={profile}
+                        formData={formData}
+                        onChange={handleInputChange}
+                        onProfileUpdate={setProfile}
+                        skillsRefreshKey={skillsRefreshKey}
+                        refreshSkills={() => setSkillsRefreshKey(k => k + 1)}
+                    />
                 ) : (
                     <RecruiterSections profile={profile} formData={formData} onChange={handleInputChange} />
                 )}
@@ -211,18 +222,18 @@ const ProfilePage = () => {
 /* ─────────────────────────────────────────────
    Student sections
 ───────────────────────────────────────────── */
-const StudentSections = ({ profile, formData, onChange, onProfileUpdate }) => (
+const StudentSections = ({ profile, formData, onChange, onProfileUpdate, skillsRefreshKey, refreshSkills }) => (
     <div className="pf-sections">
         <PersonalInfoCard profile={profile} formData={formData} onChange={onChange} />
         <EducationCard profile={profile} />
         <div className="pf-grid-2">
-            <SkillsCard profile={profile} />
+            <SkillsCard refreshKey={skillsRefreshKey} />
             <InterestsCard profile={profile} />
         </div>
         <ExperienceCard profile={profile} />
         <ProjectsCard profile={profile} />
         <div className="pf-grid-2">
-            <ResumeCard profile={profile} onProfileUpdate={onProfileUpdate} />
+            <ResumeCard profile={profile} onProfileUpdate={onProfileUpdate} onSkillsUpdated={refreshSkills} />
             <UniversityProofCard profile={profile} onProfileUpdate={onProfileUpdate} />
         </div>
         <MatchingInsightsCard />
@@ -333,7 +344,7 @@ const EducationCard = ({ profile }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        getEducation().then(setItems).catch(() => {}).finally(() => setLoading(false));
+        getEducation().then(setItems).catch(() => { }).finally(() => setLoading(false));
     }, []);
 
     const submit = async (e) => {
@@ -401,23 +412,23 @@ const EducationCard = ({ profile }) => {
                 </div>
             )}
             {loading ? <div className="pf-empty"><div className="pf-spinner pf-spinner--sm" /></div> :
-             items.length === 0 ? <div className="pf-empty"><GraduationCap size={40} className="pf-empty__icon" /><p>No education added yet</p></div> : (
-                <div className="pf-list">
-                    {items.map(item => (
-                        <div key={item.id} className="pf-list-item">
-                            <div className="pf-list-item__body">
-                                <h4 className="pf-list-item__title">{item.degree} in {item.major}</h4>
-                                <p className="pf-list-item__sub">{item.university}</p>
-                                <p className="pf-list-item__meta">Class of {item.graduationYear}{item.gpa ? ` · GPA: ${item.gpa}` : ''}</p>
+                items.length === 0 ? <div className="pf-empty"><GraduationCap size={40} className="pf-empty__icon" /><p>No education added yet</p></div> : (
+                    <div className="pf-list">
+                        {items.map(item => (
+                            <div key={item.id} className="pf-list-item">
+                                <div className="pf-list-item__body">
+                                    <h4 className="pf-list-item__title">{item.degree} in {item.major}</h4>
+                                    <p className="pf-list-item__sub">{item.university}</p>
+                                    <p className="pf-list-item__meta">Class of {item.graduationYear}{item.gpa ? ` · GPA: ${item.gpa}` : ''}</p>
+                                </div>
+                                <div className="pf-list-item__actions">
+                                    <button className="pf-icon-btn" onClick={() => startEdit(item)}><Edit size={15} /></button>
+                                    <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(item.id)}><Trash2 size={15} /></button>
+                                </div>
                             </div>
-                            <div className="pf-list-item__actions">
-                                <button className="pf-icon-btn" onClick={() => startEdit(item)}><Edit size={15} /></button>
-                                <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(item.id)}><Trash2 size={15} /></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
         </Card>
     );
 };
@@ -427,7 +438,7 @@ const EducationCard = ({ profile }) => {
 ───────────────────────────────────────────── */
 const PROFICIENCY = ['Beginner', 'Intermediate', 'Advanced'];
 
-const SkillsCard = () => {
+const SkillsCard = ({ refreshKey }) => {
     const [skills, setSkills] = useState([]);
     const [name, setName] = useState('');
     const [proficiency, setProficiency] = useState('Beginner');
@@ -435,8 +446,12 @@ const SkillsCard = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        getSkills().then(setSkills).catch(err => setError(err.message)).finally(() => setLoading(false));
-    }, []);
+        setLoading(true);
+        getSkills()
+            .then(setSkills)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    }, [refreshKey]);
 
     const add = async () => {
         if (!name.trim()) return;
@@ -476,20 +491,20 @@ const SkillsCard = () => {
             </div>
 
             {loading ? <div className="pf-empty"><div className="pf-spinner pf-spinner--sm" /></div> :
-             skills.length > 0 ? (
-                <div className="pf-tags">
-                    {skills.map(s => (
-                        <span key={s.id} className="pf-tag pf-tag--skill">
-                            {s.verified && <CheckCircle size={11} className="pf-tag__verified" />}
-                            {s.name}
-                            <span className="pf-tag__level">({s.proficiency || proficiency})</span>
-                            <button className="pf-tag__remove" onClick={() => remove(s.id)}><X size={11} /></button>
-                        </span>
-                    ))}
-                </div>
-            ) : (
-                <div className="pf-empty"><Target size={36} className="pf-empty__icon" /><p>No skills yet</p></div>
-            )}
+                skills.length > 0 ? (
+                    <div className="pf-tags">
+                        {skills.map(s => (
+                            <span key={s.id} className="pf-tag pf-tag--skill">
+                                {s.verified && <CheckCircle size={11} className="pf-tag__verified" />}
+                                {s.name}
+                                <span className="pf-tag__level">({s.proficiency || proficiency})</span>
+                                <button className="pf-tag__remove" onClick={() => remove(s.id)}><X size={11} /></button>
+                            </span>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="pf-empty"><Target size={36} className="pf-empty__icon" /><p>No skills yet</p></div>
+                )}
 
             <div className="pf-tip">
                 <strong>Tip:</strong> Verified skills (✓) come from completed assessments.
@@ -665,31 +680,31 @@ const ExperienceCard = () => {
             )}
 
             {loading ? <div className="pf-empty"><div className="pf-spinner pf-spinner--sm" /></div> :
-             items.length === 0 ? (
-                <div className="pf-empty"><Briefcase size={40} className="pf-empty__icon" /><p>No experience added yet</p></div>
-            ) : (
-                <div className="pf-timeline">
-                    {items.map((exp, i) => (
-                        <div key={exp.id} className={`pf-timeline-item ${i < items.length - 1 ? 'pf-timeline-item--line' : ''}`}>
-                            <div className="pf-timeline-dot"><Briefcase size={14} /></div>
-                            <div className="pf-timeline-content">
-                                <div className="pf-list-item">
-                                    <div className="pf-list-item__body">
-                                        <h4 className="pf-list-item__title">{exp.role}</h4>
-                                        <p className="pf-list-item__company">{exp.company}</p>
-                                        <p className="pf-list-item__meta">{exp.duration}</p>
-                                        <p className="pf-list-item__desc">{exp.description}</p>
-                                    </div>
-                                    <div className="pf-list-item__actions">
-                                        <button className="pf-icon-btn" onClick={() => startEdit(exp)}><Edit size={15} /></button>
-                                        <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(exp.id)}><Trash2 size={15} /></button>
+                items.length === 0 ? (
+                    <div className="pf-empty"><Briefcase size={40} className="pf-empty__icon" /><p>No experience added yet</p></div>
+                ) : (
+                    <div className="pf-timeline">
+                        {items.map((exp, i) => (
+                            <div key={exp.id} className={`pf-timeline-item ${i < items.length - 1 ? 'pf-timeline-item--line' : ''}`}>
+                                <div className="pf-timeline-dot"><Briefcase size={14} /></div>
+                                <div className="pf-timeline-content">
+                                    <div className="pf-list-item">
+                                        <div className="pf-list-item__body">
+                                            <h4 className="pf-list-item__title">{exp.role}</h4>
+                                            <p className="pf-list-item__company">{exp.company}</p>
+                                            <p className="pf-list-item__meta">{exp.duration}</p>
+                                            <p className="pf-list-item__desc">{exp.description}</p>
+                                        </div>
+                                        <div className="pf-list-item__actions">
+                                            <button className="pf-icon-btn" onClick={() => startEdit(exp)}><Edit size={15} /></button>
+                                            <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(exp.id)}><Trash2 size={15} /></button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
         </Card>
     );
 };
@@ -794,34 +809,34 @@ const ProjectsCard = () => {
             )}
 
             {loading ? <div className="pf-empty"><div className="pf-spinner pf-spinner--sm" /></div> :
-             items.length === 0 ? (
-                <div className="pf-empty"><Code2 size={40} className="pf-empty__icon" /><p>No projects yet. Showcase your work!</p></div>
-            ) : (
-                <div className="pf-list">
-                    {items.map(proj => (
-                        <div key={proj.id} className="pf-list-item">
-                            <div className="pf-list-item__body">
-                                <h4 className="pf-list-item__title">
-                                    {proj.title}
-                                    {proj.links && (
-                                        <a href={`https://${proj.links}`} target="_blank" rel="noopener noreferrer" className="pf-ext-link">
-                                            <ExternalLink size={13} />
-                                        </a>
-                                    )}
-                                </h4>
-                                <p className="pf-list-item__desc">{proj.description}</p>
-                                <div className="pf-tags pf-tags--sm">
-                                    {(proj.techStack || []).map(t => <span key={t} className="pf-tag pf-tag--tech">{t}</span>)}
+                items.length === 0 ? (
+                    <div className="pf-empty"><Code2 size={40} className="pf-empty__icon" /><p>No projects yet. Showcase your work!</p></div>
+                ) : (
+                    <div className="pf-list">
+                        {items.map(proj => (
+                            <div key={proj.id} className="pf-list-item">
+                                <div className="pf-list-item__body">
+                                    <h4 className="pf-list-item__title">
+                                        {proj.title}
+                                        {proj.links && (
+                                            <a href={`https://${proj.links}`} target="_blank" rel="noopener noreferrer" className="pf-ext-link">
+                                                <ExternalLink size={13} />
+                                            </a>
+                                        )}
+                                    </h4>
+                                    <p className="pf-list-item__desc">{proj.description}</p>
+                                    <div className="pf-tags pf-tags--sm">
+                                        {(proj.techStack || []).map(t => <span key={t} className="pf-tag pf-tag--tech">{t}</span>)}
+                                    </div>
+                                </div>
+                                <div className="pf-list-item__actions">
+                                    <button className="pf-icon-btn" onClick={() => startEdit(proj)}><Edit size={15} /></button>
+                                    <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(proj.id)}><Trash2 size={15} /></button>
                                 </div>
                             </div>
-                            <div className="pf-list-item__actions">
-                                <button className="pf-icon-btn" onClick={() => startEdit(proj)}><Edit size={15} /></button>
-                                <button className="pf-icon-btn pf-icon-btn--danger" onClick={() => handleDelete(proj.id)}><Trash2 size={15} /></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
         </Card>
     );
 };
@@ -829,43 +844,89 @@ const ProjectsCard = () => {
 /* ─────────────────────────────────────────────
    Resume — wired to real API
 ───────────────────────────────────────────── */
-const ResumeCard = ({ profile, onProfileUpdate }) => {
+const normalizeSkill = (s) => (s || "").trim().toLowerCase();
+const ResumeCard = ({ profile, onProfileUpdate, onSkillsUpdated }) => {
     const [hasResume, setHasResume] = useState(profile?.hasResume || false);
     const [uploadedAt, setUploadedAt] = useState(profile?.resumeUploadedAtUtc || null);
     const [uploading, setUploading] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [progress, setProgress] = useState("");
     const [error, setError] = useState(null);
     const fileRef = useRef();
+
 
     const handleFile = async (e) => {
         const f = e.target.files?.[0];
         if (!f) return;
+
         setError(null);
         setUploading(true);
+        setProgress("Uploading CV...");
+
         try {
-            const res = await uploadResume(f);
+            // 1) SAVE resume file (backend)
+            const saved = await uploadResume(f);
+
+            // 2) EXTRACT skills
+            setProgress("Extracting skills...");
+            const extracted = await extractSkillsFromCv(f);
+            const extractedSkills = (extracted.skills || []).map(normalizeSkill);
+
+            // 3) Save skills to DB (avoid duplicates)
+            setProgress("Saving skills...");
+            const existing = await getSkills();
+            const existingSet = new Set(existing.map(x => normalizeSkill(x.name)));
+
+            for (const sk of extractedSkills) {
+                if (!sk || existingSet.has(sk)) continue;
+                await addSkill(sk);
+                existingSet.add(sk);
+            }
+
+            // ✅ 4) ONLY NOW update UI to show resume is “on file”
             setHasResume(true);
-            setUploadedAt(res.profile?.resumeUploadedAtUtc || new Date().toISOString());
+            setUploadedAt(saved.profile?.resumeUploadedAtUtc || new Date().toISOString());
             onProfileUpdate?.(prev => ({ ...prev, hasResume: true }));
+
+            // refresh skills card UI
+            onSkillsUpdated?.();
+
         } catch (err) {
-            setError(err.message || 'Upload failed');
+            setError(err.message || "Upload failed");
         } finally {
             setUploading(false);
-            fileRef.current.value = '';
+            setProgress("");
+            fileRef.current.value = "";
         }
+    };
+    const deleteAllSkills = async () => {
+        const skills = await getSkills(); // [{id, name, ...}]
+        await Promise.all(skills.map(s => deleteSkill(s.id)));
     };
 
     const handleDelete = async () => {
-        if (!confirm('Remove your resume?')) return;
+        if (!confirm("Remove your resume? This will also delete your skills.")) return;
+
         setDeleting(true);
         setError(null);
+
         try {
+            // delete resume
             await deleteResume();
+
+            // delete skills (from DB)
+            await deleteAllSkills();
+
+            // update UI
             setHasResume(false);
             setUploadedAt(null);
             onProfileUpdate?.(prev => ({ ...prev, hasResume: false }));
+
+            // refresh skills card
+            onSkillsUpdated?.();
+
         } catch (err) {
-            setError(err.message || 'Delete failed');
+            setError(err.message || "Delete failed");
         } finally {
             setDeleting(false);
         }
@@ -1017,7 +1078,7 @@ const UniversityProofCard = ({ profile, onProfileUpdate }) => {
                     <div className="pf-dropzone" onClick={() => fileRef.current?.click()}>
                         {uploading ? <div className="pf-spinner pf-spinner--sm" /> : <GraduationCap size={36} className="pf-dropzone__icon" />}
                         <p className="pf-dropzone__label">{uploading ? 'Uploading…' : 'Upload university proof'}</p>
-                        <p className="pf-dropzone__sub">Proof of enrollment or university ID — Image or PDF</p>
+                        <p className="pf-dropzone__sub">Upload a clear, cropped image showing the document text only</p>
                     </div>
                     <button className="pf-btn pf-btn--primary pf-btn--full" onClick={() => fileRef.current?.click()} disabled={uploading}>
                         <Upload size={15} /> {uploading ? 'Uploading…' : 'Upload Proof'}

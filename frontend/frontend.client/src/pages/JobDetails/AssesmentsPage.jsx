@@ -48,6 +48,11 @@ export default function AssessmentPage() {
     const [proctorMsg, setProctorMsg] = useState(null);   // { type: "warn"|"error", text: string }
     const [isFlagged, setIsFlagged] = useState(false);
 
+    const videoRef = useRef(null);
+    const canvasRef = useRef(null);
+    const streamRef = useRef(null);
+    const snapTimerRef = useRef(null);
+
 
     const tickRef = useRef(null);
     const saveRef = useRef(null);
@@ -82,6 +87,32 @@ export default function AssessmentPage() {
         setAnswers(patched);
     }, []);
 
+    const takeSnapshotBase64 = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (!video || !canvas) return null;
+
+        const w = video.videoWidth || 640;
+        const h = video.videoHeight || 480;
+
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, w, h);
+
+        return canvas.toDataURL("image/jpeg", 0.7);
+    };
+
+    const uploadSnapshot = useCallback(async (base64Jpeg) => {
+        try {
+            await api.post(`/api/Application/${applicationId}/assessment/snapshot`, {
+                base64Jpeg,
+            });
+        } catch {
+            // ignore snapshot errors (don’t break assessment)
+        }
+    }, [applicationId]);
 
 
     const fetchApp = useCallback(async () => {
@@ -114,18 +145,6 @@ export default function AssessmentPage() {
 
             const exp = parseUtcDate(loaded?.attempt?.expiresAtUtc);
             const expired = exp !== null && exp <= Date.now();
-
-            if (hasAssessment && (!attemptExists || expired)) {
-                const startRes = await startAttempt(false);
-
-                if (startRes?.alreadySubmitted) {
-                    loaded = await fetchApp();
-                    setData(loaded);
-                    patchAnswersWithStarter(loaded);
-                    return;
-                }
-                loaded = await fetchApp();
-            }
 
             setData(loaded);
             patchAnswersWithStarter(loaded);
@@ -190,6 +209,70 @@ export default function AssessmentPage() {
         const t = setTimeout(() => setProctorMsg(null), 4000);
         return () => clearTimeout(t);
     }, [proctorMsg]);
+
+    useEffect(() => {
+        const attemptId = data?.attempt?.attemptId;
+        const consent = !!data?.attempt?.webcamConsent;
+        const isSubmitted = data?.status === "Submitted" || !!data?.attempt?.submittedAtUtc;
+
+        if (!attemptId || isSubmitted) return;
+        if (!consent) return;
+
+        let cancelled = false;
+
+        const start = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false,
+                });
+
+                if (cancelled) {
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
+
+                streamRef.current = stream;
+
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    await videoRef.current.play();
+                }
+
+                // take 1 snapshot immediately (optional but recommended)
+                const first = takeSnapshotBase64();
+                if (first) uploadSnapshot(first);
+
+                // every 5 mins = 300000 ms
+                snapTimerRef.current = setInterval(() => {
+                    const shot = takeSnapshotBase64();
+                    if (shot) uploadSnapshot(shot);
+                }, 300000);
+
+            } catch (e) {
+                // user blocked camera or no camera
+            }
+        };
+
+        start();
+
+        return () => {
+            cancelled = true;
+
+            if (snapTimerRef.current) clearInterval(snapTimerRef.current);
+
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(t => t.stop());
+                streamRef.current = null;
+            }
+        };
+    }, [
+        data?.attempt?.attemptId,
+        data?.attempt?.webcamConsent,
+        data?.attempt?.submittedAtUtc,
+        data?.status,
+        uploadSnapshot
+    ]);
 
 
     useEffect(() => {
@@ -286,21 +369,12 @@ export default function AssessmentPage() {
         return (
             <div style={{ maxWidth: 800, margin: "0 auto", padding: 20 }}>
                 <h1>Assessment</h1>
-                <p>This assessment hasn’t started yet.</p>
+                <p>This assessment hasn’t started yet. Please accept the rules & webcam consent first.</p>
                 <button
-                    disabled={starting}
-                    onClick={async () => {
-                        setStarting(true);
-                        try {
-                            await startAttempt(false);
-                            await loadAndEnsureAttempt();
-                        } finally {
-                            setStarting(false);
-                        }
-                    }}
+                    onClick={() => nav(`/application/${applicationId}/assessment-rules`)}
                     style={{ padding: "12px 18px", fontWeight: 700 }}
                 >
-                    {starting ? "Starting…" : "Start Assessment"}
+                    Go to Rules Page
                 </button>
             </div>
         );
@@ -334,6 +408,8 @@ export default function AssessmentPage() {
                     Time left: {remainingMs === null ? "—" : msToClock(remainingMs)} {saving ? " • saving…" : ""}
                 </div>
             </div>
+            <video ref={videoRef} style={{ display: "none" }} playsInline muted />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
 
             {/* ✅ NB 3 goes HERE */}
             {proctorMsg && (

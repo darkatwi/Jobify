@@ -80,6 +80,17 @@ builder.Services.AddCors(options =>
 // Custom services
 builder.Services.AddScoped<JwtTokenService>();
 
+builder.Services.AddScoped<UniversityProofOcrService>();
+
+// Skill extraction services
+builder.Services.AddScoped<SkillService>();
+builder.Services.AddHttpClient<MlSkillClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["MlService:BaseUrl"]!);
+});
+
+builder.Services.AddHttpClient();
+
 // Authentication
 builder.Services
     .AddAuthentication(options =>
@@ -160,6 +171,8 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<FileUploadOperationFilter>();
 });
 
+builder.Services.AddScoped<RecommendationService>();
+
 var app = builder.Build();
 
 // Seed roles + admin user
@@ -221,6 +234,9 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseCors("DevCors");
+
+// Map controller endpoints
 app.MapControllers();
 
 app.Run();

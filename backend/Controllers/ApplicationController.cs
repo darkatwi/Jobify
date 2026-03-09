@@ -967,7 +967,7 @@ public class ApplicationController : ControllerBase
     // ── GET /api/applications/recruiter/{opportunityId} ───────────────────────
     // PB_19: see all applicants + their current status for a given opportunity
     [Authorize(Roles = "Recruiter")]
-    [HttpGet("recruiter/{opportunityId:int}")]
+    [HttpGet("recruiter/opportunity/{opportunityId:int}")]
     public async Task<ActionResult<List<RecruiterAppListDto>>> GetApplicationsForOpportunity(int opportunityId)
     {
         var oppExists = await _db.Opportunities.AnyAsync(o => o.Id == opportunityId);

@@ -383,7 +383,7 @@ export default function OrganizationDashboard() {
 
       const token = localStorage.getItem("jobify_token");
 
-      const res = await fetch(`${API_BASE}/applications/recruiter/${opportunityId}`, {
+      const res = await fetch(`${API_BASE}/application/recruiter/opportunity/${opportunityId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -426,7 +426,7 @@ export default function OrganizationDashboard() {
 
       const token = localStorage.getItem("jobify_token");
 
-      const res = await fetch(`${API_BASE}/applications/recruiter/${applicationId}`, {
+      const res = await fetch(`${API_BASE}/application/recruiter/${applicationId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

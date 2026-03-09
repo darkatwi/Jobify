@@ -3,6 +3,7 @@ using Jobify.Api.Data;
 using Jobify.Api.Services;
 using Jobify.Api.Services.SkillServices;
 using Jobify.Api.Swagger;
+using Jobify.Api.Services.Dashboard;
 
 // Authentication / Authorization
 using Microsoft.AspNetCore.Authentication.Google;
@@ -39,6 +40,7 @@ builder.Services.AddScoped<RecommendationService>();
 
 // Skill services
 builder.Services.AddScoped<SkillService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddHttpClient<MlSkillClient>(client =>
 {

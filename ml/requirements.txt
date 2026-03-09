@@ -1,18 +1,11 @@
-# Core ML
-tensorflow>=2.12
-numpy
+tensorflow==2.19.0
+numpy==1.26.4
 scikit-learn
-
-# Hugging Face
-transformers>=4.34.0
-tokenizers
+transformers==4.38.2
+tokenizers==0.15.2
+safetensors==0.4.5
 datasets
-
-# Reading Input
 pdfplumber
 pypandoc
-re
-os
-
-# Evaluation
-seqeval
+fastapi
+uvicorn

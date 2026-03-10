@@ -40,7 +40,7 @@ export default function App() {
             <Route path="/email-confirmed" element={<EmailConfirmed />} />
 
             <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<DashboardRoute />} />
                 <Route path="/browse" element={<BrowseOpportunities />} />
                 <Route path="/match" element={<Match />} />
                 <Route path="/organization" element={<OrganizationDashboard />} />

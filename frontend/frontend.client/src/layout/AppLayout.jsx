@@ -75,17 +75,7 @@ export default function AppLayout() {
               <span className="al-linkText">Browse</span>
             </NavLink>
 
-            {/* ✅ NEW: Match page link */}
-            <NavLink
-              to="/match"
-              className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-            >
-              <span className="al-linkIcon">
-                <Sparkles size={18} />
-              </span>
-              <span className="al-linkText">Match</span>
-            </NavLink>
-
+            
             <NavLink
               to="/matches"
               className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}

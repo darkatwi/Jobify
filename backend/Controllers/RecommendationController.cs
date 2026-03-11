@@ -55,7 +55,7 @@ namespace Jobify.Api.Controllers
                 select new SkillInputDto
                 {
                     Name = s.Name,
-                    Weight = (double)ss.score // ✅ lowercase 'score' (float)
+                    Weight = (double)ss.SkillId // ✅ lowercase 'score' (float)
                 }
             ).ToListAsync();
 

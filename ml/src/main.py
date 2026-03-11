@@ -4,56 +4,58 @@ from src.services.esco import search_skill_esco
 from src.utils.input_to_text import extract_text
 
 from fastapi import FastAPI, UploadFile, File
-import os, tempfile
-
+import os
+import tempfile
 
 CONF_THRESHOLD = 0.3
 
 # load model
 _loaded = load_skillner()
-_skillner = _loaded['model']
-_tokenizer = _loaded['tokenizer']
+_skillner = _loaded["model"]
+_tokenizer = _loaded["tokenizer"]
 
 # Building skill extraction pipeline
 pipeline = build_skill_pipeline(model=_skillner, tokenizer=_tokenizer)
 
 def run_main_pipeline(filepath, conf_threshold=CONF_THRESHOLD):
-    
     # Convert file to text for input
-    input = extract_text(filepath=filepath)
+    text = extract_text(filepath=filepath)
 
-    
     # Extract skills from input
-    extracted_skills = extract_skills(input, pipeline, _tokenizer)
+    extracted_skills = extract_skills(text, pipeline, _tokenizer)
 
     print("EXTRACTED_SKILLS_LEN =", len(extracted_skills))
     print("EXTRACTED_SKILLS_SAMPLE =", extracted_skills[:10])
 
-    # Validate skills
     skills = []
 
     for skill in extracted_skills:
+        current_skill = skill["skill"].strip()
+        current_score = float(skill["score"])
 
-        if skill['score']>=conf_threshold:
-            skills.append(skill['skill'])
+        if current_score >= conf_threshold:
+            skills.append({
+                "skill": current_skill,
+                "score": current_score
+            })
         else:
-            esco_skill = search_skill_esco(skill['skill'])
+            esco_skill = search_skill_esco(current_skill)
             if esco_skill:
-                skills.append(esco_skill["normalized_name"])
+                skills.append({
+                    "skill": esco_skill["normalized_name"],
+                    "score": current_score
+                })
 
+    # Normalize and deduplicate, keeping highest score
+    dedup = {}
 
-    # Noramlize and Deduplicate Skills
-    existing_skills = set()
+    for item in skills:
+        key = item["skill"].lower()
+        if key not in dedup or item["score"] > dedup[key]["score"]:
+            dedup[key] = item
 
-    skills = [skill for skill in skills if not (skill.lower() in existing_skills or existing_skills.add(skill.lower()))]
+    return list(dedup.values())
 
-    
-    return skills
-
-
-###########################################################################
-
-# API
 
 app = FastAPI()
 

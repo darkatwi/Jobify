@@ -1,6 +1,7 @@
 const API_BASE =
     import.meta.env.VITE_API_URL ||
-    "https://localhost:7176";
+    import.meta.env.VITE_API_BASE ||
+    "http://localhost:5159";
 
 function getToken() {
     const direct =

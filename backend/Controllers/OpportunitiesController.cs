@@ -439,12 +439,12 @@ public class OpportunitiesController : ControllerBase
         _db.Opportunities.Add(opportunity);
         await _db.SaveChangesAsync();
 
-        var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
-            opportunity.Description ?? "",
-            null
-        );
+        // var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
+            // opportunity.Description ?? "",
+            // null
+        // );
 
-        await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
+        // await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
 
 
         return CreatedAtAction(nameof(GetById), new { id = opportunity.Id }, new { opportunity.Id });

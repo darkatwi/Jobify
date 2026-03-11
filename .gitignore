@@ -18,3 +18,5 @@ appsettings.*.json
 
 # Visual Studio user-specific files
 *.csproj.user
+__pycache__/
+*.pyc

@@ -84,7 +84,7 @@ export default function LoginPage() {
      */
     const API_URL =
         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL) ||
-        "https://localhost:7176"; // change if your backend port differs
+        "http://localhost:5159"; // change if your backend port differs
 
     // ✅ OAuth redirect helpers
     const loginWithGoogle = () => {

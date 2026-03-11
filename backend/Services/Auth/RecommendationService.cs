@@ -9,7 +9,7 @@ namespace Jobify.Api.Services
 {
     public class RecommendationService
     {
-        private const double THRESHOLD = 0.6;
+        private const double THRESHOLD = 0.4;
 
         private static readonly Dictionary<string, string> SynonymMap = new()
         {
@@ -24,18 +24,18 @@ namespace Jobify.Api.Services
             return SynonymMap.TryGetValue(s, out var mapped) ? mapped : s;
         }
 
-        // Uses reflection so it works even if your model property names differ
         private static double GetWeight(object obj, double fallback = 1)
         {
             var prop = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .FirstOrDefault(p => string.Equals(p.Name, "Weight", StringComparison.OrdinalIgnoreCase));
+
             if (prop == null) return fallback;
 
             var val = prop.GetValue(obj);
             if (val == null) return fallback;
 
-            // handle decimal/int/double
-            try { return Convert.ToDouble(val); } catch { return fallback; }
+            try { return Convert.ToDouble(val); }
+            catch { return fallback; }
         }
 
         private static bool GetMandatory(object obj, bool fallback = false)
@@ -52,14 +52,14 @@ namespace Jobify.Api.Services
             var val = prop.GetValue(obj);
             if (val == null) return fallback;
 
-            try { return Convert.ToBoolean(val); } catch { return fallback; }
+            try { return Convert.ToBoolean(val); }
+            catch { return fallback; }
         }
 
         public List<RecommendedOpportunityDto> Recommend(
             List<SkillInputDto> applicantSkills,
             List<Opportunity> opportunities)
         {
-            // applicantMap: normalized skill -> weight
             var applicantMap = new Dictionary<string, double>();
 
             foreach (var s in applicantSkills ?? new())
@@ -67,9 +67,10 @@ namespace Jobify.Api.Services
                 var name = Normalize(s.Name);
                 if (string.IsNullOrWhiteSpace(name)) continue;
 
-                var w = s.Weight <= 0 ? 1 : s.Weight;
+                var w = s.Weight;
+                if (w < 0) w = 0;
+                if (w > 1) w = 1;
 
-                // if duplicate, keep highest weight
                 if (!applicantMap.ContainsKey(name) || applicantMap[name] < w)
                     applicantMap[name] = w;
             }
@@ -80,11 +81,14 @@ namespace Jobify.Api.Services
             {
                 var oppSkills = opp.OpportunitySkills ?? new List<OpportunitySkill>();
 
-                // 1) Filter missing mandatory skills (if your model supports mandatory/required)
+                if (oppSkills.Count == 0)
+                    continue;
+
                 bool missingMandatory = false;
+
                 foreach (var os in oppSkills)
                 {
-                    bool isMandatory = GetMandatory(os, fallback: false); // if you don't have the field, it's treated as false
+                    bool isMandatory = GetMandatory(os, fallback: false);
                     if (!isMandatory) continue;
 
                     var skillName = Normalize(os.Skill?.Name ?? "");
@@ -94,9 +98,10 @@ namespace Jobify.Api.Services
                         break;
                     }
                 }
-                if (missingMandatory) continue;
 
-                // 2) Weighted score
+                if (missingMandatory)
+                    continue;
+
                 double totalWeight = 0;
                 double matchedWeight = 0;
                 var matched = new List<string>();
@@ -113,12 +118,14 @@ namespace Jobify.Api.Services
 
                     if (applicantMap.TryGetValue(skillName, out var appWeight))
                     {
-                        matchedWeight += reqWeight * Math.Min(1.0, appWeight);
+                        // ML confidence directly affects contribution
+                        matchedWeight += reqWeight * appWeight;
                         matched.Add(skillName);
                     }
                 }
 
-                if (totalWeight <= 0) continue;
+                if (totalWeight <= 0)
+                    continue;
 
                 var score = matchedWeight / totalWeight;
 
@@ -134,7 +141,10 @@ namespace Jobify.Api.Services
                 }
             }
 
-            return results.OrderByDescending(r => r.Score).ToList();
+            return results
+                .OrderByDescending(r => r.Score)
+                .ThenBy(r => r.Title)
+                .ToList();
         }
     }
 }

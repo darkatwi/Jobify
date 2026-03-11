@@ -96,7 +96,7 @@ export default function SignupPage() {
      */
     const API_URL =
         (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL) ||
-        "https://localhost:7176";
+        "http://localhost:5159";
 
     // ✅ OAuth redirect helpers
     const loginWithGoogle = () => {

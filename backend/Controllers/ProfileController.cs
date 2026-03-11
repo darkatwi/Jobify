@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
-using Jobify.Api.Services;
+
 namespace Jobify.Api.Controllers;
-using System.Text.RegularExpressions;
-using System.Linq;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -19,19 +17,17 @@ public class ProfileController : ControllerBase
     private readonly AppDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IConfiguration _config;
-    private readonly UniversityProofOcrService _ocrService;
 
     public ProfileController(
-    AppDbContext context,
-    UserManager<IdentityUser> userManager,
-    IConfiguration config,
-    UniversityProofOcrService ocrService)
+        AppDbContext context,
+        UserManager<IdentityUser> userManager,
+        IConfiguration config)
     {
         _context = context;
         _userManager = userManager;
         _config = config;
-        _ocrService = ocrService;
     }
+
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     private async Task<(IdentityUser user, IList<string> roles)?> GetUserAndRolesAsync(string userId)
@@ -109,6 +105,7 @@ public class ProfileController : ControllerBase
 
         return storedName;
     }
+
     [HttpGet]
     public async Task<IActionResult> GetProfile()
     {
@@ -117,7 +114,6 @@ public class ProfileController : ControllerBase
             return Unauthorized("User not authenticated");
 
         var ur = await GetUserAndRolesAsync(userId);
-        var userEmail = ur.Value.user.Email;
         if (ur == null)
             return NotFound("User not found");
 
@@ -207,6 +203,7 @@ public class ProfileController : ControllerBase
 
         return BadRequest("User has no valid role");
     }
+
     [HttpPut]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
@@ -476,9 +473,6 @@ public class ProfileController : ControllerBase
         if (!IsAllowedProofType(contentType, ext))
             return BadRequest("University proof must be an image (png/jpg) or PDF.");
 
-        if (ext.Equals(".pdf", StringComparison.OrdinalIgnoreCase))
-            return BadRequest("PDF OCR is not supported yet. Please upload a PNG, JPG, or JPEG image.");
-
         var studentProfile = await GetOrCreateStudentProfile(userId);
 
         var folder = BuildStudentUserFolder(userId);
@@ -602,19 +596,19 @@ public class ProfileController : ControllerBase
                 return BadRequest("Uploaded document does not appear to be valid university proof.");
             }
 
-            if (!string.IsNullOrEmpty(studentProfile.UniversityProofFileName))
-            {
-                var oldPath = Path.Combine(folder, studentProfile.UniversityProofFileName);
-                if (System.IO.File.Exists(oldPath))
-                    System.IO.File.Delete(oldPath);
-            }
+        if (!string.IsNullOrEmpty(studentProfile.UniversityProofFileName))
+        {
+            var oldPath = Path.Combine(folder, studentProfile.UniversityProofFileName);
+            if (System.IO.File.Exists(oldPath))
+                System.IO.File.Delete(oldPath);
+        }
 
-            studentProfile.UniversityProofFileName = storedName;
-            studentProfile.UniversityProofOriginalFileName = originalName;
-            studentProfile.UniversityProofContentType = contentType;
-            studentProfile.UniversityProofUploadedAtUtc = DateTime.UtcNow;
+        studentProfile.UniversityProofFileName = storedName;
+        studentProfile.UniversityProofOriginalFileName = originalName;
+        studentProfile.UniversityProofContentType = contentType;
+        studentProfile.UniversityProofUploadedAtUtc = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
             return Ok(new
             {
@@ -719,10 +713,6 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "University proof deleted successfully" });
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SKILLS
-    // ─────────────────────────────────────────────────────────────
-
     [HttpGet("student/skills")]
     public async Task<IActionResult> GetSkills()
     {
@@ -790,10 +780,6 @@ public class ProfileController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new { message = "Skill removed." });
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // EDUCATION
-    // ─────────────────────────────────────────────────────────────
 
     [HttpGet("student/education")]
     public async Task<IActionResult> GetEducation()
@@ -865,10 +851,6 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "Education removed." });
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // EXPERIENCE
-    // ─────────────────────────────────────────────────────────────
-
     [HttpGet("student/experience")]
     public async Task<IActionResult> GetExperience()
     {
@@ -936,10 +918,6 @@ public class ProfileController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new { message = "Experience removed." });
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // PROJECTS
-    // ─────────────────────────────────────────────────────────────
 
     [HttpGet("student/projects")]
     public async Task<IActionResult> GetProjects()
@@ -1009,10 +987,6 @@ public class ProfileController : ControllerBase
         return Ok(new { message = "Project removed." });
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // INTERESTS
-    // ─────────────────────────────────────────────────────────────
-
     [HttpGet("student/interests")]
     public async Task<IActionResult> GetInterests()
     {
@@ -1064,70 +1038,8 @@ public class ProfileController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new { message = "Interest removed." });
     }
-
-    private static string NormalizeText(string input)
-    {
-        if (string.IsNullOrWhiteSpace(input))
-            return string.Empty;
-
-        input = input.ToLowerInvariant();
-        input = Regex.Replace(input, @"[^\w\s]", " ");
-        input = Regex.Replace(input, @"\s+", " ").Trim();
-
-        return input;
-    }
-
-    private static bool NameLooksPresent(string ocrText, string fullName)
-    {
-        if (string.IsNullOrWhiteSpace(ocrText) || string.IsNullOrWhiteSpace(fullName))
-            return false;
-
-        var text = NormalizeText(ocrText);
-
-        var firstName = NormalizeText(fullName)
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault();
-
-        if (string.IsNullOrWhiteSpace(firstName) || firstName.Length < 3)
-            return false;
-
-        return text.Contains(firstName);
-    }
-
-    private static string? ExtractUniversityName(string ocrText)
-    {
-        if (string.IsNullOrWhiteSpace(ocrText))
-            return null;
-
-        var lines = ocrText
-            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(x => x.Trim())
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .ToList();
-
-        var patterns = new[]
-        {
-        @"\b[A-Z][A-Za-z&,\-\s]+University[A-Za-z&,\-\s]*\b",
-        @"\b[A-Z][A-Za-z&,\-\s]+College[A-Za-z&,\-\s]*\b",
-        @"\b[A-Z][A-Za-z&,\-\s]+Institute[A-Za-z&,\-\s]*\b",
-        @"\b[A-Z][A-Za-z&,\-\s]+School[A-Za-z&,\-\s]*\b"
-    };
-
-        foreach (var line in lines)
-        {
-            foreach (var pattern in patterns)
-            {
-                var match = Regex.Match(line, pattern);
-                if (match.Success)
-                    return match.Value.Trim();
-            }
-        }
-
-        return null;
-    }
 }
 
-// Request DTO for updating profile
 public class UpdateProfileRequest
 {
     public string? FullName { get; set; }
@@ -1152,13 +1064,10 @@ public class UpdateProfileRequest
     public string? Notes { get; set; }
 }
 
-
 public class UploadResumeRequest
 {
     public IFormFile File { get; set; } = default!;
 }
-
-// ─── Student section DTOs ──────────────────────────────────────
 
 public class AddSkillRequest
 {

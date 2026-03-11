@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function OAuthCallbackPage() {
         const navigate = useNavigate();
-        const API_BASE = import.meta.env.VITE_API_URL || "https://localhost:7176";
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5159";
 
         useEffect(() => {
             console.log("OAuthCallbackPage loaded ✅");

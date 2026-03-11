@@ -50,6 +50,12 @@ public class OpportunitiesController : ControllerBase
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 50) pageSize = 50;
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+if (string.IsNullOrEmpty(userId))
+{
+    return Unauthorized();
+}
 
         var query = _db.Opportunities
             .AsNoTracking()

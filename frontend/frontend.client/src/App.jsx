@@ -42,7 +42,7 @@ export default function App() {
             <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/browse" element={<BrowseOpportunities />} />
-                <Route path="/match" element={<Match />} />
+                
                 <Route path="/organization" element={<OrganizationDashboard />} />
                 <Route path="/opportunities/:id" element={<JobDetailsPage />} />
                 <Route path="/apply/:applicationId/review" element={<ProfileReviewPage />} />

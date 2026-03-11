@@ -8,6 +8,9 @@ public class OpportunityCardDto
     public string? Location { get; set; }
     public bool IsRemote { get; set; }
 
+    public int MatchPercentage { get; set; }
+    public List<string> MatchedSkills { get; set; } = new();
+
     public string Type { get; set; } = "";   // Internship / Job
     public string Level { get; set; } = "";  // Beginner / Intermediate / Senior
 

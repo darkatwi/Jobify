@@ -57,6 +57,20 @@ if (string.IsNullOrEmpty(userId))
     return Unauthorized();
 }
 
+var studentSkillNames = await _db.StudentSkills
+    .AsNoTracking()
+    .Where(ss => ss.StudentUserId == userId && ss.SkillId != null)
+    .Join(
+        _db.Skills,
+        ss => ss.SkillId,
+        s => s.Id,
+        (ss, s) => s.Name.Trim().ToLower()
+    )
+    .Distinct()
+    .ToListAsync();
+
+var studentSkillsSet = studentSkillNames.ToHashSet();
+
         var query = _db.Opportunities
             .AsNoTracking()
             .Include(o => o.OpportunitySkills)

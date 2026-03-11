@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
-using Jobify.Api.Services.SkillServices;
 
 namespace Jobify.Api.Controllers;
 
@@ -32,6 +31,7 @@ public class OpportunitiesController : ControllerBase
     // =========================
     // GET LIST (PUBLIC)
     // GET: /api/opportunities?q=&type=&level=&remote=&location=&skills=&minPay=&maxPay=&sort=&page=&pageSize=
+    [Authorize]
     [HttpGet]
     public async Task<ActionResult<PagedResult<OpportunityCardDto>>> GetAll(
         [FromQuery] string? q,

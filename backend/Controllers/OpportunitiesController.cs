@@ -210,6 +210,10 @@ public class OpportunitiesController : ControllerBase
             };
         }).ToList();
 
+        items = items
+    .OrderByDescending(x => x.MatchPercentage) //best match sorting
+    .ToList();
+
         return Ok(new PagedResult<OpportunityCardDto>
         {
             Items = items,

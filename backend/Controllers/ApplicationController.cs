@@ -1,7 +1,7 @@
 using Jobify.Api.Data;
 using Jobify.Api.DTOs;
 using Jobify.Api.Models;
-using Jobify.DTOs;
+using Jobify.Api.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
-using Jobify.Api.Services.SkillServices;
+
 
 namespace Jobify.Api.Controllers;
 

@@ -9,8 +9,6 @@ namespace Jobify.Api.Services
 {
     public class RecommendationService
     {
-        
-
         private static readonly Dictionary<string, string> SynonymMap = new()
         {
             { "js", "javascript" },
@@ -21,7 +19,7 @@ namespace Jobify.Api.Services
         private static string Normalize(string s)
         {
             s = (s ?? "").ToLower().Trim();
-            return SynonymMap.TryGetValue(s, out var mapped) ? mapped : s;
+            return SynonymMap.TryGetValue(s, out var mapped) ? mapped : mapped = s;
         }
 
         private static double GetWeight(object obj, double fallback = 1)
@@ -56,13 +54,11 @@ namespace Jobify.Api.Services
             catch { return fallback; }
         }
 
-        public List<RecommendedOpportunityDto> Recommend(
-            List<SkillInputDto> applicantSkills,
-            List<Opportunity> opportunities)
+        private Dictionary<string, double> BuildApplicantMap(List<SkillInputDto> applicantSkills)
         {
             var applicantMap = new Dictionary<string, double>();
 
-            foreach (var s in applicantSkills ?? new())
+            foreach (var s in applicantSkills ?? new List<SkillInputDto>())
             {
                 var name = Normalize(s.Name);
                 if (string.IsNullOrWhiteSpace(name)) continue;
@@ -75,70 +71,104 @@ namespace Jobify.Api.Services
                     applicantMap[name] = w;
             }
 
+            return applicantMap;
+        }
+
+        public double CalculateOpportunityScore(
+            List<SkillInputDto> applicantSkills,
+            Opportunity opportunity)
+        {
+            var applicantMap = BuildApplicantMap(applicantSkills);
+            return CalculateOpportunityScore(applicantMap, opportunity);
+        }
+
+        public double CalculateOpportunityPercentage(
+            List<SkillInputDto> applicantSkills,
+            Opportunity opportunity)
+        {
+            var score = CalculateOpportunityScore(applicantSkills, opportunity);
+            return Math.Round(score * 100, 2);
+        }
+
+        private double CalculateOpportunityScore(
+            Dictionary<string, double> applicantMap,
+            Opportunity opportunity)
+        {
+            if (opportunity == null)
+                return 0;
+
+            var oppSkills = opportunity.OpportunitySkills ?? new List<OpportunitySkill>();
+
+            if (oppSkills.Count == 0)
+                return 0;
+
+            foreach (var os in oppSkills)
+            {
+                bool isMandatory = GetMandatory(os, fallback: false);
+                if (!isMandatory) continue;
+
+                var skillName = Normalize(os.Skill?.Name ?? "");
+                if (!applicantMap.ContainsKey(skillName))
+                    return 0;
+            }
+
+            double totalWeight = 0;
+            double matchedWeight = 0;
+
+            foreach (var os in oppSkills)
+            {
+                var skillName = Normalize(os.Skill?.Name ?? "");
+                if (string.IsNullOrWhiteSpace(skillName)) continue;
+
+                var reqWeight = GetWeight(os, fallback: 1);
+                if (reqWeight <= 0) reqWeight = 1;
+
+                totalWeight += reqWeight;
+
+                if (applicantMap.TryGetValue(skillName, out var appWeight))
+                {
+                    matchedWeight += reqWeight * appWeight;
+                }
+            }
+
+            if (totalWeight <= 0)
+                return 0;
+
+            return Math.Round(matchedWeight / totalWeight, 4);
+        }
+
+        public List<RecommendedOpportunityDto> Recommend(
+            List<SkillInputDto> applicantSkills,
+            List<Opportunity> opportunities)
+        {
+            var applicantMap = BuildApplicantMap(applicantSkills);
             var results = new List<RecommendedOpportunityDto>();
 
-            foreach (var opp in opportunities ?? new())
+            foreach (var opp in opportunities ?? new List<Opportunity>())
             {
-                var oppSkills = opp.OpportunitySkills ?? new List<OpportunitySkill>();
+                var score = CalculateOpportunityScore(applicantMap, opp);
 
-                if (oppSkills.Count == 0)
+                if (score <= 0)
                     continue;
 
-                bool missingMandatory = false;
-
-                foreach (var os in oppSkills)
-                {
-                    bool isMandatory = GetMandatory(os, fallback: false);
-                    if (!isMandatory) continue;
-
-                    var skillName = Normalize(os.Skill?.Name ?? "");
-                    if (!applicantMap.ContainsKey(skillName))
-                    {
-                        missingMandatory = true;
-                        break;
-                    }
-                }
-
-                if (missingMandatory)
-                    continue;
-
-                double totalWeight = 0;
-                double matchedWeight = 0;
                 var matched = new List<string>();
 
-                foreach (var os in oppSkills)
+                foreach (var os in opp.OpportunitySkills ?? new List<OpportunitySkill>())
                 {
                     var skillName = Normalize(os.Skill?.Name ?? "");
                     if (string.IsNullOrWhiteSpace(skillName)) continue;
 
-                    var reqWeight = GetWeight(os, fallback: 1);
-                    if (reqWeight <= 0) reqWeight = 1;
-
-                    totalWeight += reqWeight;
-
-                    if (applicantMap.TryGetValue(skillName, out var appWeight))
-                    {
-                        // ML confidence directly affects contribution
-                        matchedWeight += reqWeight * appWeight;
+                    if (applicantMap.ContainsKey(skillName))
                         matched.Add(skillName);
-                    }
                 }
 
-                if (totalWeight <= 0)
-                    continue;
-
-                var score = matchedWeight / totalWeight;
-
-                if (score > 0)
+                results.Add(new RecommendedOpportunityDto
                 {
-                    results.Add(new RecommendedOpportunityDto
-                    {
-                        OpportunityId = opp.Id,
-                        Title = opp.Title ?? "",
-                        Score = Math.Round(score, 4),
-                        MatchedSkills = matched.Distinct().ToList()
-                    });
-                }
+                    OpportunityId = opp.Id,
+                    Title = opp.Title ?? "",
+                    Score = score,
+                    MatchedSkills = matched.Distinct().ToList()
+                });
             }
 
             return results

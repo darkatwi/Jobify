@@ -6,6 +6,8 @@ from src.utils.input_to_text import extract_text
 from fastapi import FastAPI, UploadFile, File
 import os
 import tempfile
+from pydantic import BaseModel
+import re
 
 CONF_THRESHOLD = 0.3
 
@@ -58,6 +60,35 @@ def run_main_pipeline(filepath, conf_threshold=CONF_THRESHOLD):
 
 
 app = FastAPI()
+
+class OpportunityRequest(BaseModel):
+    description: str
+    requirements: str | None = None
+
+
+@app.post("/extract/opportunity")
+async def extract_opportunity(req: OpportunityRequest):
+    text = f"{req.description or ''}\n{req.requirements or ''}".strip().lower()
+
+    found = []
+
+    skill_map = {
+        "Machine Learning": [r"\bmachine learning\b", r"\bml\b"],
+        "Deep Learning": [r"\bdeep learning\b"],
+        "Computer Vision": [r"\bcomputer vision\b"],
+        "Natural Language Processing": [r"\bnatural language processing\b", r"\bnlp\b"],
+        "Transformers": [r"\btransformers?\b"],
+        "Python": [r"\bpython\b"],
+        "PyTorch": [r"\bpytorch\b"],
+        "Data Analysis": [r"\bdata analysis\b"],
+        "Research Writing": [r"\bresearch writing\b", r"\bscientific writing\b"],
+    }
+
+    for skill_name, patterns in skill_map.items():
+        if any(re.search(pattern, text) for pattern in patterns):
+            found.append(skill_name)
+
+    return {"skills": found[:4]}
 
 @app.post("/extract/cv-file")
 async def extract_cv_file(file: UploadFile = File(...)):

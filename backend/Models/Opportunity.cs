@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -18,6 +18,9 @@ public class Opportunity
 
     [Required, MaxLength(120)]
     public string CompanyName { get; set; } = string.Empty;
+
+    [Required]
+    public string RecruiterUserId { get; set; } = string.Empty;
 
     [MaxLength(120)]
     public string? Location { get; set; }   

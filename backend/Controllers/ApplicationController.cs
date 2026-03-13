@@ -1,12 +1,13 @@
+using Jobify.Api.Data;
+using Jobify.Api.DTOs;
+using Jobify.Api.Models;
+using Jobify.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Jobify.Api.Data;
-using Jobify.Api.Models;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using Jobify.Api.DTOs;
 // using Jobify.Api.DTOs.Applications;
 
 //application and assesment controller -> the assesment is finished, but needs some work with the snapshots
@@ -944,7 +945,7 @@ public class ApplicationController : ControllerBase
     }
 
 
-   
+
 
     public class RecruiterAppListDto
     {
@@ -978,7 +979,7 @@ public class ApplicationController : ControllerBase
             .Include(a => a.Opportunity)
             .Where(a => a.OpportunityId == opportunityId && a.Status != ApplicationStatus.Withdrawn)
             .OrderByDescending(a => a.CreatedAtUtc)
-            .ToListAsync(); 
+            .ToListAsync();
 
         var result = new List<RecruiterAppListDto>();
 
@@ -989,7 +990,7 @@ public class ApplicationController : ControllerBase
 
             var student = await _db.StudentProfiles.AsNoTracking()
                                  .FirstOrDefaultAsync(s => s.UserId == app.UserId);
-                                
+
 
             var assessment = await _db.ApplicationAssessments
                                  .AsNoTracking()
@@ -1020,7 +1021,7 @@ public class ApplicationController : ControllerBase
     public async Task<IActionResult> UpdateApplicationStatus(
     int applicationId,
     [FromBody] UpdateApplicationStatusDto dto)
-    { 
+    {
         if (string.IsNullOrWhiteSpace(dto.Status))
             return BadRequest("Status is required.");
 
@@ -1125,7 +1126,7 @@ public class ApplicationController : ControllerBase
         }
     }
 
-        // Recruiter updates application status and add note (optional)
+    // Recruiter updates application status and add note (optional)
     [Authorize(Roles = "Recruiter")]
     [HttpPatch("{applicationId:int}/recruiter")]
     public async Task<IActionResult> RecruiterUpdateApplication(int applicationId, [FromBody] UpdateApplicationStatusDto dto)
@@ -1159,9 +1160,9 @@ public class ApplicationController : ControllerBase
         if (app.Status == ApplicationStatus.Withdrawn)
             return BadRequest("Cannot update a withdrawn application.");
 
-        if(!Enum.TryParse<ApplicationStatus>(dto.Status, true, out var newStatus))
+        if (!Enum.TryParse<ApplicationStatus>(dto.Status, true, out var newStatus))
             return BadRequest("Invalid status value.");
-        
+
         app.Status = newStatus;
         app.Note = dto.Note;
         app.UpdatedAtUtc = DateTime.UtcNow;
@@ -1261,7 +1262,7 @@ public class ApplicationController : ControllerBase
 
         if (app == null) return NotFound();
 
-        if (!string.Equals(app.Opportunity.CompanyName, recruiter.CompanyName, StringComparison.OrdinalIgnoreCase))
+        if (app.Opportunity.RecruiterUserId != recruiterId)
             return Forbid();
 
         return Ok(new

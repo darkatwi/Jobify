@@ -1,5 +1,7 @@
 using Jobify.Api.Data;
+using Jobify.Api.DTOs;
 using Jobify.Api.DTOs.Dashboard;
+using Jobify.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Jobify.Api.Services.Dashboard
@@ -7,10 +9,12 @@ namespace Jobify.Api.Services.Dashboard
     public class DashboardService : IDashboardService
     {
         private readonly AppDbContext _context;
+        private readonly RecommendationService _recommendationService;
 
-        public DashboardService(AppDbContext context)
+        public DashboardService(AppDbContext context, RecommendationService recommendationService)
         {
             _context = context;
+            _recommendationService = recommendationService;
         }
 
         public async Task<CandidateDashboardDto?> GetCandidateDashboardAsync(string userId)
@@ -21,19 +25,28 @@ namespace Jobify.Api.Services.Dashboard
             if (profile == null)
                 return null;
 
-            var studentSkillRows = await _context.StudentSkills
-                .Where(s => s.StudentUserId == userId)
+            var applicantSkills = await _context.StudentSkills
+                .Where(ss => ss.StudentUserId == userId)
+                .Join(
+                    _context.Skills,
+                    ss => ss.SkillId,
+                    s => s.Id,
+                    (ss, s) => new SkillInputDto
+                    {
+                        Name = s.Name,
+                        Weight = 1
+                    }
+                )
                 .ToListAsync();
 
-            var skillIds = studentSkillRows
-                .Select(s => s.SkillId)
+            var skillsCount = applicantSkills
+                .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+                .Select(s => s.Name.Trim().ToLower())
                 .Distinct()
-                .ToList();
-
-            var skillsCount = skillIds.Count;
+                .Count();
 
             var applicationsCount = await _context.Applications
-                .CountAsync(a => a.StudentUserId == userId);
+                .CountAsync(a => a.UserId == userId);
 
             var recentOpportunitiesRaw = await _context.Opportunities
                 .Where(o => !o.IsClosed)
@@ -44,44 +57,24 @@ namespace Jobify.Api.Services.Dashboard
             var allOpenOpportunities = await _context.Opportunities
                 .Where(o => !o.IsClosed)
                 .Include(o => o.OpportunitySkills)
+                    .ThenInclude(os => os.Skill)
                 .OrderByDescending(o => o.CreatedAtUtc)
                 .Take(30)
                 .ToListAsync();
 
-            var recommended = new List<DashboardOpportunityDto>();
+            var recommendationResults = _recommendationService.Recommend(applicantSkills, allOpenOpportunities);
 
-            foreach (var opportunity in allOpenOpportunities)
-            {
-                var requiredSkillIds = opportunity.OpportunitySkills
-                    .Select(os => os.SkillId)
-                    .Distinct()
-                    .ToList();
-
-                decimal? matchScore = null;
-
-                if (requiredSkillIds.Count > 0)
-                {
-                    var matchedCount = requiredSkillIds.Count(skillId => skillIds.Contains(skillId));
-                    matchScore = Math.Round((decimal)matchedCount * 100 / requiredSkillIds.Count, 0);
-                }
-
-                if (matchScore.HasValue && matchScore.Value > 0)
-                {
-                    recommended.Add(new DashboardOpportunityDto
-                    {
-                        Id = opportunity.Id,
-                        Title = opportunity.Title,
-                        CompanyName = opportunity.CompanyName,
-                        Location = GetOpportunityLocation(opportunity),
-                        WorkMode = opportunity.WorkMode.ToString(),
-                        MatchScore = matchScore
-                    });
-                }
-            }
-
-            var topRecommended = recommended
-                .OrderByDescending(r => r.MatchScore)
+            var topRecommended = recommendationResults
                 .Take(5)
+                .Select(r => new DashboardOpportunityDto
+                {
+                    Id = r.OpportunityId,
+                    Title = r.Title,
+                    CompanyName = allOpenOpportunities.FirstOrDefault(o => o.Id == r.OpportunityId)?.CompanyName ?? "",
+                    Location = GetOpportunityLocation(allOpenOpportunities.First(o => o.Id == r.OpportunityId)),
+                    WorkMode = allOpenOpportunities.First(o => o.Id == r.OpportunityId).WorkMode.ToString(),
+                    MatchScore = Math.Round((decimal)(r.Score * 100), 0)
+                })
                 .ToList();
 
             var recentOpportunities = recentOpportunitiesRaw

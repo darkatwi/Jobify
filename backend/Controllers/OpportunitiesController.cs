@@ -394,10 +394,14 @@ public class OpportunitiesController : ControllerBase
     }
 
 
-    //[Authorize(Roles = "Recruiter")]
+    [Authorize(Roles = "Recruiter")]
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] CreateOpportunityDto dto)
     {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
         if (string.IsNullOrWhiteSpace(dto.Title) || string.IsNullOrWhiteSpace(dto.CompanyName))
             return BadRequest("Title and CompanyName are required.");
 
@@ -414,10 +418,9 @@ public class OpportunitiesController : ControllerBase
         {
             Title = dto.Title.Trim(),
             CompanyName = dto.CompanyName.Trim(),
+            RecruiterUserId = userId,
             Location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim(),
-
             IsRemote = parsedMode == WorkMode.Remote,
-
             WorkMode = parsedMode,
             LocationName = string.IsNullOrWhiteSpace(dto.LocationName) ? null : dto.LocationName.Trim(),
             FullAddress = string.IsNullOrWhiteSpace(dto.FullAddress) ? null : dto.FullAddress.Trim(),
@@ -427,7 +430,6 @@ public class OpportunitiesController : ControllerBase
             PreferredSkillsJson = WriteList(dto.PreferredSkills),
             BenefitsJson = WriteList(dto.Benefits),
             AssessmentJson = dto.Assessment == null ? null : JsonSerializer.Serialize(dto.Assessment),
-
             Type = parsedType,
             Level = parsedLevel,
             MinPay = dto.MinPay,
@@ -440,13 +442,19 @@ public class OpportunitiesController : ControllerBase
         _db.Opportunities.Add(opportunity);
         await _db.SaveChangesAsync();
 
-        // var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
-            // opportunity.Description ?? "",
-            // null
-        // );
+        var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
+    $"{opportunity.Title} {opportunity.Description}".Trim(),
+    null
+);
 
-        // await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
-
+        if (extracted != null && extracted.Any())
+        {
+            await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
+        }
+        else
+        {
+            await ReplaceSkills(opportunity.Id, dto.PreferredSkills ?? new List<string>());
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = opportunity.Id }, new { opportunity.Id });
     }
@@ -496,11 +504,18 @@ public class OpportunitiesController : ControllerBase
         await _db.SaveChangesAsync();
 
         var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
-            opportunity.Description ?? "",
-            null
-        );
+    $"{opportunity.Title} {opportunity.Description}".Trim(),
+    null
+);
 
-        await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
+        if (extracted != null && extracted.Any())
+        {
+            await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
+        }
+        else
+        {
+            await ReplaceSkills(opportunity.Id, dto.PreferredSkills ?? new List<string>());
+        }
 
         return NoContent();
     }
@@ -683,6 +698,78 @@ public class OpportunitiesController : ControllerBase
                 MatchPercent = null,
 
                 ApplicantCount = _db.Applications.Count(a => a.OpportunityId == o.Id && a.Status != ApplicationStatus.Withdrawn),
+            })
+            .ToListAsync();
+
+        return Ok(opportunities);
+    }
+
+    [Authorize]
+    [HttpPost("repair-skills")]
+    public async Task<IActionResult> RepairSkills()
+    {
+        var opportunities = await _db.Opportunities.ToListAsync();
+
+        foreach (var opportunity in opportunities)
+        {
+            var extracted = await _mlSkillClient.ExtractOpportunitySkillsAsync(
+                $"{opportunity.Title} {opportunity.Description}".Trim(),
+                null
+            );
+
+            if (extracted != null && extracted.Any())
+            {
+                await _skillService.SaveOpportunitySkillsAsync(opportunity.Id, extracted);
+            }
+            else
+            {
+                var preferredSkills = ReadList(opportunity.PreferredSkillsJson);
+                await ReplaceSkills(opportunity.Id, preferredSkills);
+            }
+        }
+
+        return Ok(new { message = "Opportunity skills repaired." });
+    }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("my")]
+    public async Task<ActionResult<List<OpportunityCardDto>>> GetMyListings()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var opportunities = await _db.Opportunities
+            .AsNoTracking()
+            .Include(o => o.OpportunitySkills)
+                .ThenInclude(os => os.Skill)
+            .Where(o => o.RecruiterUserId == userId)
+            .OrderByDescending(o => o.CreatedAtUtc)
+            .Select(o => new OpportunityCardDto
+            {
+                Id = o.Id,
+                Title = o.Title,
+                CompanyName = o.CompanyName,
+                Location = o.Location,
+                IsRemote = o.IsRemote,
+                WorkMode = o.WorkMode.ToString(),
+                Type = o.Type.ToString(),
+                Level = o.Level.ToString(),
+                MinPay = o.MinPay,
+                MaxPay = o.MaxPay,
+                CreatedAtUtc = o.CreatedAtUtc,
+                DeadlineUtc = o.DeadlineUtc,
+                Skills = o.OpportunitySkills
+                    .Where(os => os.Skill != null)
+                    .Select(os => os.Skill!.Name)
+                    .ToList(),
+                AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
+                AssessmentMcqCount = o.AssessmentMcqCount,
+                AssessmentChallengeCount = o.AssessmentChallengeCount,
+                MatchPercent = null,
+                ApplicantCount = _db.Applications.Count(a =>
+                    a.OpportunityId == o.Id &&
+                    a.Status != ApplicationStatus.Withdrawn)
             })
             .ToListAsync();
 

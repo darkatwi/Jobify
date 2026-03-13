@@ -115,8 +115,9 @@ export function BrowseOpportunities() {
                     const postedText = o.createdAtUtc ? timeAgoFromUtc(o.createdAtUtc) : "—";
                     const deadlineText = o.deadlineUtc ? daysLeftFromUtc(o.deadlineUtc) : "—";
 
-                    const match =
-                        typeof o.matchPercent === "number" ? Math.round(o.matchPercent) : 0;
+                                        const match =
+    typeof o.matchPercentage === "number" ? Math.round(o.matchPercentage) : 0;
+
 
                     return {
                         id: o.id,

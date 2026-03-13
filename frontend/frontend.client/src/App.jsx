@@ -17,7 +17,8 @@ import ApplicationResultPage from "./pages/JobDetails/ApplicationResultPage";
 import JobDetailsPage from "./pages/JobDetails/JobDetailsPage";
 import AssessmentRulesPage from "./pages/JobDetails/AssesmentRulesPage";
 
-import Match from "./pages/Match";
+// matches page
+import MatchesPage from "./pages/MatchesPage";
 
 // organization page
 import OrganizationDashboard from "./pages/OrganizationDashboard";
@@ -42,7 +43,7 @@ export default function App() {
             <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/browse" element={<BrowseOpportunities />} />
-                <Route path="/match" element={<Match />} />
+                <Route path="/match" element={<MatchesPage />} />
                 <Route path="/organization" element={<OrganizationDashboard />} />
                 <Route path="/opportunities/:id" element={<JobDetailsPage />} />
                 <Route path="/apply/:applicationId/review" element={<ProfileReviewPage />} />

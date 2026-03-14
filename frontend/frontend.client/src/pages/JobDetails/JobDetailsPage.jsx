@@ -93,7 +93,7 @@ export default function JobDetailsPage() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/api/opportunities/${id}/apply`, {
+            const res = await fetch(`${API_URL}/opportunities/${id}/apply`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -132,6 +132,16 @@ export default function JobDetailsPage() {
     const [askErr, setAskErr] = useState("");
     const [askOk, setAskOk] = useState("");
 
+    const [reportOpen, setReportOpen] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [reportDetails, setReportDetails] = useState("");
+    const [reportLoading, setReportLoading] = useState(false);
+    const [reportErr, setReportErr] = useState("");
+    const [reportOk, setReportOk] = useState("");
+
+    const [shareOk, setShareOk] = useState("");
+    const [shareErr, setShareErr] = useState("");
+
 
 
     useEffect(() => {
@@ -142,7 +152,7 @@ export default function JobDetailsPage() {
                 setLoading(true);
                 setErr("");
 
-                const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
+                const res = await fetch(`${API_URL}/opportunities/${id}`, {
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
@@ -150,7 +160,18 @@ export default function JobDetailsPage() {
                 if (!res.ok) throw new Error(`Failed to load opportunity (${res.status})`);
 
                 const data = await res.json();
-                setJob(data);
+
+                setJob({
+                    ...data,
+                    skills: Array.isArray(data.skills)
+                        ? data.skills
+                        : Array.isArray(data.skillsRequired)
+                            ? data.skillsRequired
+                            : [],
+                    preferredSkills: Array.isArray(data.preferredSkills)
+                        ? data.preferredSkills
+                        : [],
+                });
             } catch (e) {
                 if (e?.name !== "AbortError") {
                     console.error(e);
@@ -174,7 +195,7 @@ export default function JobDetailsPage() {
                 setSimilarLoading(true);
                 setSimilarErr("");
 
-                const res = await fetch(`${API_URL}/api/opportunities/${id}/similar?take=4`, {
+                const res = await fetch(`${API_URL}/opportunities/${id}/similar?take=4`, {
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
@@ -218,7 +239,7 @@ export default function JobDetailsPage() {
 
             setAskLoading(true);
 
-            const res = await fetch(`${API_URL}/api/opportunities/${id}/questions`, {
+            const res = await fetch(`${API_URL}/opportunities/${id}/questions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -241,7 +262,7 @@ export default function JobDetailsPage() {
             setQuestionText("");
             setAskOpen(false);
 
-            const refreshed = await fetch(`${API_URL}/api/opportunities/${id}`, {
+            const refreshed = await fetch(`${API_URL}/opportunities/${id}`, {
                 headers: { "Content-Type": "application/json" },
             });
             if (refreshed.ok) {
@@ -253,6 +274,95 @@ export default function JobDetailsPage() {
             setAskErr(e?.message || "Failed to submit question");
         } finally {
             setAskLoading(false);
+        }
+    };
+
+    const submitReport = async () => {
+        try {
+            setReportErr("");
+            setReportOk("");
+
+            const reason = reportReason.trim();
+            const details = reportDetails.trim();
+
+            if (!reason) {
+                setReportErr("Please select a reason.");
+                return;
+            }
+
+            const token = localStorage.getItem("jobify_token");
+            if (!token) {
+                setReportErr("You need to be logged in to report an opportunity.");
+                return;
+            }
+
+            setReportLoading(true);
+
+            const res = await fetch(`${API_URL}/opportunities/${id}/report`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    reason,
+                    details: details || null,
+                }),
+            });
+
+            if (!res.ok) {
+                let msg = `Failed to submit report (${res.status})`;
+                try {
+                    const t = await res.text();
+                    if (t) msg = t;
+                } catch { }
+                setReportErr(msg);
+                return;
+            }
+
+            setReportOk("Report submitted successfully.");
+            setReportReason("");
+            setReportDetails("");
+
+            setTimeout(() => {
+                setReportOpen(false);
+                setReportOk("");
+            }, 1000);
+        } catch (e) {
+            console.error(e);
+            setReportErr(e?.message || "Failed to submit report");
+        } finally {
+            setReportLoading(false);
+        }
+    };
+
+    const handleShare = async () => {
+        try {
+            setShareErr("");
+            setShareOk("");
+
+            const shareUrl = `${window.location.origin}/opportunities/${id}`;
+            const shareData = {
+                title: job?.title || "Opportunity",
+                text: `${job?.title || "Opportunity"} at ${job?.companyName || "Company"}`,
+                url: shareUrl,
+            };
+
+            if (navigator.share) {
+                await navigator.share(shareData);
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareUrl);
+            setShareOk("Link copied!");
+            setTimeout(() => setShareOk(""), 2000);
+        } catch (e) {
+            console.error(e);
+
+            if (e?.name === "AbortError") return;
+
+            setShareErr("Could not share link.");
+            setTimeout(() => setShareErr(""), 2000);
         }
     };
 
@@ -304,6 +414,10 @@ export default function JobDetailsPage() {
             : "—";
 
     const assessmentDeadline = deadlineText;
+
+    const requiredSkills = job?.skillsRequired || job?.skills || [];
+    const preferredSkills = job?.preferredSkills || [];
+
 
     return (
         <div className="page">
@@ -375,15 +489,26 @@ export default function JobDetailsPage() {
                                     <span className="hideOnMobile">{isSaved ? "Saved" : "Save"}</span>
                                 </button>
 
-                                <button className="btnOutline">
+                                <button className="btnOutline" onClick={handleShare}>
                                     <Share2 size={18} />
                                     <span className="hideOnMobile">Share</span>
                                 </button>
 
-                                <button className="btnIcon" title="Report">
+                                <button
+                                    className="btnIcon"
+                                    title="Report"
+                                    onClick={() => {
+                                        setReportOpen(true);
+                                        setReportErr("");
+                                        setReportOk("");
+                                    }}
+                                >
                                     <Flag size={18} />
                                 </button>
                             </div>
+
+                            {shareOk ? <div className="shareFeedback shareSuccess">{shareOk}</div> : null}
+                            {shareErr ? <div className="shareFeedback shareError">{shareErr}</div> : null}
                         </div>
                     </div>
                 </div>
@@ -415,10 +540,10 @@ export default function JobDetailsPage() {
 
                             <div className="label">Required</div>
                             <div className="tagRow">
-                                {(job.skills || []).length === 0 ? (
+                                {requiredSkills.length === 0 ? (
                                     <span className="tag">—</span>
                                 ) : (
-                                    job.skills.map((t) => (
+                                    requiredSkills.map((t) => (
                                         <span key={t} className="tag">
                                             {t}
                                         </span>
@@ -428,10 +553,10 @@ export default function JobDetailsPage() {
 
                             <div className="label">Preferred</div>
                             <div className="tagRow">
-                                {(job.preferredSkills || []).length === 0 ? (
+                                {preferredSkills.length === 0 ? (
                                     <span className="tag">—</span>
                                 ) : (
-                                    job.preferredSkills.map((t) => (
+                                    preferredSkills.map((t) => (
                                         <span key={t} className="tag tagBlue">
                                             {t}
                                         </span>
@@ -724,8 +849,8 @@ export default function JobDetailsPage() {
                                     className="similarCard"
                                     role="button"
                                     tabIndex={0}
-                                    onClick={() => navigate(`/opportunity/${s.id}`)}
-                                    onKeyDown={(e) => e.key === "Enter" && navigate(`/opportunity/${s.id}`)}
+                                    onClick={() => navigate(`/opportunities/${s.id}`)}
+                                    onKeyDown={(e) => e.key === "Enter" && navigate(`/opportunities/${s.id}`)}
                                 >
                                     <div className="similarTop">
                                         <div className="similarLogo">
@@ -755,6 +880,94 @@ export default function JobDetailsPage() {
                     </div>
 
                 </div>
+
+                {reportOpen ? (
+                    <div
+                        className="reportModalOverlay"
+                        onClick={() => {
+                            if (!reportLoading) {
+                                setReportOpen(false);
+                                setReportErr("");
+                                setReportOk("");
+                            }
+                        }}
+                    >
+                        <div className="reportModal" onClick={(e) => e.stopPropagation()}>
+                            <div className="reportModalHeader">
+                                <h3 className="reportModalTitle">Report Opportunity</h3>
+                                <button
+                                    type="button"
+                                    className="reportCloseBtn"
+                                    onClick={() => {
+                                        if (!reportLoading) {
+                                            setReportOpen(false);
+                                            setReportErr("");
+                                            setReportOk("");
+                                        }
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <p className="reportModalText">
+                                Tell us why you are reporting this opportunity.
+                            </p>
+
+                            <select
+                                className="reportSelect"
+                                value={reportReason}
+                                onChange={(e) => setReportReason(e.target.value)}
+                                disabled={reportLoading}
+                            >
+                                <option value="">Select a reason</option>
+                                <option value="Spam">Spam</option>
+                                <option value="Fake Job">Fake Job</option>
+                                <option value="Misleading Information">Misleading Information</option>
+                                <option value="Inappropriate Content">Inappropriate Content</option>
+                                <option value="Duplicate Posting">Duplicate Posting</option>
+                                <option value="Other">Other</option>
+                            </select>
+
+                            <textarea
+                                className="reportTextarea"
+                                value={reportDetails}
+                                onChange={(e) => setReportDetails(e.target.value)}
+                                placeholder="Additional details (optional)"
+                                rows={4}
+                                maxLength={1000}
+                                disabled={reportLoading}
+                            />
+
+                            {reportErr ? <div className="reportFeedback reportError">{reportErr}</div> : null}
+                            {reportOk ? <div className="reportFeedback reportSuccess">{reportOk}</div> : null}
+
+                            <div className="reportModalActions">
+                                <button
+                                    className="btnOutline"
+                                    onClick={() => {
+                                        if (!reportLoading) {
+                                            setReportOpen(false);
+                                            setReportErr("");
+                                            setReportOk("");
+                                        }
+                                    }}
+                                    disabled={reportLoading}
+                                >
+                                    Cancel
+                                </button>
+
+                                <button
+                                    className="btnPrimary"
+                                    onClick={submitReport}
+                                    disabled={reportLoading}
+                                >
+                                    {reportLoading ? "Submitting..." : "Submit Report"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
             </main>
         </div>
     );

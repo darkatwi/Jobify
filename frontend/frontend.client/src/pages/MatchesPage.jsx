@@ -1,6 +1,7 @@
 import { useState, useNavigate } from "react";
 import { Briefcase, ListChecks, Calendar, FileText } from "lucide-react";
 import "./styles/matches.css";
+import { api } from "../api/api";
 
 
 const API_BASE = "http://localhost:5159/api";
@@ -19,7 +20,7 @@ export default function MatchesPage() {
     const navigate = useNavigate();
 
     // Opportunities
-    const [opportunities, setOpportunities] = useState(matches.opportunities);
+    const [opportunities, setOpportunities] = useState([]);
     const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
     const [opportunitiesError, setOpportunitiesError] = useState("");
 
@@ -28,40 +29,33 @@ export default function MatchesPage() {
     const [applicationsLoading, setApplicationsLoading] = useState(false);
     const [applicationsError, setApplicationsError] = useState("");
 
+    // Opportunities Fetching Function
     async function fetchOpportunities() {
+        try {
+            setOpportunitiesLoading(true);
+            setOpportunitiesError("");
 
-        const res = await fetch(`${API_BASE}/opportunities`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+            const res = await api.get("/api/opportunities", {
+                params: {
+                    sort: "newest",
+                    page: 1,
+                    pageSize: 12
+                }
+            });
 
-        if(res.ok) {
-            const data = await res.json();
-            setOpportunities(data.opportunities);
+            const data = Array.isArray(res.data?.items) ? res.data.items : [];
+            setOpportunities(data);
         }
-        else {
-            console.error("Failed to fetch opportunities");
+        catch(error) {
+            console.error("Failed to fetch opportunities.");
+            setOpportunities([]);
+
+            setOpportunitiesError(error?.message || "Failed to fetch opportunities.")
         }
+        finally {
+            setOpportunitiesLoading(false);
+        } 
     }
-
-    async function fetchApplications() {
-        const res = await fetch(`${API_BASE}/applications`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-        if(res.ok) {
-            const data = await res.json();
-            setApplications(data.applications);
-        }
-        else {
-            console.error("Failed to fetch applications");
-        }
-
-    }
-
 
     return (
         <div className="matches-page">

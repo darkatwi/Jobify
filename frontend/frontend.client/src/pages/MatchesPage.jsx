@@ -91,6 +91,19 @@ function formatLocation(opportunity) {
     return location;
 }
 
+// Logo Color
+function getLogoColor(name) {
+    const colors = ["blue", "green", "purple", "pink", "indigo", "magenta", "navy", "black"];
+
+    name = String(name || "").trim();
+    if(!name)
+        return "blue";
+
+    const n = name.split("").reduce((total, c) => total + c.charCodeAt(0), 0);
+
+    return colors[n % colors.length];
+}
+
 export default function MatchesPage() {
 
     const tabs = [
@@ -101,8 +114,6 @@ export default function MatchesPage() {
     ];
 
     const [activeTab, setActiveTab] = useState("opportunities");
-
-    const navigate = useNavigate();
 
     // Opportunities
     const [opportunities, setOpportunities] = useState([]);
@@ -176,7 +187,7 @@ export default function MatchesPage() {
             company: application.companyName,
             jobTitle: application.opportunityTitle,
             status: normalizeApplicationStatus(application.status),
-            logoColor: "blue",
+            logoColor: getLogoColor(application.companyName),
             deadline: application.hasAssessment ? "Assessment Available" : formatAppliedDate(application.createdAtUtc)
         }))
     }, [applications]);
@@ -198,7 +209,7 @@ export default function MatchesPage() {
                 location: formatLocation(opportunity),
                 status: "Saved",
                 matchPercentage: Math.round(opportunity.matchPercentage ?? 0),
-                logoColor: "blue",
+                logoColor: getLogoColor(opportunity.companyName),
                 deadline: formatDeadline(opportunity.deadlineUtc),
                 skills,
             };

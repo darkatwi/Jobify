@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
 namespace Jobify.Api.Services.SkillServices
@@ -25,8 +26,7 @@ namespace Jobify.Api.Services.SkillServices
 
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<SkillResponse>();
-            return result?.Skills ?? new List<string>();
+            return await ReadSkillsAsync(response.Content);
         }
 
         // ============================
@@ -52,8 +52,7 @@ namespace Jobify.Api.Services.SkillServices
 
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<SkillResponse>();
-            return result?.Skills ?? new List<string>();
+            return await ReadSkillsAsync(response.Content);
         }
 
         // ============================
@@ -70,13 +69,63 @@ namespace Jobify.Api.Services.SkillServices
 
             response.EnsureSuccessStatusCode();
 
-            var result = await response.Content.ReadFromJsonAsync<SkillResponse>();
-            return result?.Skills ?? new List<string>();
+            return await ReadSkillsAsync(response.Content);
         }
 
-        private class SkillResponse
+        private static async Task<List<string>> ReadSkillsAsync(HttpContent content)
         {
-            public List<string> Skills { get; set; } = new();
+            await using var stream = await content.ReadAsStreamAsync();
+            using var document = await JsonDocument.ParseAsync(stream);
+
+            var skillsElement = document.RootElement;
+
+            if (skillsElement.ValueKind == JsonValueKind.Object &&
+                skillsElement.TryGetProperty("skills", out var nestedSkills))
+            {
+                skillsElement = nestedSkills;
+            }
+
+            if (skillsElement.ValueKind != JsonValueKind.Array)
+                return new List<string>();
+
+            var skills = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in skillsElement.EnumerateArray())
+            {
+                string? skillName = item.ValueKind switch
+                {
+                    JsonValueKind.String => item.GetString(),
+                    JsonValueKind.Object => ReadSkillName(item),
+                    _ => null
+                };
+
+                if (string.IsNullOrWhiteSpace(skillName))
+                    continue;
+
+                var normalized = skillName.Trim();
+                if (seen.Add(normalized))
+                    skills.Add(normalized);
+            }
+
+            return skills;
+        }
+
+        private static string? ReadSkillName(JsonElement skillElement)
+        {
+            if (skillElement.TryGetProperty("skill", out var skillProperty) &&
+                skillProperty.ValueKind == JsonValueKind.String)
+            {
+                return skillProperty.GetString();
+            }
+
+            if (skillElement.TryGetProperty("name", out var nameProperty) &&
+                nameProperty.ValueKind == JsonValueKind.String)
+            {
+                return nameProperty.GetString();
+            }
+
+            return null;
         }
     }
 }

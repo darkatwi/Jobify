@@ -6,7 +6,7 @@ public class StudentSkill
     public string StudentUserId { get; set; } = string.Empty;
     public int SkillId { get; set; }
 
-    public float score { get; set; } = 1.0f;   // ML confidence
+    public int score { get; set; } = 1;
 
     public string Source { get; set; } = "Manual";
     public bool IsVerified { get; set; } = false;

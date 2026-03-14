@@ -34,7 +34,7 @@ export default function AppLayout() {
                 setLoadingProfile(true);
                 setProfileError("");
 
-                const res = await api.get("/profile");
+                const res = await api.get("/api/profile");
                 const data = res.data;
 
                 console.log("PROFILE DATA:", data);
@@ -119,7 +119,7 @@ export default function AppLayout() {
                         )}
 
                         {!loadingProfile && role === "Student" && (
-                            <NavLink to="/match" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                            <NavLink to="/matches" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                                 <span className="al-linkIcon"><Star size={18} /></span>
                                 <span className="al-linkText">Matches</span>
                             </NavLink>

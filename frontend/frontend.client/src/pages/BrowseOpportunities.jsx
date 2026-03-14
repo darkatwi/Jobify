@@ -10,11 +10,9 @@ import {
     ArrowUpDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../api/api";
 
 import "./styles/browseopportunities.css";
-
-// Vite API URL (set in .env: VITE_API_URL=https://localhost:7176)
-const API_URL = import.meta.env.VITE_API_URL;
 
 // logo based on type/level (emoji avatar)
 function getOppLogo(type, level) {
@@ -83,18 +81,12 @@ export function BrowseOpportunities() {
                 params.set("page", "1");
                 params.set("pageSize", "50");
 
-                const res = await fetch(
-                    `${API_URL}/api/opportunities?${params.toString()}`,
-                    {
-                        signal: controller.signal,
-                        headers: { "Content-Type": "application/json" },
-                    }
-                );
+                const res = await api.get("/api/opportunities", {
+                    params: Object.fromEntries(params.entries()),
+                    signal: controller.signal,
+                });
 
-                if (!res.ok)
-                    throw new Error(`Failed to fetch opportunities (${res.status})`);
-
-                const data = await res.json();
+                const data = res.data;
 
                 const mapped = (data.items || []).map((o) => {
                     const payText =

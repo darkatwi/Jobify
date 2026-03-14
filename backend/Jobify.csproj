@@ -28,12 +28,9 @@
 		</PackageReference>
 		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
 		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.7" />
-		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
 
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.0" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
-		<PackageReference Include="Tesseract" Version="5.2.0" />
-		<PackageReference Include="Tesseract" Version="5.2.0" />
 		<PackageReference Include="Tesseract" Version="5.2.0" />
 	</ItemGroup>
 

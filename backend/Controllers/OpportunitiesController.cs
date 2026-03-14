@@ -726,7 +726,7 @@ public class OpportunitiesController : ControllerBase
                 AssessmentMcqCount = o.AssessmentMcqCount,
                 AssessmentChallengeCount = o.AssessmentChallengeCount,
 
-                MatchPercent = null,
+                MatchPercentage = null,
 
                 ApplicantCount = _db.Applications.Count(a => a.OpportunityId == o.Id && a.Status != ApplicationStatus.Withdrawn),
             })
@@ -797,7 +797,7 @@ public class OpportunitiesController : ControllerBase
                 AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
                 AssessmentMcqCount = o.AssessmentMcqCount,
                 AssessmentChallengeCount = o.AssessmentChallengeCount,
-                MatchPercent = null,
+                MatchPercentage = null,
                 ApplicantCount = _db.Applications.Count(a =>
                     a.OpportunityId == o.Id &&
                     a.Status != ApplicationStatus.Withdrawn)

@@ -806,4 +806,29 @@ public class OpportunitiesController : ControllerBase
 
         return Ok(opportunities);
     }
+
+    [Authorize]
+    [HttpPost("{id:int}/report")]
+    public async Task<IActionResult> ReportOpportunity(int id, [FromBody] CreateOpportunityReportDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        var opportunity = await _db.Opportunities.FindAsync(id);
+        if (opportunity == null)
+            return NotFound("Opportunity not found");
+
+        var report = new OpportunityReport
+        {
+            OpportunityId = id,
+            ReporterUserId = userId!,
+            Reason = dto.Reason,
+            Details = dto.Details,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.OpportunityReports.Add(report);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Report submitted" });
+    }
 }

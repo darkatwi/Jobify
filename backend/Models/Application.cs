@@ -13,10 +13,13 @@ public enum ApplicationStatus
     InAssessment = 4,
     AssessmentSubmitted = 5,
     Submitted = 6,
-    Accepted = 7,
-    Rejected = 8,
-    Withdrawn = 9
+    Shortlisted = 7,
+    InterviewScheduled = 8,
+    Accepted = 9,
+    Rejected = 10,
+    Withdrawn = 11
 }
+
 
 public class Application
 {

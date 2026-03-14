@@ -41,6 +41,10 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<RecruiterProfile> RecruiterProfiles => Set<RecruiterProfile>();
 
+    public DbSet<Interview> Interviews => Set<Interview>();
+
+    public DbSet<OpportunityReport> OpportunityReports { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -133,5 +137,14 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             .WithMany()
             .HasForeignKey(e => e.ApplicationAssessmentId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OpportunityReport>()
+        .HasOne(r => r.Opportunity)
+        .WithMany()
+        .HasForeignKey(r => r.OpportunityId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<OpportunityReport>()
+            .HasIndex(r => new { r.OpportunityId, r.ReporterUserId, r.Reason });
     }
 }

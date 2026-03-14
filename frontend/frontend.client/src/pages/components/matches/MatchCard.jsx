@@ -11,7 +11,8 @@ import {
     FileText,
     CheckSquare,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../../../api/api";
 
 function getInitials(company = "") {
     return company.slice(0, 2).toUpperCase();
@@ -241,7 +242,75 @@ export function ApplicationsTab({ matches = [] }) {
 }
 
 export function InterviewsTab({ matches = [] }) {
-    const interviews = matches.filter((m) => m.status === "Interview");
+    const [interviews, setInterviews] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        async function loadInterviews() {
+            try {
+                setLoading(true);
+                setError("");
+                const res = await api.get("/interviews/my");
+                setInterviews(res.data || []);
+            } catch (err) {
+                console.error("Failed to load interviews:", err);
+                setError("Failed to load interviews.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        loadInterviews();
+    }, []);
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "—";
+        return new Date(dateStr).toLocaleDateString([], {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+        });
+    }
+
+    function formatTime(dateStr) {
+        if (!dateStr) return "—";
+        return new Date(dateStr).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    }
+
+    function getTimeLeft(dateStr) {
+        if (!dateStr) return "";
+        const now = new Date();
+        const target = new Date(dateStr);
+        const diffMs = target - now;
+
+        if (diffMs <= 0) return "Starting soon";
+
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffDays > 0) {
+            return `${diffDays} day${diffDays > 1 ? "s" : ""} left`;
+        }
+
+        if (diffHours > 0) {
+            return `${diffHours} hour${diffHours > 1 ? "s" : ""} left`;
+        }
+
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        return `${diffMinutes} min left`;
+    }
+
+    if (loading) {
+        return <div className="matches-empty">Loading interviews...</div>;
+    }
+
+    if (error) {
+        return <div className="matches-empty">{error}</div>;
+    }
 
     if (!interviews.length) {
         return <div className="matches-empty">No interviews scheduled yet.</div>;
@@ -249,29 +318,29 @@ export function InterviewsTab({ matches = [] }) {
 
     return (
         <div className="interviews-grid">
-            {interviews.map((match) => (
-                <div key={match.id} className="interview-card">
+            {interviews.map((item) => (
+                <div key={item.id} className="interview-card">
                     <div className="interview-accent" />
 
                     <div className="interview-top">
                         <div>
                             <div className="interview-badges">
                                 <span className="upcoming-pill">UPCOMING</span>
-                                <span className="time-left">• {match.timeLeft}</span>
+                                <span className="time-left">• {getTimeLeft(item.scheduledAtUtc)}</span>
                             </div>
 
-                            <h3 className="interview-title">{match.jobTitle}</h3>
+                            <h3 className="interview-title">{item.opportunityTitle}</h3>
 
                             <div className="match-meta">
                                 <span className="match-company">
                                     <Building2 size={15} />
-                                    {match.company}
+                                    {item.companyName}
                                 </span>
                             </div>
                         </div>
 
-                        <div className={`match-logo ${match.logoColor || "indigo"}`}>
-                            {getInitials(match.company)}
+                        <div className="match-logo indigo">
+                            {getInitials(item.companyName)}
                         </div>
                     </div>
 
@@ -281,7 +350,9 @@ export function InterviewsTab({ matches = [] }) {
                                 <Calendar size={14} />
                                 DATE
                             </div>
-                            <div className="interview-info-value">{match.interviewDate}</div>
+                            <div className="interview-info-value">
+                                {formatDate(item.scheduledAtUtc)}
+                            </div>
                         </div>
 
                         <div className="interview-info-box">
@@ -289,7 +360,9 @@ export function InterviewsTab({ matches = [] }) {
                                 <Clock size={14} />
                                 TIME
                             </div>
-                            <div className="interview-info-value">{match.interviewTime}</div>
+                            <div className="interview-info-value">
+                                {formatTime(item.scheduledAtUtc)}
+                            </div>
                         </div>
 
                         <div className="interview-info-box full">
@@ -297,20 +370,31 @@ export function InterviewsTab({ matches = [] }) {
                                 <Video size={14} />
                                 LOCATION
                             </div>
-                            <div className="interview-info-value">{match.interviewLocation}</div>
+                            <div className="interview-info-value">
+                                {item.location || "Online"}
+                            </div>
                         </div>
                     </div>
 
                     <div className="interview-actions">
-                        <button className="prepare-btn">Prepare</button>
-                        <a
-                            href={match.interviewLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="join-btn"
-                        >
-                            Join Interview <ArrowRight size={16} />
-                        </a>
+                        <button className="prepare-btn" type="button">
+                            Prepare
+                        </button>
+
+                        {item.meetingLink ? (
+                            <a
+                                href={item.meetingLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="join-btn"
+                            >
+                                Join Interview <ArrowRight size={16} />
+                            </a>
+                        ) : (
+                            <button className="join-btn" type="button" disabled>
+                                No Link Yet <ArrowRight size={16} />
+                            </button>
+                        )}
                     </div>
                 </div>
             ))}

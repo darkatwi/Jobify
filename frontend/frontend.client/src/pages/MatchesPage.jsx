@@ -38,18 +38,54 @@ function formatAppliedDate(createdAtUtc) {
     const days = Math.floor(diff / (1000*60*60*24));
 
     if(days<=0)
-        return "Applied Today"
+        return "Applied Today";
     if(days==1)
-        return "Applied 1 Day ago"
+        return "Applied 1 Day ago";
     if(days<7)
-        return `Applied ${days} Days ago`
+        return `Applied ${days} Days ago`;
 
     const weeks = Math.floor(days/7);
     if(weeks==1)
-        return "Applied 1 Week ago"
+        return "Applied 1 Week ago";
 
-    return `Applied ${weeks} Weeks ago`
+    return `Applied ${weeks} Weeks ago`;
         
+}
+
+// Format Deadline
+function formatDeadline(deadlineUtc) {
+    if(!deadlineUtc)
+        return "No Deadline";
+
+    const deadline = new Date(deadlineUtc);
+    const diff = deadline.getTime() - Date.now();
+
+    const days = Math.ceil(diff / (1000*60*60*24));
+
+    if(days<0)
+        return "Closed";
+    if(days==0)
+        return "Closing Today";
+    if(days===1)
+        return "1 Day Left";
+
+    return `${days} Left`;
+}
+
+// Format Location
+function formatLocation(opportunity) {
+    if(opportunity.isRemote)
+        return "Remote";
+
+    if(opportunity.workMode==="Hybrid")
+        return "Hybrid";
+
+    const location = "On-site";
+
+    if(opportunity.location)
+        location.concat(`at ${opportunity.location}`);
+
+    return location;
 }
 
 export default function MatchesPage() {
@@ -141,6 +177,30 @@ export default function MatchesPage() {
             deadline: application.hasAssessment ? "Assessment Available" : formatAppliedDate(application.createdAtUtc)
         }))
     }, [applications]);
+
+    // Map Opportunities
+    const mappedOpportunities = useMemo(() => {
+        return opportunities.map((opportunity) => {
+
+            const matchedSkills = Array.isArray(opportunity.matchedSkills) ? opportunity.matchedSkills : [];
+            const skills = Array.isArray(opportunity.skills) ? opportunity.skills.map((skill) => ({
+                name: skill,
+                matched: matchedSkills.include(String(skill))
+            })) : [];
+
+            return {
+                id: opportunity.id,
+                company: opportunity.companyName,
+                jobTitle: opportunity.title,
+                location: formatLocation(opportunity),
+                status: "Saved",
+                matchPercentage: Math.round(opportunity.matchPercentage ?? 0),
+                logoColor: "blue",
+                deadline: formatDeadline(opportunity.deadlineUtc),
+                skills,
+            };
+        });
+    }, [opportunities]);
 
 
     return (

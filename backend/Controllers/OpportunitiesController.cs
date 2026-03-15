@@ -172,44 +172,56 @@ public class OpportunitiesController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
 
-        var recommendationService = new RecommendationService();
+       var recommendationService = new RecommendationService();
 
-        var items = rawItems.Select(o =>
-        {
-            var matchPercentage = recommendationService.CalculateOpportunityPercentage(applicantSkills, o);
+var items = rawItems.Select(o =>
+{
+    var safeSkills = o.OpportunitySkills?
+        .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
+        .Select(os => os.Skill!.Name.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList() ?? new List<string>();
 
-            var matchedSkills = o.OpportunitySkills
-                .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
-                .Select(os => os.Skill!.Name.Trim().ToLower())
-                .Where(skill => applicantSkillNames.Contains(skill))
-                .Distinct()
-                .ToList();
+    var matchedSkills = safeSkills
+        .Select(s => s.ToLower())
+        .Where(skill => applicantSkillNames.Contains(skill))
+        .Distinct()
+        .ToList();
 
-            return new OpportunityCardDto
-            {
-                Id = o.Id,
-                Title = o.Title,
-                CompanyName = o.CompanyName,
-                Location = o.Location,
-                IsRemote = o.IsRemote,
-                WorkMode = o.WorkMode.ToString(),
-                Type = o.Type.ToString(),
-                Level = o.Level.ToString(),
-                MinPay = o.MinPay,
-                MaxPay = o.MaxPay,
-                CreatedAtUtc = o.CreatedAtUtc,
-                DeadlineUtc = o.DeadlineUtc,
-                Skills = o.OpportunitySkills
-                    .Where(os => os.Skill != null)
-                    .Select(os => os.Skill!.Name)
-                    .ToList(),
-                AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
-                AssessmentMcqCount = o.AssessmentMcqCount,
-                AssessmentChallengeCount = o.AssessmentChallengeCount,
-                MatchPercentage = matchPercentage,
-                MatchedSkills = matchedSkills
-            };
-        }).ToList();
+    double matchPercentage = 0;
+
+    try
+    {
+        matchPercentage = recommendationService.CalculateOpportunityPercentage(applicantSkills, o);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Match calculation failed for opportunity {o.Id}: {ex.Message}");
+        matchPercentage = 0;
+    }
+
+    return new OpportunityCardDto
+    {
+        Id = o.Id,
+        Title = o.Title,
+        CompanyName = o.CompanyName,
+        Location = o.Location,
+        IsRemote = o.IsRemote,
+        WorkMode = o.WorkMode.ToString(),
+        Type = o.Type.ToString(),
+        Level = o.Level.ToString(),
+        MinPay = o.MinPay,
+        MaxPay = o.MaxPay,
+        CreatedAtUtc = o.CreatedAtUtc,
+        DeadlineUtc = o.DeadlineUtc,
+        Skills = safeSkills,
+        AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
+        AssessmentMcqCount = o.AssessmentMcqCount,
+        AssessmentChallengeCount = o.AssessmentChallengeCount,
+        MatchPercentage = matchPercentage,
+        MatchedSkills = matchedSkills
+    };
+}).ToList();
 
         items = items
     .OrderByDescending(x => x.MatchPercentage) //best match sorting

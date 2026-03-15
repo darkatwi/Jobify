@@ -1,3 +1,4 @@
+import { api } from "../api/api";
 import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -83,28 +84,11 @@ export function BrowseOpportunities() {
                 params.set("page", "1");
                 params.set("pageSize", "50");
 
-                const token = localStorage.getItem("token");
+                const res = await api.get(`/api/opportunities?${params.toString()}`, {
+    signal: controller.signal,
+});
 
-const headers = {
-    "Content-Type": "application/json",
-};
-
-if (token) {
-    headers.Authorization = `Bearer ${token}`;
-}
-
-const res = await fetch(
-    `${API_URL}/api/opportunities?${params.toString()}`,
-    {
-        signal: controller.signal,
-        headers,
-    }
-);
-
-                if (!res.ok)
-                    throw new Error(`Failed to fetch opportunities (${res.status})`);
-
-                const data = await res.json();
+const data = res.data;
 
                 const mapped = (data.items || []).map((o) => {
                     const payText =

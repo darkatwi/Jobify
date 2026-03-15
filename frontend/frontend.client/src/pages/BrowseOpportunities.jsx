@@ -83,13 +83,23 @@ export function BrowseOpportunities() {
                 params.set("page", "1");
                 params.set("pageSize", "50");
 
-                const res = await fetch(
-                    `${API_URL}/api/opportunities?${params.toString()}`,
-                    {
-                        signal: controller.signal,
-                        headers: { "Content-Type": "application/json" },
-                    }
-                );
+                const token = localStorage.getItem("token");
+
+const headers = {
+    "Content-Type": "application/json",
+};
+
+if (token) {
+    headers.Authorization = `Bearer ${token}`;
+}
+
+const res = await fetch(
+    `${API_URL}/api/opportunities?${params.toString()}`,
+    {
+        signal: controller.signal,
+        headers,
+    }
+);
 
                 if (!res.ok)
                     throw new Error(`Failed to fetch opportunities (${res.status})`);

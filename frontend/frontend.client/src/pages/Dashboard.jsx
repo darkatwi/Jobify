@@ -140,10 +140,10 @@ export default function Dashboard() {
               savedOpportunities.slice(0, 3).map((job) => (
                 <OpportunityCard key={job.id} job={job} showScore={false} />
               ))
-            )}
+            )} 
 
             <button
-              onClick={() => (window.location.href = "/saved-opportunities")}
+              onClick={() => (window.location.href = "/saved-opportunities")} // saved opportunities
               style={{
                 marginTop: "12px",
                 padding: "10px 14px",

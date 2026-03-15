@@ -34,7 +34,7 @@ export default function AppLayout() {
                 setLoadingProfile(true);
                 setProfileError("");
 
-                const res = await api.get("/profile");
+                const res = await api.get("/api/Profile");
                 const data = res.data;
 
                 console.log("PROFILE DATA:", data);

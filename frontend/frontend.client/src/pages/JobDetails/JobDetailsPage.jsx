@@ -93,7 +93,7 @@ export default function JobDetailsPage() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/opportunities/${id}/apply`, {
+            const res = await fetch(`${API_URL}/api/opportunities/${id}/apply`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -152,7 +152,7 @@ export default function JobDetailsPage() {
                 setLoading(true);
                 setErr("");
 
-                const res = await fetch(`${API_URL}/opportunities/${id}`, {
+                const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
@@ -195,7 +195,7 @@ export default function JobDetailsPage() {
                 setSimilarLoading(true);
                 setSimilarErr("");
 
-                const res = await fetch(`${API_URL}/opportunities/${id}/similar?take=4`, {
+                const res = await fetch(`${API_URL}/api/opportunities/${id}/similar?take=4`, {
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
@@ -239,7 +239,7 @@ export default function JobDetailsPage() {
 
             setAskLoading(true);
 
-            const res = await fetch(`${API_URL}/opportunities/${id}/questions`, {
+            const res = await fetch(`${API_URL}/api/opportunities/${id}/questions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -262,7 +262,7 @@ export default function JobDetailsPage() {
             setQuestionText("");
             setAskOpen(false);
 
-            const refreshed = await fetch(`${API_URL}/opportunities/${id}`, {
+            const refreshed = await fetch(`${API_URL}/api/opportunities/${id}`, {
                 headers: { "Content-Type": "application/json" },
             });
             if (refreshed.ok) {
@@ -298,7 +298,7 @@ export default function JobDetailsPage() {
 
             setReportLoading(true);
 
-            const res = await fetch(`${API_URL}/opportunities/${id}/report`, {
+            const res = await fetch(`${API_URL}/api/opportunities/${id}/report`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -341,7 +341,7 @@ export default function JobDetailsPage() {
             setShareErr("");
             setShareOk("");
 
-            const shareUrl = `${window.location.origin}/opportunities/${id}`;
+            const shareUrl = `${window.location.origin}/api/opportunities/${id}`;
             const shareData = {
                 title: job?.title || "Opportunity",
                 text: `${job?.title || "Opportunity"} at ${job?.companyName || "Company"}`,

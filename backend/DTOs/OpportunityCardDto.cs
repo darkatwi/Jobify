@@ -28,4 +28,6 @@ public class OpportunityCardDto
     public List<string> MatchedSkills { get; set; } = new();
     
     public int ApplicantCount { get; set; }
+
+    
 }

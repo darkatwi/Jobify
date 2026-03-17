@@ -392,6 +392,16 @@
         color: #047857;
     }
 
+    .status-pill.assessment {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    .status-pill.rejected {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
 .app-steps {
     display: flex;
     align-items: center;
@@ -467,7 +477,7 @@
     top: 0;
     width: 8px;
     height: 100%;
-    background: #f59e0b;
+    background: linear-gradient(180deg, #3b82f6, #60a5fa);
 }
 
 .interview-top {
@@ -488,9 +498,9 @@
 .upcoming-pill {
     padding: 6px 11px;
     border-radius: 999px;
-    background: #fff7ed;
-    color: #ea580c;
-    border: 1px solid #fde6b3;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
     font-size: 11px;
     font-weight: 800;
 }
@@ -568,13 +578,14 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #f59e0b;
-    color: white;
     padding: 10px 18px;
     border-radius: 14px;
     font-size: 13px;
     font-weight: 800;
     text-decoration: none;
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
 }
 
 .cv-card .match-logo {
@@ -586,6 +597,149 @@
 .cv-card .match-job-title {
     font-size: 20px;
 }
+
+.prepare-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 3000;
+}
+
+.prepare-modal {
+    width: min(860px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 24px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+}
+
+.prepare-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 24px 18px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+    .prepare-modal-header h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .prepare-modal-header p {
+        margin: 8px 0 0;
+        font-size: 15px;
+        color: #64748b;
+    }
+
+.prepare-close-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.prepare-modal-body {
+    padding: 24px;
+    display: grid;
+    gap: 18px;
+}
+
+.prepare-section {
+    background: #f8fafc;
+    border: 1px solid #e9eef5;
+    border-radius: 20px;
+    padding: 18px;
+}
+
+    .prepare-section h3 {
+        margin: 0 0 14px;
+        font-size: 18px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+.prepare-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.prepare-box {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 14px;
+}
+
+    .prepare-box.full {
+        grid-column: 1 / -1;
+    }
+
+.prepare-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.prepare-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.prepare-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #334155;
+}
+
+    .prepare-list li {
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+
+.prepare-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.prepare-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid #dbe3ee;
+    background: #fff;
+    color: #0f172a;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+    .prepare-action-btn.primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: #fff;
+    }
 
 @media (max-width: 1000px) {
     .match-card-row,
@@ -611,5 +765,365 @@
 
     .interviews-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .prepare-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prepare-modal {
+        border-radius: 20px;
+        max-height: 94vh;
+    }
+
+    .prepare-modal-header h2 {
+        font-size: 22px;
+    }
+}
+
+.cv-review-page,
+.cv-review-page * {
+    box-sizing: border-box;
+}
+
+.cv-review-page {
+    width: 100%;
+    min-height: 100vh;
+    padding: 18px 20px;
+    background: #ffffff;
+}
+
+.cv-review-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #ffffff;
+    border: 1px solid #dbe7f5;
+    border-radius: 22px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+}
+
+.cv-review-hero-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.cv-review-hero h1 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.cv-review-hero p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.98rem;
+}
+
+.cv-review-top-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr 0.85fr;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.cv-review-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.cv-review-card {
+    background: #ffffff;
+    border: 1px solid #dbe7f5;
+    border-radius: 20px;
+    padding: 16px 16px 15px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.cv-review-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.cv-review-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.cv-review-score-card {
+    padding: 16px;
+}
+
+.cv-review-score-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.cv-review-score {
+    font-size: 3.2rem;
+    font-weight: 900;
+    line-height: 1;
+    color: #2563eb;
+    min-width: 120px;
+}
+
+    .cv-review-score span {
+        font-size: 1rem;
+        color: #64748b;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+
+.cv-review-score-copy h3 {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+.cv-review-score-copy p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+.cv-score-badge {
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+    .cv-score-badge.excellent {
+        background: #dcfce7;
+        color: #166534;
+        border-color: #bbf7d0;
+    }
+
+    .cv-score-badge.good {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+    }
+
+    .cv-score-badge.fair {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fde68a;
+    }
+
+    .cv-score-badge.weak {
+        background: #fee2e2;
+        color: #b91c1c;
+        border-color: #fecaca;
+    }
+
+.cv-chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cv-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 11px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+    .cv-chip.ok {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-color: #bfdbfe;
+    }
+
+    .cv-chip.bad {
+        background: #fff7ed;
+        color: #c2410c;
+        border-color: #fed7aa;
+    }
+
+.cv-chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.cv-review-list {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 10px;
+}
+
+    .cv-review-list li {
+        color: #334155;
+        line-height: 1.55;
+        font-size: 0.96rem;
+    }
+
+    .cv-review-list.warning li::marker {
+        color: #f59e0b;
+    }
+
+    .cv-review-list.suggestion li::marker {
+        color: #2563eb;
+    }
+
+.cv-count-pill {
+    min-width: 26px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.cv-skills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cv-skill-tag {
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #dbe7f5;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.cv-review-empty {
+    background: #ffffff;
+    border: 1px solid #dbe7f5;
+    border-radius: 20px;
+    padding: 22px;
+    text-align: center;
+    color: #475569;
+    display: grid;
+    gap: 8px;
+    place-items: center;
+}
+
+    .cv-review-empty h2,
+    .cv-review-empty p {
+        margin: 0;
+    }
+
+    .cv-review-empty.small {
+        margin-top: 14px;
+    }
+
+.cv-review-skeleton-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr 0.85fr;
+    gap: 14px;
+}
+
+.cv-skeleton {
+    height: 150px;
+    border-radius: 20px;
+    background: linear-gradient(90deg, #eef4fb 25%, #f8fbff 50%, #eef4fb 75%);
+    background-size: 200% 100%;
+    animation: cvShimmer 1.2s infinite linear;
+    border: 1px solid #dbe7f5;
+}
+
+.cv-skeleton-tall {
+    height: 180px;
+}
+
+@keyframes cvShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (max-width: 1100px) {
+    .cv-review-top-grid,
+    .cv-review-main-grid,
+    .cv-review-skeleton-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-review-score-row {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 700px) {
+    .cv-review-page {
+        padding: 14px;
+    }
+
+    .cv-review-hero {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .cv-review-hero-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+    }
+
+    .cv-review-hero h1 {
+        font-size: 1.4rem;
+    }
+
+    .cv-review-card {
+        padding: 14px;
+        border-radius: 18px;
+    }
+
+    .cv-review-score-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .cv-review-score {
+        font-size: 2.7rem;
+        min-width: unset;
     }
 }

@@ -451,50 +451,48 @@ public class ProfileController : ControllerBase
     }
 
     [HttpPost("student/university-proof")]
-    [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadUniversityProof(IFormFile uploadedFile)
+[Consumes("multipart/form-data")]
+public async Task<IActionResult> UploadUniversityProof(IFormFile uploadedFile)
+{
+    var userId = GetUserId();
+    if (string.IsNullOrEmpty(userId))
+        return Unauthorized("User not authenticated");
+
+    var ur = await GetUserAndRolesAsync(userId);
+    if (ur == null)
+        return NotFound("User not found");
+
+    var roles = ur.Value.roles;
+    if (!roles.Contains("Student"))
+        return Forbid("Only students can upload university proof.");
+
+    if (uploadedFile == null || uploadedFile.Length == 0)
+        return BadRequest("No file uploaded.");
+
+    if (uploadedFile.Length > 10 * 1024 * 1024)
+        return BadRequest("File too large. Max 10MB.");
+
+    var originalName = uploadedFile.FileName ?? "university_proof";
+    var ext = SafeExt(originalName);
+    var contentType = uploadedFile.ContentType ?? "";
+
+    if (!IsAllowedProofType(contentType, ext))
+        return BadRequest("University proof must be an image (png/jpg) or PDF.");
+
+    var studentProfile = await GetOrCreateStudentProfile(userId);
+
+    var folder = BuildStudentUserFolder(userId);
+    var storedName = await SaveFileAsync(uploadedFile, folder, "university_proof");
+    var fullPath = Path.Combine(folder, storedName);
+
+    try
     {
-        var file = uploadedFile;
+        var text = _ocrService.ExtractText(fullPath);
+        var normalizedText = NormalizeText(text);
+        var extractedUniversityName = ExtractUniversityName(text);
 
-        var userId = GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return Unauthorized("User not authenticated");
-
-        var ur = await GetUserAndRolesAsync(userId);
-        if (ur == null)
-            return NotFound("User not found");
-
-        var roles = ur.Value.roles;
-        if (!roles.Contains("Student"))
-            return Forbid("Only students can upload university proof.");
-
-        if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded.");
-
-        if (file.Length > 10 * 1024 * 1024)
-            return BadRequest("File too large. Max 10MB.");
-
-        var originalName = file.FileName ?? "university_proof";
-        var ext = SafeExt(originalName);
-        var contentType = file.ContentType ?? "";
-
-        if (!IsAllowedProofType(contentType, ext))
-            return BadRequest("University proof must be an image (png/jpg) or PDF.");
-
-        var studentProfile = await GetOrCreateStudentProfile(userId);
-
-        var folder = BuildStudentUserFolder(userId);
-        var storedName = await SaveFileAsync(file, folder, "university_proof");
-        var fullPath = Path.Combine(folder, storedName);
-
-        try
+        var institutionKeywords = new[]
         {
-            var text = _ocrService.ExtractText(fullPath);
-            var normalizedText = NormalizeText(text);
-            var extractedUniversityName = ExtractUniversityName(text);
-
-            var institutionKeywords = new[]
-            {
             "university",
             "college",
             "institute",
@@ -506,8 +504,8 @@ public class ProfileController : ControllerBase
             "beirut"
         };
 
-            var idKeywords = new[]
-            {
+        var idKeywords = new[]
+        {
             "student",
             "student id",
             "id",
@@ -521,8 +519,8 @@ public class ProfileController : ControllerBase
             "sciences"
         };
 
-            var enrollmentKeywords = new[]
-            {
+        var enrollmentKeywords = new[]
+        {
             "registration",
             "enrollment",
             "currently registered",
@@ -537,8 +535,8 @@ public class ProfileController : ControllerBase
             "faculty"
         };
 
-            var transcriptKeywords = new[]
-            {
+        var transcriptKeywords = new[]
+        {
             "transcript",
             "courses",
             "credit hours",
@@ -549,60 +547,60 @@ public class ProfileController : ControllerBase
             "grade"
         };
 
-            int institutionScore = institutionKeywords.Count(k => normalizedText.Contains(k));
-            int idScore = idKeywords.Count(k => normalizedText.Contains(k));
-            int enrollmentScore = enrollmentKeywords.Count(k => normalizedText.Contains(k));
-            int transcriptScore = transcriptKeywords.Count(k => normalizedText.Contains(k));
+        int institutionScore = institutionKeywords.Count(k => normalizedText.Contains(k));
+        int idScore = idKeywords.Count(k => normalizedText.Contains(k));
+        int enrollmentScore = enrollmentKeywords.Count(k => normalizedText.Contains(k));
+        int transcriptScore = transcriptKeywords.Count(k => normalizedText.Contains(k));
 
-            bool nameMatched = false;
-            if (!string.IsNullOrWhiteSpace(studentProfile.FullName))
-            {
-                nameMatched = NameLooksPresent(text, studentProfile.FullName);
-            }
+        bool nameMatched = false;
+        if (!string.IsNullOrWhiteSpace(studentProfile.FullName))
+        {
+            nameMatched = NameLooksPresent(text, studentProfile.FullName);
+        }
 
-            if (!nameMatched)
-            {
-                if (System.IO.File.Exists(fullPath))
-                    System.IO.File.Delete(fullPath);
+        if (!nameMatched)
+        {
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
 
-                return BadRequest("The name on the university proof does not match the name in your profile.");
-            }
+            return BadRequest("The name on the university proof does not match the name in your profile.");
+        }
 
-            bool looksLikeUniversityName = !string.IsNullOrWhiteSpace(extractedUniversityName);
+        bool looksLikeUniversityName = !string.IsNullOrWhiteSpace(extractedUniversityName);
 
-            bool hasStudentNumber = Regex.IsMatch(normalizedText, @"\b\d{7,10}\b");
+        bool hasStudentNumber = Regex.IsMatch(normalizedText, @"\b\d{7,10}\b");
 
-            bool directUniversityMatch =
-                normalizedText.Contains("american university of beirut") ||
-                normalizedText.Contains("aub");
+        bool directUniversityMatch =
+            normalizedText.Contains("american university of beirut") ||
+            normalizedText.Contains("aub");
 
-            bool isStudentId =
-                (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
-                (
-                    idScore >= 2 ||
-                    (normalizedText.Contains("student") && hasStudentNumber) ||
-                    (normalizedText.Contains("student") && looksLikeUniversityName) ||
-                    (normalizedText.Contains("student") && directUniversityMatch)
-                );
+        bool isStudentId =
+            (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
+            (
+                idScore >= 2 ||
+                (normalizedText.Contains("student") && hasStudentNumber) ||
+                (normalizedText.Contains("student") && looksLikeUniversityName) ||
+                (normalizedText.Contains("student") && directUniversityMatch)
+            );
 
-            bool isEnrollmentProof =
-                (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
-                enrollmentScore >= 2;
+        bool isEnrollmentProof =
+            (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
+            enrollmentScore >= 2;
 
-            bool isTranscript =
-                (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
-                transcriptScore >= 2;
+        bool isTranscript =
+            (institutionScore >= 1 || directUniversityMatch || looksLikeUniversityName) &&
+            transcriptScore >= 2;
 
-            bool isAcceptedUniversityProof =
-                isStudentId || isEnrollmentProof || isTranscript;
+        bool isAcceptedUniversityProof =
+            isStudentId || isEnrollmentProof || isTranscript;
 
-            if (!isAcceptedUniversityProof)
-            {
-                if (System.IO.File.Exists(fullPath))
-                    System.IO.File.Delete(fullPath);
+        if (!isAcceptedUniversityProof)
+        {
+            if (System.IO.File.Exists(fullPath))
+                System.IO.File.Delete(fullPath);
 
-                return BadRequest("Uploaded document does not appear to be valid university proof.");
-            }
+            return BadRequest("Uploaded document does not appear to be valid university proof.");
+        }
 
         if (!string.IsNullOrEmpty(studentProfile.UniversityProofFileName))
         {
@@ -618,41 +616,45 @@ public class ProfileController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-            return Ok(new
-            {
-                role = "Student",
-                profile = new
-                {
-                    hasUniversityProof = true,
-                    universityProofUploadedAtUtc = studentProfile.UniversityProofUploadedAtUtc
-                },
-                debug = new
-                {
-                    extractedText = text,
-                    normalizedText = normalizedText,
-                    extractedUniversityName = extractedUniversityName,
-                    institutionScore = institutionScore,
-                    idScore = idScore,
-                    enrollmentScore = enrollmentScore,
-                    transcriptScore = transcriptScore,
-                    hasStudentNumber = hasStudentNumber,
-                    looksLikeUniversityName = looksLikeUniversityName,
-                    directUniversityMatch = directUniversityMatch,
-                    nameMatched = nameMatched,
-                    isStudentId = isStudentId,
-                    isEnrollmentProof = isEnrollmentProof,
-                    isTranscript = isTranscript
-                }
-            });
-        }
-        catch (Exception ex)
+        return Ok(new
         {
-            if (System.IO.File.Exists(fullPath))
-                System.IO.File.Delete(fullPath);
-
-            return BadRequest($"OCR failed: {ex.Message}");
-        }
+            role = "Student",
+            profile = new
+            {
+                hasUniversityProof = true,
+                universityProofUploadedAtUtc = studentProfile.UniversityProofUploadedAtUtc
+            },
+            debug = new
+            {
+                extractedText = text,
+                normalizedText = normalizedText,
+                extractedUniversityName = extractedUniversityName,
+                institutionScore = institutionScore,
+                idScore = idScore,
+                enrollmentScore = enrollmentScore,
+                transcriptScore = transcriptScore,
+                hasStudentNumber = hasStudentNumber,
+                looksLikeUniversityName = looksLikeUniversityName,
+                directUniversityMatch = directUniversityMatch,
+                nameMatched = nameMatched,
+                isStudentId = isStudentId,
+                isEnrollmentProof = isEnrollmentProof,
+                isTranscript = isTranscript
+            }
+        });
     }
+    catch (Exception ex)
+    {
+        if (System.IO.File.Exists(fullPath))
+            System.IO.File.Delete(fullPath);
+
+        return StatusCode(500, new
+        {
+            message = "An error occurred while processing the university proof.",
+            error = ex.Message
+        });
+    }
+}
 
     [HttpGet("student/university-proof")]
     public async Task<IActionResult> DownloadUniversityProof()

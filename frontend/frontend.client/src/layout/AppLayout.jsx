@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
     Search,
     Moon,
@@ -14,12 +14,17 @@ import { api } from "../api/api";
 import "../pages/styles/layout.css";
 
 export default function AppLayout() {
+    const navigate = useNavigate();
+
     const [scrolled, setScrolled] = useState(false);
     const [role, setRole] = useState(null);
     const [displayName, setDisplayName] = useState("Loading...");
     const [avatarLetter, setAvatarLetter] = useState("?");
     const [loadingProfile, setLoadingProfile] = useState(true);
     const [profileError, setProfileError] = useState("");
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+    const profileMenuRef = useRef(null);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 8);
@@ -29,12 +34,26 @@ export default function AppLayout() {
     }, []);
 
     useEffect(() => {
+        function handleClickOutside(event) {
+            if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(event.target)
+            ) {
+                setShowProfileMenu(false);
+            }
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+//use effect
+    useEffect(() => {
         async function fetchProfile() {
             try {
                 setLoadingProfile(true);
                 setProfileError("");
 
-                const res = await api.get("/api/profile");
+                const res = await api.get("/api/Profile");
                 const data = res.data;
 
                 console.log("PROFILE DATA:", data);
@@ -69,6 +88,19 @@ export default function AppLayout() {
 
         fetchProfile();
     }, []);
+//top buttun
+    function handleLogout() {
+        setShowProfileMenu(false);
+        localStorage.removeItem("token");
+        localStorage.removeItem("jobify_user");
+        localStorage.removeItem("jobify_signup");
+        navigate("/login");
+    }
+//handle go to profile option
+    function handleGoToProfile() {
+        setShowProfileMenu(false);
+        navigate("/profile");
+    }
 
     return (
         <div className="al-shell">
@@ -91,9 +123,55 @@ export default function AppLayout() {
                             <Moon size={18} />
                         </button>
 
-                        <button className="al-iconBtn" type="button" title="Account">
-                            <User size={18} />
-                        </button>
+                        <div
+                            ref={profileMenuRef}
+                            style={{ position: "relative", display: "inline-block" }}
+                        >
+                            <button
+                                className="al-iconBtn"
+                                type="button"
+                                title="Account"
+                                onClick={() => setShowProfileMenu((prev) => !prev)}
+                            >
+                                <User size={18} />
+                            </button>
+
+                            {showProfileMenu && (
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: "48px",
+                                        right: 0,
+                                        width: "170px",
+                                        background: "white",
+                                        border: "1px solid #e5e7eb",
+                                        borderRadius: "12px",
+                                        boxShadow: "0 10px 24px rgba(0,0,0,0.10)",
+                                        padding: "8px",
+                                        zIndex: 1000,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "6px",
+                                    }}
+                                >
+                                    <button
+                                        type="button"
+                                        onClick={handleGoToProfile}
+                                        style={menuItemStyle}
+                                    >
+                                        Profile
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        style={menuItemStyle}
+                                    >
+                                        Log out
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -101,31 +179,46 @@ export default function AppLayout() {
             <div className="al-body">
                 <aside className="al-sidebar">
                     <nav className="al-nav">
-                        <NavLink to="/dashboard" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                        <NavLink
+                            to="/dashboard"
+                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+                        >
                             <span className="al-linkIcon"><LayoutGrid size={18} /></span>
                             <span className="al-linkText">Dashboard</span>
                         </NavLink>
 
-                        <NavLink to="/browse" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                        <NavLink
+                            to="/browse"
+                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+                        >
                             <span className="al-linkIcon"><Sparkles size={18} /></span>
                             <span className="al-linkText">Browse</span>
                         </NavLink>
 
                         {!loadingProfile && role === "Recruiter" && (
-                            <NavLink to="/organization" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                            <NavLink
+                                to="/organization"
+                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+                            >
                                 <span className="al-linkIcon"><Building2 size={18} /></span>
                                 <span className="al-linkText">Organization</span>
                             </NavLink>
                         )}
 
                         {!loadingProfile && role === "Student" && (
-                            <NavLink to="/matches" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                            <NavLink
+                                to="/match"
+                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+                            >
                                 <span className="al-linkIcon"><Star size={18} /></span>
                                 <span className="al-linkText">Matches</span>
                             </NavLink>
                         )}
 
-                        <NavLink to="/profile" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
+                        <NavLink
+                            to="/profile"
+                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+                        >
                             <span className="al-linkIcon"><UserCircle size={18} /></span>
                             <span className="al-linkText">Profile</span>
                         </NavLink>
@@ -191,3 +284,14 @@ export default function AppLayout() {
         </div>
     );
 }
+
+const menuItemStyle = {
+    border: "none",
+    background: "white",
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontWeight: "500",
+    color: "#111827",
+};

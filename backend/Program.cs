@@ -93,18 +93,7 @@ builder.Services.AddCors(options =>
 // Service that creates JWT tokens on login
 builder.Services.AddScoped<JwtTokenService>();
 
-builder.Services.AddScoped<UniversityProofOcrService>();
 
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-
-// Skill extraction services
-builder.Services.AddScoped<SkillService>();
-builder.Services.AddHttpClient<MlSkillClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["MlService:BaseUrl"]!);
-});
-
-builder.Services.AddHttpClient();
 
 // Authentication
 builder.Services
@@ -197,7 +186,7 @@ builder.Services.AddSwaggerGen(c =>
     c.OperationFilter<FileUploadOperationFilter>();
 });
 
-builder.Services.AddScoped<RecommendationService>();
+
 
 var app = builder.Build();
 

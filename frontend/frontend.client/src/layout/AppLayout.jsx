@@ -46,7 +46,7 @@ export default function AppLayout() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
+//use effect
     useEffect(() => {
         async function fetchProfile() {
             try {

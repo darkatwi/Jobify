@@ -11,7 +11,6 @@ import {
     ArrowUpDown
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../api/api";
 
 import "./styles/browseopportunities.css";
 
@@ -35,21 +34,61 @@ export function BrowseOpportunities() {
     const [sortBy, setSortBy] = useState("match");
 
     const [typeFilter, setTypeFilter] = useState("all");
-    const [levelFilter, setLevelFilter] = useState("all"); // now will be Entry / Junior / Senior
+    const [levelFilter, setLevelFilter] = useState("all");
     const [locationFilter, setLocationFilter] = useState("all");
     const [matchFilter, setMatchFilter] = useState("all");
 
-    const [savedItems, setSavedItems] = useState([2]);
+    const [savedItems, setSavedItems] = useState([]);
 
     // backend data
     const [opportunities, setOpportunities] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [savingId, setSavingId] = useState(null);
 
-    const toggleSaved = (id) => {
-        setSavedItems((prev) =>
-            prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-        );
+    const toggleSaved = async (id) => {
+        try {
+            setSavingId(id);
+
+            const isSaved = savedItems.includes(id);
+
+            if (isSaved) {
+                await api.delete(`/api/opportunities/${id}/save`);
+                setSavedItems((prev) => prev.filter((x) => x !== id));
+            } else {
+                await api.post(`/api/opportunities/${id}/save`);
+                setSavedItems((prev) => [...prev, id]);
+            }
+        } catch (err) {
+            console.error("Failed to update saved opportunity:", err);
+            alert("Failed to update saved opportunity.");
+        } finally {
+            setSavingId(null);
+        }
     };
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        const fetchSavedIds = async () => {
+            try {
+                const res = await api.get("/api/opportunities/saved/ids", {
+                    signal: controller.signal,
+                });
+
+                const data = res.data;
+                setSavedItems(Array.isArray(data) ? data : []);
+            } catch (err) {
+                if (err?.name !== "AbortError" && err?.code !== "ERR_CANCELED") {
+                    console.error("Failed to fetch saved opportunity ids:", err);
+                    setSavedItems([]);
+                }
+            }
+        };
+
+        fetchSavedIds();
+
+        return () => controller.abort();
+    }, []);
 
     // fetch from backend
     useEffect(() => {
@@ -59,7 +98,6 @@ export function BrowseOpportunities() {
             try {
                 setLoading(true);
 
-                // GET /api/opportunities?q=&type=&level=&remote=&location=&skills=&minPay=&maxPay=&sort=&page=&pageSize=
                 const params = new URLSearchParams();
 
                 if (searchQuery.trim()) params.set("q", searchQuery.trim());
@@ -83,10 +121,10 @@ export function BrowseOpportunities() {
                 params.set("pageSize", "50");
 
                 const res = await api.get(`/api/opportunities?${params.toString()}`, {
-    signal: controller.signal,
-});
+                    signal: controller.signal,
+                });
 
-const data = res.data;
+                const data = res.data;
 
                 const mapped = (data.items || []).map((o) => {
                     const payText =
@@ -98,18 +136,18 @@ const data = res.data;
                                     ? `From $${o.minPay}`
                                     : `Up to $${o.maxPay}`;
 
-                    const locationText = o.isRemote
-                        ? "Remote"
-                        : o.isHybrid
-                            ? "Hybrid"
-                            : "On-site";
+                    const locationText =
+                        String(o.workMode || "").toLowerCase() === "remote"
+                            ? "Remote"
+                            : String(o.workMode || "").toLowerCase() === "hybrid"
+                                ? "Hybrid"
+                                : "On-site";
 
                     const postedText = o.createdAtUtc ? timeAgoFromUtc(o.createdAtUtc) : "—";
                     const deadlineText = o.deadlineUtc ? daysLeftFromUtc(o.deadlineUtc) : "—";
 
-                                        const match =
-    typeof o.matchPercentage === "number" ? Math.round(o.matchPercentage) : 0;
-
+                    const match =
+                        typeof o.matchPercentage === "number" ? Math.round(o.matchPercentage) : 0;
 
                     return {
                         id: o.id,
@@ -124,13 +162,12 @@ const data = res.data;
                         deadline: deadlineText,
                         match,
                         skills: Array.isArray(o.skills) ? o.skills : [],
-                        saved: false,
                     };
                 });
 
                 setOpportunities(mapped);
             } catch (err) {
-                if (err?.name !== "AbortError") {
+                if (err?.name !== "AbortError" && err?.code !== "ERR_CANCELED") {
                     console.error(err);
                     setOpportunities([]);
                 }
@@ -165,7 +202,7 @@ const data = res.data;
                     : locationFilter === "remote"
                         ? opp.location.toLowerCase().includes("remote")
                         : locationFilter === "onsite"
-                            ? !opp.location.toLowerCase().includes("remote")
+                            ? opp.location.toLowerCase().includes("on-site")
                             : locationFilter === "hybrid"
                                 ? opp.location.toLowerCase().includes("hybrid")
                                 : true;
@@ -188,7 +225,7 @@ const data = res.data;
             if (sortBy === "match") return b.match - a.match;
             if (sortBy === "newest") return extractDays(a.posted) - extractDays(b.posted);
             if (sortBy === "salary") return salaryScore(b.salary) - salaryScore(a.salary);
-            if (sortBy === "deadline") return extractDaysLeft(b.deadline) - extractDaysLeft(a.deadline);
+            if (sortBy === "deadline") return extractDaysLeft(a.deadline) - extractDaysLeft(b.deadline);
             return 0;
         });
 
@@ -205,7 +242,6 @@ const data = res.data;
 
     return (
         <div className="bo-root bo-space">
-            {/* Header */}
             <div className="bo-header">
                 <h1 className="bo-title">Browse Opportunities</h1>
                 <p className="bo-subtitle">
@@ -213,11 +249,9 @@ const data = res.data;
                 </p>
             </div>
 
-            {/* Search & Filters */}
             <div className="bo-card">
                 <div className="bo-cardContent">
                     <div className="bo-toolbar">
-                        {/* Search */}
                         <div className="bo-searchWrap">
                             <Search className="bo-searchIcon" />
                             <input
@@ -229,7 +263,6 @@ const data = res.data;
                             />
                         </div>
 
-                        {/* Filter Toggle */}
                         <button
                             className="bo-btn bo-btnOutline"
                             type="button"
@@ -239,7 +272,6 @@ const data = res.data;
                             Filters
                         </button>
 
-                        {/* Sort */}
                         <div className="bo-selectWrap">
                             <ArrowUpDown className="bo-selectIcon" />
                             <select
@@ -255,7 +287,6 @@ const data = res.data;
                         </div>
                     </div>
 
-                    {/* Filter Options */}
                     <AnimatePresence initial={false}>
                         {showFilters && (
                             <motion.div
@@ -281,7 +312,6 @@ const data = res.data;
                                         </select>
                                     </div>
 
-                                    {/* Entry / Junior / Senior */}
                                     <div className="bo-field">
                                         <label className="bo-label">Level</label>
                                         <select
@@ -330,7 +360,6 @@ const data = res.data;
                 </div>
             </div>
 
-            {/* Results Count */}
             <div className="bo-resultsRow">
                 <p className="bo-resultsText">
                     {loading ? (
@@ -344,10 +373,10 @@ const data = res.data;
                 </p>
             </div>
 
-            {/* Opportunities List */}
             <div className="bo-list">
                 {filtered.map((opp, index) => {
                     const isSaved = savedItems.includes(opp.id);
+                    const isSavingThis = savingId === opp.id;
 
                     return (
                         <motion.div
@@ -359,7 +388,6 @@ const data = res.data;
                             <div className="bo-card bo-cardHover">
                                 <div className="bo-cardContent">
                                     <div className="bo-row">
-                                        {/* Left */}
                                         <div className="bo-left">
                                             <div className="bo-logo">{opp.logo}</div>
 
@@ -411,7 +439,6 @@ const data = res.data;
                                             </div>
                                         </div>
 
-                                        {/* Right */}
                                         <div className="bo-right">
                                             <div className="bo-match">
                                                 <div className="bo-matchTop">
@@ -432,15 +459,13 @@ const data = res.data;
 
                                                 <button
                                                     type="button"
-                                                    className={`bo-btn bo-btnOutline bo-saveBtn ${isSaved ? "isSaved" : ""
-                                                        }`}
+                                                    className={`bo-btn bo-btnOutline bo-saveBtn ${isSaved ? "isSaved" : ""}`}
                                                     onClick={() => toggleSaved(opp.id)}
                                                     aria-label={isSaved ? "Unsave" : "Save"}
                                                     title={isSaved ? "Unsave" : "Save"}
+                                                    disabled={isSavingThis}
                                                 >
-                                                    <Bookmark
-                                                        className={`bo-saveIcon ${isSaved ? "isSaved" : ""}`}
-                                                    />
+                                                    <Bookmark className={`bo-saveIcon ${isSaved ? "isSaved" : ""}`} />
                                                 </button>
                                             </div>
                                         </div>
@@ -452,7 +477,6 @@ const data = res.data;
                 })}
             </div>
 
-            {/* Load More */}
             <div className="bo-loadMore">
                 <button className="bo-btn bo-btnOutline" type="button">
                     Load More Opportunities
@@ -476,7 +500,12 @@ function extractDays(postedText) {
 }
 
 function extractDaysLeft(deadlineText) {
-    const n = parseInt(String(deadlineText || ""), 10);
+    const t = String(deadlineText || "").toLowerCase();
+
+    if (t.includes("passed")) return -1;
+    if (t.includes("today")) return 0;
+
+    const n = parseInt(t, 10);
     return isNaN(n) ? 999 : n;
 }
 

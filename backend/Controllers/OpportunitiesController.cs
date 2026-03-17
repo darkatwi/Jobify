@@ -375,6 +375,106 @@ public class OpportunitiesController : ControllerBase
         return result;
     }
 
+    [Authorize(Roles = "Student")]
+    [HttpPost("{id:int}/save")]
+    public async Task<IActionResult> SaveOpportunity(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var opportunityExists = await _db.Opportunities.AnyAsync(o => o.Id == id);
+        if (!opportunityExists)
+            return NotFound("Opportunity not found.");
+
+        var alreadySaved = await _db.SavedOpportunities
+            .AnyAsync(x => x.UserId == userId && x.OpportunityId == id);
+
+        if (alreadySaved)
+            return BadRequest("Opportunity already saved.");
+
+        var savedOpportunity = new SavedOpportunity
+        {
+            UserId = userId,
+            OpportunityId = id,
+            SavedAtUtc = DateTime.UtcNow
+        };
+
+        _db.SavedOpportunities.Add(savedOpportunity);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Opportunity saved successfully." });
+    }
+
+    [Authorize(Roles = "Student")]
+    [HttpDelete("{id:int}/save")]
+    public async Task<IActionResult> UnsaveOpportunity(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var savedOpportunity = await _db.SavedOpportunities
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.OpportunityId == id);
+
+        if (savedOpportunity == null)
+            return NotFound("Saved opportunity not found.");
+
+        _db.SavedOpportunities.Remove(savedOpportunity);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Opportunity removed from saved list." });
+    }
+
+    [Authorize(Roles = "Student")]
+    [HttpGet("saved")]
+    public async Task<IActionResult> GetSavedOpportunities()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var saved = await _db.SavedOpportunities
+            .Where(x => x.UserId == userId)
+            .Include(x => x.Opportunity)
+            .OrderByDescending(x => x.SavedAtUtc)
+            .Select(x => new
+            {
+                id = x.Opportunity.Id,
+                title = x.Opportunity.Title,
+                companyName = x.Opportunity.CompanyName,
+                location = x.Opportunity.Location,
+                isRemote = x.Opportunity.IsRemote,
+                workMode = x.Opportunity.WorkMode.ToString(),
+                type = x.Opportunity.Type.ToString(),
+                level = x.Opportunity.Level.ToString(),
+                minPay = x.Opportunity.MinPay,
+                maxPay = x.Opportunity.MaxPay,
+                createdAtUtc = x.Opportunity.CreatedAtUtc,
+                deadlineUtc = x.Opportunity.DeadlineUtc,
+                savedAtUtc = x.SavedAtUtc
+            })
+            .ToListAsync();
+
+        return Ok(saved);
+    }
+
+    [Authorize(Roles = "Student")]
+    [HttpGet("saved/ids")]
+    public async Task<IActionResult> GetSavedOpportunityIds()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var ids = await _db.SavedOpportunities
+            .Where(x => x.UserId == userId)
+            .Select(x => x.OpportunityId)
+            .ToListAsync();
+
+        return Ok(ids);
+    }
+
     [Authorize]
     [HttpPost("{id:int}/questions")]
     public async Task<ActionResult> AskQuestion(int id, [FromBody] QaDto dto)
@@ -566,6 +666,9 @@ public class OpportunitiesController : ControllerBase
 
         var joins = await _db.OpportunitySkills.Where(os => os.OpportunityId == id).ToListAsync();
         _db.OpportunitySkills.RemoveRange(joins);
+
+        var saved = await _db.SavedOpportunities.Where(s => s.OpportunityId == id).ToListAsync();
+        _db.SavedOpportunities.RemoveRange(saved);
 
         var questions = await _db.OpportunityQuestions.Where(q => q.OpportunityId == id).ToListAsync();
         _db.OpportunityQuestions.RemoveRange(questions);

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCandidateDashboard } from "../services/dashboardService";
+import { api } from "../api/api";
 
 export default function Dashboard() {
   const [role, setRole] = useState(null);
@@ -210,9 +211,15 @@ function RecruiterDashboard() {
 }
 
 function CandidateDashboard() {
+  const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [savedOpportunities, setSavedOpportunities] = useState([]);
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState("");
 
   useEffect(() => {
     async function loadDashboard() {
@@ -227,6 +234,28 @@ function CandidateDashboard() {
     }
 
     loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    async function loadSavedOpportunities() {
+      try {
+        setSavedLoading(true);
+        setSavedError("");
+
+        const res = await api.get("/api/opportunities/saved");
+        const saved = Array.isArray(res.data) ? res.data : [];
+
+        setSavedOpportunities(saved);
+      } catch (err) {
+        console.error(err);
+        setSavedError(err.message || "Failed to load saved opportunities");
+        setSavedOpportunities([]);
+      } finally {
+        setSavedLoading(false);
+      }
+    }
+
+    loadSavedOpportunities();
   }, []);
 
   if (loading) {
@@ -251,8 +280,6 @@ function CandidateDashboard() {
     (job) => (job.matchScore ?? 0) >= MATCH_THRESHOLD
   );
 
-  const savedOpportunities = data?.savedOpportunities || [];
-
   const upcomingDeadlines = recommendedOpportunities
     .filter((job) => job.deadlineUtc)
     .sort((a, b) => new Date(a.deadlineUtc) - new Date(b.deadlineUtc))
@@ -271,11 +298,11 @@ function CandidateDashboard() {
         }}
       >
         <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
-          Welcome back, {data.fullName} 👋
+          Welcome back, {data?.fullName || "Student"} 👋
         </h1>
 
         <p style={{ marginTop: "8px", marginBottom: "16px", opacity: 0.95 }}>
-          Your profile is {data.profileCompletionPercentage}% complete.
+          Your profile is {data?.profileCompletionPercentage ?? 0}% complete.
           Complete your profile to unlock better job matches.
         </p>
 
@@ -290,7 +317,7 @@ function CandidateDashboard() {
         >
           <div
             style={{
-              width: `${data.profileCompletionPercentage}%`,
+              width: `${data?.profileCompletionPercentage ?? 0}%`,
               height: "100%",
               background: "white",
               borderRadius: "999px"
@@ -309,12 +336,12 @@ function CandidateDashboard() {
       >
         <StatCard
           title="Profile Completion"
-          value={`${data.profileCompletionPercentage}%`}
+          value={`${data?.profileCompletionPercentage ?? 0}%`}
           icon="👤"
         />
-        <StatCard title="Skills Added" value={data.skillsCount} icon="🧠" />
-        <StatCard title="Applications" value={data.applicationsCount} icon="📄" />
-        <StatCard title="Matches Found" value={data.matchesCount} icon="⭐" />
+        <StatCard title="Skills Added" value={data?.skillsCount ?? 0} icon="🧠" />
+        <StatCard title="Applications" value={data?.applicationsCount ?? 0} icon="📄" />
+        <StatCard title="Matches Found" value={data?.matchesCount ?? 0} icon="⭐" />
       </div>
 
       <div
@@ -342,7 +369,11 @@ function CandidateDashboard() {
           <div style={sectionStyle}>
             <h2 style={sectionTitleStyle}>Saved Opportunities</h2>
 
-            {savedOpportunities.length === 0 ? (
+            {savedLoading ? (
+              <p style={{ color: "#666" }}>Loading saved opportunities...</p>
+            ) : savedError ? (
+              <p style={{ color: "red" }}>{savedError}</p>
+            ) : savedOpportunities.length === 0 ? (
               <p style={{ color: "#666" }}>No saved opportunities yet.</p>
             ) : (
               savedOpportunities.slice(0, 3).map((job) => (
@@ -351,7 +382,7 @@ function CandidateDashboard() {
             )}
 
             <button
-              onClick={() => (window.location.href = "/saved-opportunities")}
+              onClick={() => navigate("/browse")}
               style={{
                 marginTop: "12px",
                 padding: "10px 14px",
@@ -421,8 +452,10 @@ function StatCard({ title, value, icon }) {
 }
 
 function OpportunityCard({ job, showScore }) {
+  const rawScore = job?.matchScore ?? job?.matchPercentage ?? null;
+
   const badgeBackground =
-    job.matchScore >= 80 ? "#16a34a" : job.matchScore >= 60 ? "#2563eb" : "#6b7280";
+    rawScore >= 80 ? "#16a34a" : rawScore >= 60 ? "#2563eb" : "#6b7280";
 
   return (
     <div
@@ -452,11 +485,11 @@ function OpportunityCard({ job, showScore }) {
             {job.companyName}
           </p>
           <p style={{ margin: 0, color: "#777", fontSize: "14px" }}>
-            {job.location} • {job.workMode}
+            {job.location} {job.workMode ? `• ${job.workMode}` : ""}
           </p>
         </div>
 
-        {showScore && job.matchScore !== null && (
+        {showScore && rawScore !== null && (
           <div
             style={{
               background: badgeBackground,
@@ -469,7 +502,7 @@ function OpportunityCard({ job, showScore }) {
               whiteSpace: "nowrap"
             }}
           >
-            {job.matchScore}% match
+            {rawScore}% match
           </div>
         )}
       </div>

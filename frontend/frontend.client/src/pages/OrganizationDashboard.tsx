@@ -1,6 +1,6 @@
-import React, { useMemo, useState, useEffect} from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import {
   Briefcase,
   MapPin,
@@ -21,25 +21,21 @@ type Listing = {
   id: number;
   title: string;
   status: JobStatus;
-  postedDate: string; // YYYY-MM-DD
-  deadline: string; // YYYY-MM-DD
+  postedDate: string;
+  deadline: string;
   applicants: number;
   location: string;
   type: string;
   workMode: string;
-
   description: string;
   benefitsPerks: string;
-
   skillsRequired: string[];
   skillsPreferred: string[];
-
-  latitude: string; // keep as string for inputs
+  latitude: string;
   longitude: string;
 };
 
 const API_BASE = "http://localhost:5159/api";
-const [organizationName, setOrganizationName] = useState("Organization");
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
@@ -272,39 +268,34 @@ function mapWorkType(v: string) {
   return "—";
 }
 
-
-
 export default function OrganizationDashboard() {
-  // Tabs
+  const { displayName } = useOutletContext<{
+    displayName: string;
+    role: string | null;
+    loadingProfile: boolean;
+  }>();
+
   const [activeTab, setActiveTab] = useState<Tab>("post");
 
-  // Listings
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
   const [listingsError, setListingsError] = useState("");
 
-  // Applications
   const [applications, setApplications] = useState<any[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
   const [applicationsError, setApplicationsError] = useState("");
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<number | null>(null);
 
-  // Selected Application
   const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
   const [loadingApplicationDetails, setLoadingApplicationDetails] = useState(false);
   const [applicationDetailsError, setApplicationDetailsError] = useState("");
 
-  // Application Notes
   const [applicationNotes, setApplicationNotes] = useState<Record<number, string>>({});
-
-  // Application Statuses
   const [applicationStatuses, setApplicationStatuses] = useState<Record<number, string>>({});
 
-  // Required skills
   const [skillsRequired, setSkillsRequired] = useState<string[]>(["React", "JavaScript"]);
   const [requiredInput, setRequiredInput] = useState("");
 
-  // Preferred skills
   const [skillsPreferred, setSkillsPreferred] = useState<string[]>(["TypeScript"]);
   const [preferredInput, setPreferredInput] = useState("");
 
@@ -320,19 +311,16 @@ export default function OrganizationDashboard() {
     longitude: "",
   });
 
-
-  const user = JSON.parse(String(localStorage.getItem("jobify_signup")));
-const companyName = user?.companyName;
-const organizationName = companyName || "Organization";
+  const user = JSON.parse(localStorage.getItem("jobify_signup") || "null");
+  const companyName = user?.companyName || displayName;
 
   const navigate = useNavigate();
 
-  // Recruiter listings fetch function
   async function fetchListings() {
     try {
       setLoadingListings(true);
       setListingsError("");
-      
+
       const token = localStorage.getItem("jobify_token");
 
       const res = await fetch(`${API_BASE}/opportunities/company/${companyName}`, {
@@ -341,7 +329,7 @@ const organizationName = companyName || "Organization";
         },
       });
 
-      if(!res.ok) {
+      if (!res.ok) {
         throw new Error("Failed to fetch recruiter listings.");
       }
 
@@ -367,16 +355,13 @@ const organizationName = companyName || "Organization";
       }));
 
       setListings(mapped);
-    } 
-    catch(err: any) {
+    } catch (err: any) {
       setListingsError(err.message || "Something went wrong.");
-    } 
-    finally {
+    } finally {
       setLoadingListings(false);
     }
   }
 
-  // All applications for a selected opportunity fetch function
   async function fetchApplicationsForOpportunity(opportunityId: number) {
     try {
       setLoadingApplications(true);
@@ -392,7 +377,7 @@ const organizationName = companyName || "Organization";
         },
       });
 
-      if(!res.ok) {
+      if (!res.ok) {
         throw new Error("Failed to fetch applications.");
       }
 
@@ -406,22 +391,19 @@ const organizationName = companyName || "Organization";
       data.forEach((application: any) => {
         initialNotes[application.applicationId] = application.note || "";
         initialStatuses[application.applicationId] = application.status || "";
-      })
+      });
 
       setApplicationNotes(initialNotes);
       setApplicationStatuses(initialStatuses);
 
       setActiveTab("applications");
-    }
-    catch(err: any) {
+    } catch (err: any) {
       setApplicationsError(err.message || "Something went wrong.");
-    } 
-    finally {
+    } finally {
       setLoadingApplications(false);
     }
   }
 
-  //Single application details fetch function
   async function fetchApplicationDetails(applicationId: number) {
     try {
       setSelectedApplication(null);
@@ -436,23 +418,19 @@ const organizationName = companyName || "Organization";
         },
       });
 
-      if(!res.ok) {
+      if (!res.ok) {
         throw new Error("Failed to fetch application details.");
       }
 
       const data = await res.json();
       setSelectedApplication(data);
-      
-    }
-    catch(err: any) {
+    } catch (err: any) {
       setApplicationDetailsError(err.message || "Something went wrong.");
-    }
-    finally {
+    } finally {
       setLoadingApplicationDetails(false);
     }
   }
 
-  // Recruiter updates application status and note
   async function updateApplication(applicationId: number) {
     try {
       const token = localStorage.getItem("jobify_token");
@@ -469,26 +447,24 @@ const organizationName = companyName || "Organization";
         })
       });
 
-      if(!res.ok) {
+      if (!res.ok) {
         throw new Error("Failed to update application.");
       }
-      
+
       await fetchApplicationDetails(applicationId);
-      
-      if(selectedOpportunityId!==null)
-        await fetchApplicationsForOpportunity(selectedOpportunityId!);
+
+      if (selectedOpportunityId !== null) {
+        await fetchApplicationsForOpportunity(selectedOpportunityId);
+      }
 
       alert(`Application of ID: ${applicationId} was updated successfully.`);
-    }
-    catch (error: any) {
+    } catch (error: any) {
       alert(error.message || "Updating the application went wrong.");
     }
   }
 
-
   const count = useMemo(() => listings.length, [listings]);
 
-  // Fetch listings when dashboard loads
   useEffect(() => {
     fetchListings();
   }, []);
@@ -549,48 +525,42 @@ const organizationName = companyName || "Organization";
     return null;
   }
 
-    async function publish() {
-      const err = validateStrict();
-      if(err) {
-        alert(err);
-        return;
-      }
+  async function publish() {
+    const err = validateStrict();
+    if (err) {
+      alert(err);
+      return;
+    }
 
-      try {
-        const token = localStorage.getItem("jobify_token");
+    try {
+      const token = localStorage.getItem("jobify_token");
 
-        const res = await fetch(`${API_BASE}/opportunities`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: formData.title,
-            companyName: companyName,
+      const res = await fetch(`${API_BASE}/opportunities`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          companyName: companyName,
+          location: formData.location || null,
+          type: formData.employmentType,
+          level: "Entry",
+          workMode: formData.workType,
+          description: formData.description || null,
+          deadlineUtc: formData.deadline || null,
+          responsibilities: [],
+          preferredSkills: skillsPreferred || [],
+          benefits: formData.benefitsPerks ? [formData.benefitsPerks] : [],
+          latitude: formData.latitude ? Number(formData.latitude) : null,
+          longitude: formData.longitude ? Number(formData.longitude) : null,
+          minPay: null,
+          maxPay: null
+        })
+      });
 
-            location: formData.location || null,
-
-            type: formData.employmentType,   
-            level: "Entry",                  
-            workMode: formData.workType,
-
-            description: formData.description || null,
-            deadlineUtc: formData.deadline || null,
-
-            responsibilities: [],
-            preferredSkills: skillsPreferred || [],
-            benefits: formData.benefitsPerks ? [formData.benefitsPerks] : [],
-
-            latitude: formData.latitude ? Number(formData.latitude) : null,
-            longitude: formData.longitude ? Number(formData.longitude) : null,
-
-            minPay: null,
-            maxPay: null
-          })
-        });
-
-      if(!res.ok) {
+      if (!res.ok) {
         const msg = await res.text();
         throw new Error(msg);
       }
@@ -604,10 +574,9 @@ const organizationName = companyName || "Organization";
 
       resetForm();
       setActiveTab("listings");
-
-    } catch(err) {
+    } catch (err) {
       console.error(err);
-      if(err instanceof Error) {
+      if (err instanceof Error) {
         alert(err.message);
       } else {
         alert("Failed to publish opportunity");
@@ -658,18 +627,17 @@ const organizationName = companyName || "Organization";
   function reopenJob(id: number) {
     setListings((p) => p.map((j) => (j.id === id ? { ...j, status: "active" } : j)));
   }
-// change header to welcome back, {organization name}
+
   return (
     <div style={styles.page}>
-      {/* Header */}
       <div style={styles.card}>
         <div style={styles.headerRow}>
           <div style={styles.orgLeft}>
             <div style={styles.orgAvatar}>TC</div>
             <div>
               <h1 style={styles.h1}>
-  Welcome back, {organizationName} 👋
-</h1>
+                Welcome back, {displayName} 👋
+              </h1>
               <p style={styles.muted}>Post jobs • manage listings • close/reopen roles</p>
             </div>
           </div>
@@ -701,19 +669,18 @@ const organizationName = companyName || "Organization";
             My Listings ({count})
           </button>
 
-            <button
-              type="button"
-              style={{ ...styles.tabBtn, ...(activeTab === "applications" ? styles.tabBtnActive : null) }}
-              onClick={() => setActiveTab("applications")}
-            >
-              Applications
-            </button>
+          <button
+            type="button"
+            style={{ ...styles.tabBtn, ...(activeTab === "applications" ? styles.tabBtnActive : null) }}
+            onClick={() => setActiveTab("applications")}
+          >
+            Applications
+          </button>
         </div>
       </div>
 
       <div style={styles.divider} />
 
-      {/* POST TAB */}
       {activeTab === "post" && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           <div style={styles.card}>
@@ -803,7 +770,6 @@ const organizationName = companyName || "Organization";
 
             <div style={styles.divider} />
 
-            {/* REQUIRED SKILLS */}
             <div style={styles.field}>
               <label style={styles.label}>Required Skills</label>
 
@@ -850,7 +816,6 @@ const organizationName = companyName || "Organization";
 
             <div style={styles.divider} />
 
-            {/* PREFERRED SKILLS */}
             <div style={styles.field}>
               <label style={styles.label}>Preferred Skills (nice-to-have)</label>
 
@@ -897,7 +862,6 @@ const organizationName = companyName || "Organization";
 
             <div style={styles.divider} />
 
-            {/* MAP COORDINATES */}
             <div style={styles.formGrid2}>
               <div style={styles.field}>
                 <label style={styles.label}>
@@ -926,7 +890,6 @@ const organizationName = companyName || "Organization";
 
             <div style={styles.divider} />
 
-            {/* DEADLINE */}
             <div style={styles.field}>
               <label style={styles.label}>
                 <Calendar size={14} /> Application Deadline
@@ -951,7 +914,6 @@ const organizationName = companyName || "Organization";
         </motion.div>
       )}
 
-      {/* LISTINGS TAB */}
       {activeTab === "listings" && (
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           <div style={{ display: "grid", gap: 12 }}>
@@ -1027,13 +989,14 @@ const organizationName = companyName || "Organization";
                     )}
                   </div>
                 </div>
+
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <span style={{fontWeight: 700}}>
+                  <span style={{ fontWeight: 700 }}>
                     Applicants: {job.applicants}
                   </span>
 
                   <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationsForOpportunity(job.id)}>
-                      View Applicants
+                    View Applicants
                   </button>
                 </div>
               </div>
@@ -1042,134 +1005,134 @@ const organizationName = companyName || "Organization";
         </motion.div>
       )}
 
-      {/* APPLICATIONS TAB */}
-      {activeTab==="applications" && (
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-        <div style={styles.card}>
-          <h2 style={styles.sectionTitle}>
-            <Users size={18} />Applications</h2>
+      {activeTab === "applications" && (
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>
+              <Users size={18} />Applications
+            </h2>
+
+            <div style={styles.divider} />
+
+            {selectedOpportunityId === null && (
+              <p style={styles.muted}>Choose a Listing and Click on "View Applicants".</p>
+            )}
+
+            {loadingApplications && (
+              <p style={styles.small}>Loading applications...</p>
+            )}
+
+            {applicationsError && (
+              <p style={{ ...styles.small, color: "#b91c1c" }}>{applicationsError}</p>
+            )}
+
+            <div style={{ display: "grid", gap: 12 }}>
+              {applications.map((application) => (
+                <div key={application.applicationId} style={styles.listingCard}>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <strong style={{ fontSize: 16 }}>Application: {application.applicationId}</strong>
+
+                    <p style={styles.small}>
+                      <b>Student:</b> {application.candidateName}
+                    </p>
+
+                    <p style={styles.small}>
+                      <b>Status:</b> {application.status}
+                    </p>
+
+                    <p style={styles.small}>
+                      <b>Created At:</b> {fmtDate(application.createdAtUtc)}
+                    </p>
+
+                    <div style={styles.field}>
+                      <label style={styles.label}>Recruiter Note</label>
+                      <textarea
+                        style={styles.textarea}
+                        placeholder="Add recruiter note"
+                        value={applicationNotes[application.applicationId] || ""}
+                        onChange={(e) =>
+                          setApplicationNotes({ ...applicationNotes, [application.applicationId]: e.target.value })}
+                      />
+                    </div>
+
+                    <div style={styles.field}>
+                      <label style={styles.label}>Update Status</label>
+                      <select
+                        style={styles.input}
+                        value={applicationStatuses[application.applicationId] || "Pending"}
+                        onChange={(e) =>
+                          setApplicationStatuses({ ...applicationStatuses, [application.applicationId]: e.target.value })}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="InReview">In Review</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+
+                    <div style={styles.actions}>
+                      <button type="button" style={styles.primaryBtn} onClick={() => updateApplication(application.applicationId)}>
+                        Update Application
+                      </button>
+
+                      <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationDetails(application.applicationId)}>
+                        View Details
+                      </button>
+
+                      <button type="button" style={styles.outlineBtn} onClick={() => navigate(`/student-profile/${application.studentUserId}`)}>
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {applications.length === 0 && !loadingApplications && (
+                <p style={styles.small}>No applications for this opportunity yet.</p>
+              )}
+            </div>
+          </div>
 
           <div style={styles.divider} />
 
-          {selectedOpportunityId === null && (
-            <p style={styles.muted}>Choose a Listing and Click on "View Applicants".</p>
+          {loadingApplicationDetails && (
+            <p style={styles.small}>Loading application details...</p>
           )}
 
-          {loadingApplications && (
-            <p style={styles.small}>Loading applications...</p>
+          {applicationDetailsError && (
+            <p style={{ ...styles.small, color: "#b91c1c" }}>
+              {applicationDetailsError}
+            </p>
           )}
 
-          {applicationsError && (
-            <p style={{ ...styles.small, color: "#b91c1c" }}>{applicationsError}</p>
-          )}
+          {selectedApplication && (
+            <div style={styles.card}>
+              <h3 style={{ marginTop: 0, marginBottom: 10 }}>Selected Application Details</h3>
 
-          <div style={{ display: "grid", gap: 12 }}>
-            {applications.map((application) => (
-              <div key={application.applicationId} style={styles.listingCard}>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <strong style={{ fontSize: 16 }}>Application: {application.applicationId}</strong>
-
-                  <p style={styles.small}>
-                    <b>Student:</b> {application.candidateName}
-                  </p>
-
-                  <p style={styles.small}>
-                    <b>Status:</b> {application.status}
-                  </p>
-
-                  <p style={styles.small}>
-                    <b>Created At:</b> {fmtDate(application.createdAtUtc)}
-                  </p>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Recruiter Note</label>
-                    <textarea
-                      style={styles.textarea}
-                      placeholder="Add recruiter note"
-                      value={applicationNotes[application.applicationId] || ""}
-                      onChange={(e) =>
-                        setApplicationNotes({...applicationNotes, [application.applicationId]: e.target.value})}
-                    />
-                  </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Update Status</label>
-                    <select
-                      style={styles.input}
-                      value={applicationStatuses[application.applicationId] || "Pending"}
-                      onChange={(e) =>
-                        setApplicationStatuses({...applicationStatuses, [application.applicationId]: e.target.value})}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="InReview">In Review</option>
-                      <option value="Accepted">Accepted</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </div>
-
-                  <div style={styles.actions}>
-                    <button type="button" style={styles.primaryBtn} onClick={() => updateApplication(application.applicationId)}>
-                      Update Application
-                    </button>
-
-                    <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationDetails(application.applicationId)}>
-                      View Details
-                    </button>
-
-                    <button type="button" style={styles.outlineBtn} onClick={() => navigate(`/student-profile/${application.studentUserId}`)}>
-                      View Profile
-                    </button>
-                  </div>
-                </div>
+              <div style={styles.small}>
+                <b>Application ID:</b> {selectedApplication.applicationId}
               </div>
-            ))}
-
-            {applications.length===0 && !loadingApplications && (
-              <p style={styles.small}>No applications for this opportunity yet.</p>
-            )}
-          </div>
-        </div>
-
-        <div style={styles.divider} />
-
-        {loadingApplicationDetails && (
-          <p style={styles.small}>Loading application details...</p>
-        )}
-
-        {applicationDetailsError && (
-          <p style={{ ...styles.small, color: "#b91c1c" }}>
-            {applicationDetailsError}
-          </p>
-        )}
-
-        {selectedApplication && (
-          <div style={styles.card}>
-            <h3 style={{ marginTop: 0, marginBottom: 10 }}>Selected Application Details</h3>
-
-            <div style={styles.small}>
-              <b>Application ID:</b> {selectedApplication.applicationId}
+              <div style={styles.small}>
+                <b>Opportunity:</b> {selectedApplication.opportunityTitle}
+              </div>
+              <div style={styles.small}>
+                <b>Student:</b> {selectedApplication.studentUserId}
+              </div>
+              <div style={styles.small}>
+                <b>Status:</b> {selectedApplication.status}
+              </div>
+              <div style={styles.small}>
+                <b>Score:</b> {selectedApplication.assessment?.score ?? "—"}
+              </div>
+              <div style={styles.small}>
+                <b>Flagged:</b> {selectedApplication.assessment?.flagged ? "Yes" : "No"}
+              </div>
+              <div style={styles.small}>
+                <b>Flag Reason:</b> {selectedApplication.assessment?.flagReason || "—"}
+              </div>
             </div>
-            <div style={styles.small}>
-              <b>Opportunity:</b> {selectedApplication.opportunityTitle}
-            </div>
-            <div style={styles.small}>
-              <b>Student:</b> {selectedApplication.studentUserId}
-            </div>
-            <div style={styles.small}>
-              <b>Status:</b> {selectedApplication.status}
-            </div>
-            <div style={styles.small}>
-              <b>Score:</b> {selectedApplication.assessment?.score ?? "—"}
-            </div>
-            <div style={styles.small}>
-              <b>Flagged:</b> {selectedApplication.assessment?.flagged ? "Yes" : "No"}
-            </div>
-            <div style={styles.small}>
-              <b>Flag Reason:</b> {selectedApplication.assessment?.flagReason || "—"}
-            </div>
-          </div>
-        )}
-      </motion.div>
+          )}
+        </motion.div>
       )}
     </div>
   );

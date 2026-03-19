@@ -751,6 +751,48 @@ public class OpportunitiesController : ControllerBase
         _db.OpportunitySkills.AddRange(joinsToAdd);
         await _db.SaveChangesAsync();
     }
+    private static int CalculateMatchPercentage(List<string> applicantSkills, List<string> opportunitySkills)
+{
+    if (opportunitySkills == null || opportunitySkills.Count == 0)
+        return 0;
+
+    if (applicantSkills == null || applicantSkills.Count == 0)
+        return 0;
+
+    var applicantSet = applicantSkills
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Select(s => s.Trim().ToLower())
+        .ToHashSet();
+
+    var opportunitySet = opportunitySkills
+        .Where(s => !string.IsNullOrWhiteSpace(s))
+        .Select(s => s.Trim().ToLower())
+        .ToHashSet();
+
+    if (opportunitySet.Count == 0)
+        return 0;
+
+    var matchedCount = opportunitySet.Count(skill => applicantSet.Contains(skill));
+
+    return (int)Math.Round((double)matchedCount * 100 / opportunitySet.Count);
+}
+
+private async Task<List<string>> GetStudentSkillNames(string userId)
+{
+    return await _db.StudentSkills
+        .AsNoTracking()
+        .Where(ss => ss.StudentUserId == userId && ss.SkillId != null)
+        .Join(
+            _db.Skills,
+            ss => ss.SkillId,
+            s => s.Id,
+            (ss, s) => s.Name
+        )
+        .Where(name => !string.IsNullOrWhiteSpace(name))
+        .Select(name => name.Trim())
+        .Distinct()
+        .ToListAsync();
+}
 
     private static List<string> ReadList(string? json)
         => string.IsNullOrWhiteSpace(json)

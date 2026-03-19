@@ -115,4 +115,52 @@ public class InterviewsController : ControllerBase
 
         return Ok(result);
     }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("recruiter")]
+    public async Task<IActionResult> GetRecruiterInterviews()
+    {
+        var recruiterUserId = GetUserId();
+        if (string.IsNullOrWhiteSpace(recruiterUserId))
+            return Unauthorized();
+
+        var interviews = await _db.Interviews
+            .Include(i => i.Application)
+                .ThenInclude(a => a!.Opportunity)
+            .Where(i =>
+                !i.IsCancelled &&
+                i.Application != null &&
+                i.Application.Opportunity != null &&
+                i.Application.Opportunity.RecruiterUserId == recruiterUserId
+            )
+            .OrderBy(i => i.ScheduledAtUtc)
+            .ToListAsync();
+
+        var result = new List<object>();
+
+        foreach (var i in interviews)
+        {
+            var app = i.Application;
+            if (app == null || app.Opportunity == null) continue;
+
+            var student = await _db.StudentProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+
+            result.Add(new
+            {
+                id = i.Id,
+                applicationId = i.ApplicationId,
+                candidateName = student?.FullName ?? "Candidate",
+                opportunityTitle = app.Opportunity.Title,
+                companyName = app.Opportunity.CompanyName,
+                scheduledAtUtc = i.ScheduledAtUtc,
+                meetingLink = i.MeetingLink,
+                location = i.Location,
+                notes = i.Notes
+            });
+        }
+
+        return Ok(result);
+    }
 }

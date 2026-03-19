@@ -93,7 +93,7 @@ export default function JobDetailsPage() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/api/opportunities/${id}/apply`, {
+            const res = await fetch(`${API_URL}/opportunities/${id}/apply`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -106,7 +106,7 @@ export default function JobDetailsPage() {
                 return;
             }
 
-            const data = await res.json(); 
+            const data = await res.json();
             navigate(`/apply/${data.applicationId}/review`);
         } catch (e) {
             console.error(e);
@@ -154,13 +154,13 @@ export default function JobDetailsPage() {
 
                 const token = localStorage.getItem("jobify_token");
 
-const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
-    signal: controller.signal,
-    headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-    },
-});
+                const res = await fetch(`${API_URL}/opportunities/${id}`, {
+                    signal: controller.signal,
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token && { Authorization: `Bearer ${token}` }),
+                    },
+                });
 
                 if (!res.ok) throw new Error(`Failed to load opportunity (${res.status})`);
 
@@ -200,7 +200,7 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                 setSimilarLoading(true);
                 setSimilarErr("");
 
-                const res = await fetch(`${API_URL}/api/opportunities/${id}/similar?take=4`, {
+                const res = await fetch(`${API_URL}/opportunities/${id}/similar?take=4`, {
                     signal: controller.signal,
                     headers: { "Content-Type": "application/json" },
                 });
@@ -244,7 +244,7 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
 
             setAskLoading(true);
 
-            const res = await fetch(`${API_URL}/api/opportunities/${id}/questions`, {
+            const res = await fetch(`${API_URL}/opportunities/${id}/questions`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -267,7 +267,7 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
             setQuestionText("");
             setAskOpen(false);
 
-            const refreshed = await fetch(`${API_URL}/api/opportunities/${id}`, {
+            const refreshed = await fetch(`${API_URL}/opportunities/${id}`, {
                 headers: { "Content-Type": "application/json" },
             });
             if (refreshed.ok) {
@@ -303,7 +303,7 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
 
             setReportLoading(true);
 
-            const res = await fetch(`${API_URL}/api/opportunities/${id}/report`, {
+            const res = await fetch(`${API_URL}/opportunities/${id}/report`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -346,7 +346,7 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
             setShareErr("");
             setShareOk("");
 
-            const shareUrl = `${window.location.origin}/api/opportunities/${id}`;
+            const shareUrl = `${window.location.origin}/opportunities/${id}`;
             const shareData = {
                 title: job?.title || "Opportunity",
                 text: `${job?.title || "Opportunity"} at ${job?.companyName || "Company"}`,
@@ -511,9 +511,6 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                                     <Flag size={18} />
                                 </button>
                             </div>
-                            <div className="jobMatchBadge">
-                                         {job?.matchPercentage ?? 0}% Match
-                                  </div>
 
                             {shareOk ? <div className="shareFeedback shareSuccess">{shareOk}</div> : null}
                             {shareErr ? <div className="shareFeedback shareError">{shareErr}</div> : null}
@@ -593,30 +590,30 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                         </div>
 
                         <div className="card mapCard fullWidthMap">
-                                {mapsUrl ? (
-                                    <a className="mapOverlay" href={mapsUrl} target="_blank" rel="noreferrer">
-                                        View on Google Maps <ArrowRight size={14} />
-                                    </a>
-                                ) : (
-                                    <div className="mapOverlay">
-                                        {isRemote ? "Remote opportunity" : "No location provided"}
-                                    </div>
-                                )}
+                            {mapsUrl ? (
+                                <a className="mapOverlay" href={mapsUrl} target="_blank" rel="noreferrer">
+                                    View on Google Maps <ArrowRight size={14} />
+                                </a>
+                            ) : (
+                                <div className="mapOverlay">
+                                    {isRemote ? "Remote opportunity" : "No location provided"}
+                                </div>
+                            )}
 
-                                {embedUrl ? (
-                                    <iframe
-                                        className="mapFrame"
-                                        src={embedUrl}
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        title="Map"
-                                    />
-                                ) : (
-                                    <div className="mapPlaceholder">—</div>
-                                )}
+                            {embedUrl ? (
+                                <iframe
+                                    className="mapFrame"
+                                    src={embedUrl}
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    title="Map"
+                                />
+                            ) : (
+                                <div className="mapPlaceholder">—</div>
+                            )}
 
-                                <div className="mapChip">{isRemote ? "Remote" : job.location || "—"}</div>
-                            </div>
+                            <div className="mapChip">{isRemote ? "Remote" : job.location || "—"}</div>
+                        </div>
                     </div>
 
                     <div className="rightCol">
@@ -624,12 +621,12 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                             <div className="matchHeader">
                                 <h4 className="matchTitle">Profile Match</h4>
                                 <span className="pillGreen">
-                                             {(job?.matchPercentage ?? 0) >= 70
-                                                         ? "High Match"
-                                                         : (job?.matchPercentage ?? 0) >= 40
-                                                           ? "Medium Match"
-                                                      : "Low Match"}
-                                            </span>
+                                    {(job?.matchPercentage ?? 0) >= 70
+                                        ? "High Match"
+                                        : (job?.matchPercentage ?? 0) >= 40
+                                            ? "Medium Match"
+                                            : "Low Match"}
+                                </span>
                             </div>
 
                             <div className="ringWrap">
@@ -643,27 +640,12 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                                     </span>
                                     <span>{job?.matchPercentage ?? 0}% overall profile match</span>
                                 </div>
-
-                                <div className="matchLine">
-                                    <span className="miniIcon blueMini">
-                                        <CheckCircle2 size={14} />
-                                    </span>
-                                    <span>Location preference aligns</span>
-                                </div>
-
-                                <div className="matchLine">
-                                    <span className="miniIcon yellowMini">
-                                        <Star size={14} />
-                                    </span>
-                                    <span>Top applicants insight coming soon…</span>
-                                </div>
                             </div>
 
                             <button className="btnPrimary full" onClick={handleApply}>
                                 Apply Now <ArrowRight size={18} />
                             </button>
 
-                            <button className="btnOutline full">Quick Apply (1-Click)</button>
                         </div>
 
                         <div className="card">
@@ -874,8 +856,8 @@ const res = await fetch(`${API_URL}/api/opportunities/${id}`, {
                                             className="bookmarkBtn"
                                             title="Save"
                                             onClick={(e) => {
-                                                e.stopPropagation(); 
-                                                
+                                                e.stopPropagation();
+
                                             }}
                                         >
                                             <Bookmark size={20} />

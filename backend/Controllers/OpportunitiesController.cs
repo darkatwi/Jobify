@@ -229,65 +229,79 @@ public class OpportunitiesController : ControllerBase
         }
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
-    {
-        var o = await _db.Opportunities
-            .AsNoTracking()
-            .Include(x => x.OpportunitySkills)
-                .ThenInclude(os => os.Skill)
-            .FirstOrDefaultAsync(x => x.Id == id);
+    [Authorize]
+[HttpGet("{id:int}")]
+public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
+{
+    var o = await _db.Opportunities
+        .AsNoTracking()
+        .Include(x => x.OpportunitySkills)
+            .ThenInclude(os => os.Skill)
+        .FirstOrDefaultAsync(x => x.Id == id);
 
-        if (o == null) return NotFound();
+    if (o == null) return NotFound();
 
-        var qa = await _db.OpportunityQuestions
-            .AsNoTracking()
-            .Where(q => q.OpportunityId == id)
-            .OrderByDescending(q => q.AskedAtUtc)
-            .Select(q => new QaDto
-            {
-                Id = q.Id,
-                Question = q.Question,
-                Answer = q.Answer,
-                AskedAtUtc = q.AskedAtUtc
-            })
-            .ToListAsync();
-
-        return Ok(new OpportunityDetailsDto
+    var qa = await _db.OpportunityQuestions
+        .AsNoTracking()
+        .Where(q => q.OpportunityId == id)
+        .OrderByDescending(q => q.AskedAtUtc)
+        .Select(q => new QaDto
         {
-            Id = o.Id,
-            Title = o.Title,
-            CompanyName = o.CompanyName,
-            Location = o.Location,
-            IsRemote = o.IsRemote,
-            WorkMode = o.WorkMode.ToString(),
-            LocationName = o.LocationName,
-            FullAddress = o.FullAddress,
-            Latitude = o.Latitude,
-            Longitude = o.Longitude,
-            Type = o.Type.ToString(),
-            Level = o.Level.ToString(),
-            MinPay = o.MinPay,
-            MaxPay = o.MaxPay,
-            Description = o.Description,
-            CreatedAtUtc = o.CreatedAtUtc,
-            DeadlineUtc = o.DeadlineUtc,
-            Responsibilities = ReadList(o.ResponsibilitiesJson),
-            PreferredSkills = ReadList(o.PreferredSkillsJson),
-            Benefits = ReadList(o.BenefitsJson),
-            Assessment = string.IsNullOrWhiteSpace(o.AssessmentJson)
-                ? null
-                : JsonSerializer.Deserialize<object>(o.AssessmentJson),
-            AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
-            AssessmentMcqCount = o.AssessmentMcqCount,
-            AssessmentChallengeCount = o.AssessmentChallengeCount,
-            Skills = o.OpportunitySkills
-                .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
-                .Select(os => os.Skill!.Name)
-                .ToList(),
-            Qa = qa
-        });
+            Id = q.Id,
+            Question = q.Question,
+            Answer = q.Answer,
+            AskedAtUtc = q.AskedAtUtc
+        })
+        .ToListAsync();
+
+    var opportunitySkills = o.OpportunitySkills
+        .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
+        .Select(os => os.Skill!.Name.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var matchPercentage = 0;
+
+    if (!string.IsNullOrEmpty(userId))
+    {
+        var studentSkillNames = await GetStudentSkillNames(userId);
+        matchPercentage = CalculateMatchPercentage(studentSkillNames, opportunitySkills);
     }
+
+    return Ok(new OpportunityDetailsDto
+    {
+        Id = o.Id,
+        Title = o.Title,
+        CompanyName = o.CompanyName,
+        Location = o.Location,
+        IsRemote = o.IsRemote,
+        WorkMode = o.WorkMode.ToString(),
+        LocationName = o.LocationName,
+        FullAddress = o.FullAddress,
+        Latitude = o.Latitude,
+        Longitude = o.Longitude,
+        Type = o.Type.ToString(),
+        Level = o.Level.ToString(),
+        MinPay = o.MinPay,
+        MaxPay = o.MaxPay,
+        Description = o.Description,
+        CreatedAtUtc = o.CreatedAtUtc,
+        DeadlineUtc = o.DeadlineUtc,
+        Responsibilities = ReadList(o.ResponsibilitiesJson),
+        PreferredSkills = ReadList(o.PreferredSkillsJson),
+        Benefits = ReadList(o.BenefitsJson),
+        Assessment = string.IsNullOrWhiteSpace(o.AssessmentJson)
+            ? null
+            : JsonSerializer.Deserialize<object>(o.AssessmentJson),
+        AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
+        AssessmentMcqCount = o.AssessmentMcqCount,
+        AssessmentChallengeCount = o.AssessmentChallengeCount,
+        MatchPercentage = matchPercentage,
+        Skills = opportunitySkills,
+        Qa = qa
+    });
+}
 
     [HttpGet("{id}/similar")]
     public async Task<ActionResult<List<OpportunityCardDto>>> GetSimilar(

@@ -9,17 +9,17 @@ import "./styles/qa.css";
 // ─── API helpers ──────────────────────────────────────────────────────────────
 
 async function fetchRecruiterOpportunities() {
-    const res = await api.get("/api/opportunities/mine");
+    const res = await api.get("/opportunities/my");
     return res.data; // [{ id, title, companyName, isClosed }]
 }
 
 async function fetchQuestionsForOpportunity(opportunityId) {
-    const res = await api.get(`/api/opportunities/${opportunityId}`);
+    const res = await api.get(`/opportunities/${opportunityId}`);
     return res.data.qa ?? [];
 }
 
 async function postAnswer(questionId, answer) {
-    await api.put(`/api/opportunities/questions/${questionId}/answer`, { answer });
+    await api.put(`/opportunities/questions/${questionId}/answer`, { answer });
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

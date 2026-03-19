@@ -1,6 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 
+// QA and Interviews pages
+import QAPage from "./pages/QAPage";
+import RecruiterInterviewsPage from "./pages/RecruiterInterviewsPage";
+
 // login pages
 // login pages
 import LoginPage from "./pages/LoginPage/LoginPage";
@@ -47,6 +51,9 @@ export default function App() {
                 <Route path="/browse" element={<BrowseOpportunities />} />
                 <Route path="/match" element={<MatchesPage />} />
                 <Route path="/organization" element={<OrganizationDashboard />} />
+                <Route path="/organization" element={<OrganizationDashboard />} />
+                <Route path="/organization/interviews" element={<RecruiterInterviewsPage />} />
+                <Route path="/organization/qanda" element={<QAPage />} />
                 <Route path="/opportunities/:id" element={<JobDetailsPage />} />
                 <Route path="/apply/:applicationId/review" element={<ProfileReviewPage />} />
                 <Route path="/profile" element={<ProfilePage />} />

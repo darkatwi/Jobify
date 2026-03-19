@@ -46,14 +46,14 @@ export default function AppLayout() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-//use effect
+
     useEffect(() => {
         async function fetchProfile() {
             try {
                 setLoadingProfile(true);
                 setProfileError("");
 
-                const res = await api.get("/api/Profile");
+                const res = await api.get("/profile");
                 const data = res.data;
 
                 console.log("PROFILE DATA:", data);
@@ -88,7 +88,7 @@ export default function AppLayout() {
 
         fetchProfile();
     }, []);
-//top buttun
+
     function handleLogout() {
         setShowProfileMenu(false);
         localStorage.removeItem("token");
@@ -96,7 +96,7 @@ export default function AppLayout() {
         localStorage.removeItem("jobify_signup");
         navigate("/login");
     }
-//handle go to profile option
+
     function handleGoToProfile() {
         setShowProfileMenu(false);
         navigate("/profile");
@@ -179,46 +179,31 @@ export default function AppLayout() {
             <div className="al-body">
                 <aside className="al-sidebar">
                     <nav className="al-nav">
-                        <NavLink
-                            to="/dashboard"
-                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                        >
+                        <NavLink to="/dashboard" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                             <span className="al-linkIcon"><LayoutGrid size={18} /></span>
                             <span className="al-linkText">Dashboard</span>
                         </NavLink>
 
-                        <NavLink
-                            to="/browse"
-                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                        >
+                        <NavLink to="/browse" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                             <span className="al-linkIcon"><Sparkles size={18} /></span>
                             <span className="al-linkText">Browse</span>
                         </NavLink>
 
                         {!loadingProfile && role === "Recruiter" && (
-                            <NavLink
-                                to="/organization"
-                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                            >
+                            <NavLink to="/organization" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                                 <span className="al-linkIcon"><Building2 size={18} /></span>
                                 <span className="al-linkText">Organization</span>
                             </NavLink>
                         )}
 
                         {!loadingProfile && role === "Student" && (
-                            <NavLink
-                                to="/match"
-                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                            >
+                            <NavLink to="/match" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                                 <span className="al-linkIcon"><Star size={18} /></span>
                                 <span className="al-linkText">Matches</span>
                             </NavLink>
                         )}
 
-                        <NavLink
-                            to="/profile"
-                            className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                        >
+                        <NavLink to="/profile" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
                             <span className="al-linkIcon"><UserCircle size={18} /></span>
                             <span className="al-linkText">Profile</span>
                         </NavLink>
@@ -244,7 +229,7 @@ export default function AppLayout() {
 
                 <main className="al-main">
                     <div className="al-content">
-                        <Outlet />
+                        <Outlet context={{ displayName, role, loadingProfile }} />
                     </div>
                 </main>
             </div>
@@ -294,4 +279,5 @@ const menuItemStyle = {
     cursor: "pointer",
     fontWeight: "500",
     color: "#111827",
+    width: "100",
 };

@@ -1,0 +1,22 @@
+.qa-page {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.qa-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.qa-page-header__title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.qa-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}

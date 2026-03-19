@@ -229,7 +229,7 @@ function RecruiterDashboard() {
     ];
 
     return (
-        <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
+        <div style={{ padding: "24px", background: "#ffffff", minHeight: "100vh" }}>
             <div
                 style={{
                     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
@@ -297,8 +297,8 @@ function RecruiterDashboard() {
                     gap: "20px",
                 }}
             >
-                <div style={sectionStyle}>
-                    <h2 style={sectionTitleStyle}>Recruiter Overview</h2>
+                <div style={panelStyle}>
+                    <h2 style={panelTitleStyle}>Recruiter Overview</h2>
 
                     <div style={{ display: "grid", gap: "14px" }}>
                         {quickActions.map((item) => (
@@ -335,8 +335,8 @@ function RecruiterDashboard() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                    <div style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>
+                    <div style={panelStyle}>
+                        <h2 style={panelTitleStyle}>
                             {showingSoonOnly ? "Upcoming Interviews" : "Scheduled Interviews"}
                         </h2>
 
@@ -348,52 +348,31 @@ function RecruiterDashboard() {
                             interviewPreview.map((interview) => (
                                 <div
                                     key={interview.id}
-                                    style={{
-                                        border: "1px solid #e5e7eb",
-                                        borderRadius: "14px",
-                                        padding: "14px",
-                                        marginBottom: "12px",
-                                        background: "#fff",
+                                    style={modernCardStyle}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = "translateY(-3px)";
+                                        e.currentTarget.style.boxShadow = "0 12px 24px rgba(15, 23, 42, 0.08)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = "translateY(0)";
+                                        e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.04)";
                                     }}
                                 >
-                                    <div
-                                        style={{
-                                            fontWeight: "700",
-                                            color: "#111827",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
+                                    <h3 style={jobTitleStyle}>
                                         {interview.opportunityTitle}
-                                    </div>
+                                    </h3>
 
-                                    <div
-                                        style={{
-                                            color: "#4b5563",
-                                            fontSize: "14px",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
+                                    <div style={{ ...metaTextStyle, marginTop: "8px", fontWeight: "600", color: "#334155" }}>
                                         {interview.companyName}
                                     </div>
 
-                                    <div
-                                        style={{
-                                            color: "#6b7280",
-                                            fontSize: "14px",
-                                            marginBottom: "4px",
-                                        }}
-                                    >
-                                        Candidate: {interview.candidateName}
-                                    </div>
-
-                                    <div
-                                        style={{
-                                            color: "#6b7280",
-                                            fontSize: "14px",
-                                            marginBottom: interview.meetingLink ? "8px" : "0",
-                                        }}
-                                    >
-                                        {new Date(interview.scheduledAtUtc).toLocaleString()}
+                                    <div style={badgeRowStyle}>
+                                        <span style={softBadgeStyle}>
+                                            Candidate: {interview.candidateName}
+                                        </span>
+                                        <span style={softBadgeStyle}>
+                                            {new Date(interview.scheduledAtUtc).toLocaleString()}
+                                        </span>
                                     </div>
 
                                     {interview.meetingLink && (
@@ -401,14 +380,9 @@ function RecruiterDashboard() {
                                             href={interview.meetingLink}
                                             target="_blank"
                                             rel="noreferrer"
-                                            style={{
-                                                color: "#2563eb",
-                                                fontSize: "14px",
-                                                fontWeight: "600",
-                                                textDecoration: "none",
-                                            }}
+                                            style={actionButtonStyle}
                                         >
-                                            Open meeting
+                                            Join Meeting
                                         </a>
                                     )}
                                 </div>
@@ -416,8 +390,8 @@ function RecruiterDashboard() {
                         )}
                     </div>
 
-                    <div style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>Candidate Q&A</h2>
+                    <div style={panelStyle}>
+                        <h2 style={panelTitleStyle}>Candidate Q&A</h2>
 
                         {dashboardLoading ? (
                             <p style={{ color: "#666" }}>Loading questions...</p>
@@ -427,37 +401,27 @@ function RecruiterDashboard() {
                             unansweredQuestions.slice(0, 3).map((q) => (
                                 <div
                                     key={q.id}
-                                    style={{
-                                        border: "1px solid #e5e7eb",
-                                        borderRadius: "14px",
-                                        padding: "14px",
-                                        marginBottom: "12px",
-                                        background: "#fff",
+                                    style={modernCardStyle}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = "translateY(-3px)";
+                                        e.currentTarget.style.boxShadow = "0 12px 24px rgba(15, 23, 42, 0.08)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = "translateY(0)";
+                                        e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.04)";
                                     }}
                                 >
-                                    <div
-                                        style={{
-                                            fontWeight: "700",
-                                            color: "#111827",
-                                            marginBottom: "6px",
-                                        }}
-                                    >
+                                    <h3 style={jobTitleStyle}>
                                         {q.opportunityTitle}
+                                    </h3>
+
+                                    <div style={badgeRowStyle}>
+                                        <span style={softBadgeStyle}>
+                                            {q.studentName ? `From: ${q.studentName}` : "Candidate question"}
+                                        </span>
                                     </div>
 
-                                    <div
-                                        style={{
-                                            color: "#6b7280",
-                                            fontSize: "14px",
-                                            marginBottom: "6px",
-                                        }}
-                                    >
-                                        {q.studentName
-                                            ? `From: ${q.studentName}`
-                                            : "Candidate question"}
-                                    </div>
-
-                                    <div style={{ color: "#374151", fontSize: "14px" }}>
+                                    <div style={subtleQuestionStyle}>
                                         {q.question}
                                     </div>
                                 </div>
@@ -546,7 +510,7 @@ function CandidateDashboard() {
         .slice(0, 3);
 
     return (
-        <div style={{ padding: "24px", background: "#f8fafc", minHeight: "100vh" }}>
+        <div style={{ padding: "24px", background: "#ffffff", minHeight: "100vh" }}>
             <div
                 style={{
                     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
@@ -607,12 +571,13 @@ function CandidateDashboard() {
             <div
                 style={{
                     display: "grid",
-                    gridTemplateColumns: "2fr 1fr",
-                    gap: "20px"
+                    gridTemplateColumns: "minmax(0, 2fr) minmax(320px, 1fr)",
+                    gap: "20px",
+                    alignItems: "start",
                 }}
             >
-                <div style={sectionStyle}>
-                    <h2 style={sectionTitleStyle}>Recommended Opportunities</h2>
+                <div style={panelStyle}>
+                    <h2 style={panelTitleStyle}>Recommended Opportunities</h2>
 
                     {recommendedOpportunities.length === 0 ? (
                         <p style={{ color: "#666" }}>
@@ -626,8 +591,8 @@ function CandidateDashboard() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                    <div style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>Saved Opportunities</h2>
+                    <div style={panelStyle}>
+                        <h2 style={panelTitleStyle}>Saved Opportunities</h2>
 
                         {savedLoading ? (
                             <p style={{ color: "#666" }}>Loading saved opportunities...</p>
@@ -658,8 +623,8 @@ function CandidateDashboard() {
                         </button>
                     </div>
 
-                    <div style={sectionStyle}>
-                        <h2 style={sectionTitleStyle}>Upcoming Deadlines</h2>
+                    <div style={panelStyle}>
+                        <h2 style={panelTitleStyle}>Upcoming Deadlines</h2>
 
                         {upcomingDeadlines.length === 0 ? (
                             <p style={{ color: "#666" }}>No upcoming deadlines found.</p>
@@ -796,18 +761,90 @@ function DeadlineCard({ job }) {
     );
 }
 
-const sectionStyle = {
-    background: "white",
-    borderRadius: "18px",
-    padding: "20px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.06)"
+const panelStyle = {
+    background: "#ffffff",
+    borderRadius: "20px",
+    padding: "22px",
+    border: "1px solid #eef2f7",
+    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
 };
 
-const sectionTitleStyle = {
-    marginTop: 0,
-    marginBottom: "16px",
-    fontSize: "20px",
-    color: "#111827"
+const panelTitleStyle = {
+    margin: 0,
+    marginBottom: "18px",
+    fontSize: "24px",
+    fontWeight: "800",
+    color: "#0f172a",
+    letterSpacing: "-0.02em",
+};
+
+const modernCardStyle = {
+    border: "1px solid #e5e7eb",
+    borderRadius: "18px",
+    padding: "18px",
+    background: "#ffffff",
+    boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
+    transition: "all 0.18s ease",
+};
+
+const jobTitleStyle = {
+    margin: 0,
+    fontSize: "18px",
+    fontWeight: "800",
+    lineHeight: 1.25,
+    color: "#0f172a",
+    letterSpacing: "-0.02em",
+};
+
+const metaTextStyle = {
+    fontSize: "14px",
+    color: "#64748b",
+    lineHeight: 1.5,
+};
+
+const badgeRowStyle = {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginTop: "12px",
+};
+
+const softBadgeStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    color: "#334155",
+    fontSize: "13px",
+    fontWeight: "600",
+};
+
+const actionButtonStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "14px",
+    padding: "10px 14px",
+    borderRadius: "12px",
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    color: "#2563eb",
+    fontSize: "14px",
+    fontWeight: "700",
+    textDecoration: "none",
+};
+
+const subtleQuestionStyle = {
+    marginTop: "12px",
+    padding: "12px 14px",
+    borderRadius: "12px",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    color: "#1e293b",
+    fontSize: "14px",
+    lineHeight: 1.5,
 };
 
 const primaryButtonStyle = {

@@ -1,0 +1,171 @@
+.recruiter-interviews-page {
+    padding: 32px;
+    background: #ffffff;
+    min-height: 100vh;
+}
+
+.recruiter-interviews-header {
+    margin-bottom: 24px;
+}
+
+.recruiter-interviews-title {
+    margin: 0;
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+}
+
+.recruiter-interviews-subtitle {
+    margin: 10px 0 0;
+    font-size: 16px;
+    color: #64748b;
+}
+
+.recruiter-interviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+    align-items: start;
+}
+
+.recruiter-interview-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+    .recruiter-interview-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+        border-color: #cbd5e1;
+    }
+
+.recruiter-interview-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.recruiter-interview-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+}
+
+.recruiter-interview-date-badge {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.recruiter-interview-company {
+    font-size: 16px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 14px;
+}
+
+.recruiter-interview-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.recruiter-interview-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.recruiter-interview-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.recruiter-interview-time {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.recruiter-interview-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+    .recruiter-interview-link:hover {
+        background: #1d4ed8;
+        transform: translateY(-1px);
+    }
+
+.recruiter-interviews-empty,
+.recruiter-interviews-loading {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 28px;
+    color: #64748b;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .recruiter-interviews-page {
+        padding: 20px;
+    }
+
+    .recruiter-interviews-title {
+        font-size: 34px;
+    }
+
+    .recruiter-interview-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .recruiter-interview-title {
+        font-size: 21px;
+    }
+
+    .recruiter-interview-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

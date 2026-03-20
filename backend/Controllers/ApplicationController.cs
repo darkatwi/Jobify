@@ -971,8 +971,17 @@ public class ApplicationController : ControllerBase
     [HttpGet("recruiter/opportunity/{opportunityId:int}")]
     public async Task<ActionResult<List<RecruiterAppListDto>>> GetApplicationsForOpportunity(int opportunityId)
     {
-        var oppExists = await _db.Opportunities.AnyAsync(o => o.Id == opportunityId);
-        if (!oppExists) return NotFound("Opportunity not found.");
+        var recruiterId = CurrentUserId();
+        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
+
+        var opp = await _db.Opportunities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == opportunityId);
+
+        if (opp == null) return NotFound("Opportunity not found.");
+
+        if (opp.RecruiterUserId != recruiterId)
+            return Forbid();
 
         var apps = await _db.Applications
             .AsNoTracking()
@@ -986,15 +995,14 @@ public class ApplicationController : ControllerBase
         foreach (var app in apps)
         {
             var user = await _db.Users.AsNoTracking()
-                           .FirstOrDefaultAsync(u => u.Id == app.UserId);
+                .FirstOrDefaultAsync(u => u.Id == app.UserId);
 
             var student = await _db.StudentProfiles.AsNoTracking()
-                                 .FirstOrDefaultAsync(s => s.UserId == app.UserId);
-
+                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
 
             var assessment = await _db.ApplicationAssessments
-                                 .AsNoTracking()
-                                 .FirstOrDefaultAsync(x => x.ApplicationId == app.Id);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ApplicationId == app.Id);
 
             result.Add(new RecruiterAppListDto
             {
@@ -1154,7 +1162,7 @@ public class ApplicationController : ControllerBase
             return BadRequest("Opportunity not found for this application.");
 
         // same company check
-        if (!string.Equals(app.Opportunity.CompanyName, recruiter.CompanyName, StringComparison.OrdinalIgnoreCase))
+        if (app.Opportunity.RecruiterUserId != recruiterId)
             return Forbid();
 
         if (app.Status == ApplicationStatus.Withdrawn)

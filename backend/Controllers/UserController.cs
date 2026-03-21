@@ -56,19 +56,21 @@ public class UsersController : ControllerBase
         // use AppDbContext instead of IdentityUser
         var context = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
 
-        var users = await context.Users
-            .Where(u => u.Role.ToLower() == role.ToLower())
-            .ToListAsync();
-
-        var result = users.Select(
-            u => new CustomUserDto(
-                u.Id,
-                u.Email,
-                u.Role,
-                u.CreatedAt,
-                u.UpdatedAtUtc
-            )
-        );
+        var result = await (
+            from u in context.Users
+            join ur in context.UserRoles on u.Id equals ur.UserId
+            join r in context.Roles on ur.RoleId equals r.Id
+            join p in context.StudentProfiles on u.Email equals p.Email
+            where r.Name == role
+            select new CustomUserDto
+            {
+                Id = p.UserId,
+                Email = u.Email,
+                FullName = p.FullName,
+                CreatedAt = p.CreatedAt,
+                UpdatedAtUtc = p.UpdatedAtUtc
+            }
+        ).ToListAsync();
 
         return Ok(result);
     }
@@ -142,6 +144,13 @@ public class UsersController : ControllerBase
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
 
-    // DTO returned to frontend by the custom endpoint (by-role/{role})
-    public record CustomUserDto(int Id, string Email, string Role, DateTime CreatedAt, DateTime? UpdatedAtUtc);
+    
+    public class CustomUserDto
+    {
+        public string? Id { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAtUtc { get; set; }
+    };
 }

@@ -138,6 +138,45 @@ namespace Jobify.Migrations
                     b.ToTable("Applications");
                 });
 
+            modelBuilder.Entity("Jobify.Api.Models.Interview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApplicationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("MeetingLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("ScheduledAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId");
+
+                    b.ToTable("Interviews");
+                });
+
             modelBuilder.Entity("Jobify.Api.Models.Opportunity", b =>
                 {
                     b.Property<int>("Id")
@@ -236,6 +275,43 @@ namespace Jobify.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Opportunities");
+                });
+
+            modelBuilder.Entity("Jobify.Api.Models.OpportunityReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("OpportunityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ReporterUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpportunityId", "ReporterUserId", "Reason");
+
+                    b.ToTable("OpportunityReports");
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.OpportunitySkill", b =>
@@ -510,6 +586,10 @@ namespace Jobify.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("EducationText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ExperienceText")
@@ -914,6 +994,28 @@ namespace Jobify.Migrations
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.Application", b =>
+                {
+                    b.HasOne("Jobify.Api.Models.Opportunity", "Opportunity")
+                        .WithMany()
+                        .HasForeignKey("OpportunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Opportunity");
+                });
+
+            modelBuilder.Entity("Jobify.Api.Models.Interview", b =>
+                {
+                    b.HasOne("Jobify.Api.Models.Application", "Application")
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Application");
+                });
+
+            modelBuilder.Entity("Jobify.Api.Models.OpportunityReport", b =>
                 {
                     b.HasOne("Jobify.Api.Models.Opportunity", "Opportunity")
                         .WithMany()

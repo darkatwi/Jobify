@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { Eye, FileText, Search } from "lucide-react";
 
 
+interface Student {
+  id: string;
+  email: string;
+  fullName: string,
+  createdAt: string;
+  updatedAtUtc?: string;
+}
+
 const statusStyles: { [key: string]: { backgroundColor: string; color: string } } = {
   Applied: { backgroundColor: "#dbeafe", color: "#1e40af" },
   Interview: { backgroundColor: "#ffedd5", color: "#c2410c" },
@@ -15,7 +23,7 @@ export default function AdminStudents() {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   // Students
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
@@ -28,9 +36,10 @@ export default function AdminStudents() {
 
         const token = localStorage.getItem("jobify_token");
         
-        const res = await fetch("http://localhost:5000/api/users/by-role/Student", {
+        const res = await fetch("http://localhost:5159/api/users/by-role/Student", {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           }
         });
 
@@ -48,13 +57,13 @@ export default function AdminStudents() {
     };
 
     fetchStudents();
-  });
+  }, []);
 
 
   // Filtering Students
   const filteredStudents = students.filter(
     (student) =>
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -197,9 +206,9 @@ export default function AdminStudents() {
                             fontSize: "14px",
                           }}
                         >
-                          {getInitials(student.name)}
+                          {getInitials(student.fullName)}
                         </div>
-                        <span style={{ fontWeight: "600", fontSize: "14px" }}>{student.name}</span>
+                        <span style={{ fontWeight: "600", fontSize: "14px" }}>{student.fullName}</span>
                       </div>
                     </td>
                     <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6" }}>
@@ -222,7 +231,7 @@ export default function AdminStudents() {
                       {student.createdAt}
                     </td>
                     <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", color: "#6b7280", fontSize: "14px" }}>
-                      {student.lastUpdated}
+                      {student.updatedAtUtc}
                     </td>
                     <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", textAlign: "right" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>

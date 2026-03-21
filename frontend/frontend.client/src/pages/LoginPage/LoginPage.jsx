@@ -82,9 +82,7 @@ export default function LoginPage() {
      * API base URL (Vite .env if exists, fallback if not)
      * Example: VITE_API_URL="https://localhost:7176"
      */
-    const API_URL =
-        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL) ||
-        "http://localhost:5159"; // change if your backend port differs
+    const API_URL = "http://localhost:5159"; // change if your backend port differs
 
     // ✅ OAuth redirect helpers
     const loginWithGoogle = () => {

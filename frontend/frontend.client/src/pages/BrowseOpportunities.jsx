@@ -14,7 +14,6 @@ import { useNavigate } from "react-router-dom";
 
 import "./styles/browseopportunities.css";
 
-// logo based on type/level (emoji avatar)
 function getOppLogo(type, level) {
     const t = String(type || "").toLowerCase();
     const l = String(level || "").toLowerCase();
@@ -39,8 +38,6 @@ export function BrowseOpportunities() {
     const [matchFilter, setMatchFilter] = useState("all");
 
     const [savedItems, setSavedItems] = useState([]);
-
-    // backend data
     const [opportunities, setOpportunities] = useState([]);
     const [loading, setLoading] = useState(false);
     const [savingId, setSavingId] = useState(null);
@@ -52,10 +49,10 @@ export function BrowseOpportunities() {
             const isSaved = savedItems.includes(id);
 
             if (isSaved) {
-                await api.delete(`/api/opportunities/${id}/save`);
+                await api.delete(`/opportunities/${id}/save`);
                 setSavedItems((prev) => prev.filter((x) => x !== id));
             } else {
-                await api.post(`/api/opportunities/${id}/save`);
+                await api.post(`/opportunities/${id}/save`);
                 setSavedItems((prev) => [...prev, id]);
             }
         } catch (err) {
@@ -71,7 +68,7 @@ export function BrowseOpportunities() {
 
         const fetchSavedIds = async () => {
             try {
-                const res = await api.get("/api/opportunities/saved/ids", {
+                const res = await api.get("/opportunities/saved/ids", {
                     signal: controller.signal,
                 });
 
@@ -90,7 +87,6 @@ export function BrowseOpportunities() {
         return () => controller.abort();
     }, []);
 
-    // fetch from backend
     useEffect(() => {
         const controller = new AbortController();
 
@@ -98,29 +94,27 @@ export function BrowseOpportunities() {
             try {
                 setLoading(true);
 
-                const params = new URLSearchParams();
-
-                if (searchQuery.trim()) params.set("q", searchQuery.trim());
-
-                if (typeFilter !== "all") params.set("type", typeFilter);
-
-                if (levelFilter !== "all") params.set("level", levelFilter);
-                if (locationFilter === "remote") params.set("remote", "true");
-                if (locationFilter === "onsite") params.set("remote", "false");
-                if (locationFilter === "hybrid") params.set("location", "hybrid");
-
-                const backendSort =
-                    sortBy === "salary"
-                        ? "salaryhigh"
-                        : sortBy === "deadline"
-                            ? "deadline"
-                            : "newest";
-
-                params.set("sort", backendSort);
-                params.set("page", "1");
-                params.set("pageSize", "50");
-
-                const res = await api.get(`/api/opportunities?${params.toString()}`, {
+                const res = await api.get("/opportunities", {
+                    params: {
+                        q: searchQuery.trim() || undefined,
+                        type: typeFilter !== "all" ? typeFilter : undefined,
+                        level: levelFilter !== "all" ? levelFilter : undefined,
+                        remote:
+                            locationFilter === "remote"
+                                ? true
+                                : locationFilter === "onsite"
+                                ? false
+                                : undefined,
+                        location: locationFilter === "hybrid" ? "hybrid" : undefined,
+                        sort:
+                            sortBy === "salary"
+                                ? "salaryhigh"
+                                : sortBy === "deadline"
+                                ? "deadline"
+                                : "newest",
+                        page: 1,
+                        pageSize: 50,
+                    },
                     signal: controller.signal,
                 });
 
@@ -131,17 +125,17 @@ export function BrowseOpportunities() {
                         o.minPay == null && o.maxPay == null
                             ? "—"
                             : o.minPay != null && o.maxPay != null
-                                ? `$${o.minPay} - $${o.maxPay}`
-                                : o.minPay != null
-                                    ? `From $${o.minPay}`
-                                    : `Up to $${o.maxPay}`;
+                            ? `$${o.minPay} - $${o.maxPay}`
+                            : o.minPay != null
+                            ? `From $${o.minPay}`
+                            : `Up to $${o.maxPay}`;
 
                     const locationText =
                         String(o.workMode || "").toLowerCase() === "remote"
                             ? "Remote"
                             : String(o.workMode || "").toLowerCase() === "hybrid"
-                                ? "Hybrid"
-                                : "On-site";
+                            ? "Hybrid"
+                            : "On-site";
 
                     const postedText = o.createdAtUtc ? timeAgoFromUtc(o.createdAtUtc) : "—";
                     const deadlineText = o.deadlineUtc ? daysLeftFromUtc(o.deadlineUtc) : "—";
@@ -160,7 +154,7 @@ export function BrowseOpportunities() {
                         salary: payText,
                         posted: postedText,
                         deadline: deadlineText,
-                        match,
+                        match: match,
                         skills: Array.isArray(o.skills) ? o.skills : [],
                     };
                 });
@@ -168,7 +162,7 @@ export function BrowseOpportunities() {
                 setOpportunities(mapped);
             } catch (err) {
                 if (err?.name !== "AbortError" && err?.code !== "ERR_CANCELED") {
-                    console.error(err);
+                    console.error("Failed to fetch opportunities:", err);
                     setOpportunities([]);
                 }
             } finally {
@@ -200,23 +194,23 @@ export function BrowseOpportunities() {
                 locationFilter === "all"
                     ? true
                     : locationFilter === "remote"
-                        ? opp.location.toLowerCase().includes("remote")
-                        : locationFilter === "onsite"
-                            ? opp.location.toLowerCase().includes("on-site")
-                            : locationFilter === "hybrid"
-                                ? opp.location.toLowerCase().includes("hybrid")
-                                : true;
+                    ? opp.location.toLowerCase().includes("remote")
+                    : locationFilter === "onsite"
+                    ? opp.location.toLowerCase().includes("on-site")
+                    : locationFilter === "hybrid"
+                    ? opp.location.toLowerCase().includes("hybrid")
+                    : true;
 
             const matchesScore =
                 matchFilter === "all"
                     ? true
                     : matchFilter === "high"
-                        ? opp.match >= 80
-                        : matchFilter === "medium"
-                            ? opp.match >= 60 && opp.match <= 79
-                            : matchFilter === "low"
-                                ? opp.match < 60
-                                : true;
+                    ? opp.match >= 80
+                    : matchFilter === "medium"
+                    ? opp.match >= 60 && opp.match <= 79
+                    : matchFilter === "low"
+                    ? opp.match < 60
+                    : true;
 
             return matchesQuery && matchesType && matchesLevel && matchesLocation && matchesScore;
         });

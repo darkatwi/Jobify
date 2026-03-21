@@ -21,6 +21,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../layout/useTheme";
+import { api } from "../../api/api";
 import {
     Eye,
     EyeOff,
@@ -40,10 +41,6 @@ import {
 
 import "../styles/login.css";
 
-/**
- * Decorative floating icons displayed on the left side of the layout.
- * Visual-only (no functional impact).
- */
 const floatingIcons = [
     { Icon: Briefcase, x: "8%", y: "10%", duration: 20 },
     { Icon: GraduationCap, x: "88%", y: "12%", duration: 25 },
@@ -53,11 +50,6 @@ const floatingIcons = [
     { Icon: Trophy, x: "50%", y: "42%", duration: 21 },
 ];
 
-/**
- * FloatingIcons
- * -------------
- * Renders animated background icons (aria-hidden for accessibility).
- */
 function FloatingIcons() {
     return (
         <div className="lp-floatwrap" aria-hidden="true">
@@ -78,59 +70,30 @@ function FloatingIcons() {
 
 export default function LoginPage() {
     const navigate = useNavigate();
-
-    /**
-     * API base URL (Vite .env if exists, fallback if not)
-     * Example: VITE_API_URL="https://localhost:7176"
-     */
-    const API_URL =
-        (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_URL) ||
-        "http://localhost:5159";
-
-    // OAuth redirect helpers
-    const loginWithGoogle = () => {
-        window.location.href = `${API_URL}/api/Auth/external/Google`;
-    };
-
-    const loginWithGitHub = () => {
-        window.location.href = `${API_URL}/api/Auth/external/GitHub`;
-    };
-
-    /** Theme state (local UI only) // fixed global now */
     const { darkMode, toggleTheme } = useTheme();
 
-    /** Role toggle affects UI copy/stats (auth itself is based on backend response) */
     const [userRole, setUserRole] = useState("candidate");
-
-    /** Form state */
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
-    /** Password visibility toggle */
     const [showPassword, setShowPassword] = useState(false);
-
-    /** Request + validation state */
     const [isLoading, setIsLoading] = useState(false);
     const [emailError, setEmailError] = useState("");
 
-    /** Basic email regex validation */
     const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-    /**
-     * Validate email on blur to avoid showing errors while typing.
-     */
     const handleEmailBlur = () => {
         if (email && !validateEmail(email)) setEmailError("Please enter a valid email address");
         else setEmailError("");
     };
 
-    /**
-     * Submit handler:
-     * - Validates email format + required password
-     * - Calls backend /api/Auth/login
-     * - Saves token + user info to localStorage
-     * - Redirects to shared dashboard route
-     */
+    const loginWithGoogle = () => {
+        window.location.href = "http://localhost:5159/api/Auth/external/Google";
+    };
+
+    const loginWithGitHub = () => {
+        window.location.href = "http://localhost:5159/api/Auth/external/GitHub";
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -144,18 +107,8 @@ export default function LoginPage() {
         try {
             setIsLoading(true);
 
-            const res = await fetch(`${API_URL}/api/Auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!res.ok) {
-                const msg = await res.text();
-                throw new Error(msg || "Login failed");
-            }
-
-            const data = await res.json();
+            const res = await api.post("/Auth/login", { email, password });
+            const data = res.data;
 
             localStorage.setItem("jobify_token", data.token);
 
@@ -172,16 +125,16 @@ export default function LoginPage() {
 
             navigate("/dashboard");
         } catch (err) {
-            alert(err.message || "Login failed");
+            const message =
+                err?.response?.data ||
+                err?.message ||
+                "Login failed";
+            alert(message);
         } finally {
             setIsLoading(false);
         }
     };
 
-    /**
-     * Left-side stats shown for social proof.
-     * Changes depending on selected role.
-     */
     const stats =
         userRole === "candidate"
             ? [
@@ -197,10 +150,6 @@ export default function LoginPage() {
                   { icon: Target, value: "85%", label: "Success Rate" },
               ];
 
-    /**
-     * Candidate-only "Suggested for you" carousel content.
-     * Memoized since it is static demo data.
-     */
     const topMatches = useMemo(
         () => [
             { percent: "85%", role: "Research Assistant", org: "University Lab" },
@@ -210,21 +159,13 @@ export default function LoginPage() {
         []
     );
 
-    /** Index for rotating suggested matches */
     const [matchIndex, setMatchIndex] = useState(0);
-
-    /** Used to compute slide direction between transitions */
     const prevIndexRef = useRef(0);
 
-    // Track previous index to determine animation direction
     useEffect(() => {
         prevIndexRef.current = matchIndex;
     }, [matchIndex]);
 
-    /**
-     * Auto-rotate suggested matches (candidate only).
-     * Stops rotation when role is not candidate.
-     */
     useEffect(() => {
         if (userRole !== "candidate") return;
 
@@ -235,15 +176,12 @@ export default function LoginPage() {
         return () => clearInterval(id);
     }, [userRole, topMatches.length]);
 
-    /** Reset match carousel when switching roles */
     useEffect(() => {
         setMatchIndex(0);
     }, [userRole]);
 
-    /** Determine animation direction for the slide transition */
     const direction = matchIndex >= prevIndexRef.current ? 1 : -1;
 
-    /** Framer Motion variants for sliding match row transitions */
     const slideVariants = {
         enter: (dir) => ({ opacity: 0, x: dir > 0 ? 26 : -26 }),
         center: { opacity: 1, x: 0 },

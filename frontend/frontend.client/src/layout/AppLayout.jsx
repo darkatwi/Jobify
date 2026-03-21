@@ -91,7 +91,7 @@ export default function AppLayout() {
 
   function handleLogout() {
     setShowProfileMenu(false);
-    localStorage.removeItem("token");
+     localStorage.removeItem("jobify_token");
     localStorage.removeItem("jobify_user");
     localStorage.removeItem("jobify_signup");
     navigate("/login");

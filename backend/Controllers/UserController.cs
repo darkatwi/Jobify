@@ -156,6 +156,20 @@ public class UsersController : ControllerBase
     }
 
 
+    // Delete Student
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("admin/students/{id}")]
+    public async Task<IActionResult> DeleteStudent(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        await _userManager.DeleteAsync(user);
+
+        return Ok(new { message = "User deleted" });
+    }
+
+
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
 

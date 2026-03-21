@@ -24,7 +24,7 @@ export default function Dashboard() {
 
     if (role === null) {
         return (
-            <div style={{ padding: "24px", fontSize: "18px" }}>
+            <div style={{ padding: "24px", fontSize: "18px", color: "var(--text)" }}>
                 Loading dashboard...
             </div>
         );
@@ -229,7 +229,14 @@ function RecruiterDashboard() {
     ];
 
     return (
-        <div style={{ padding: "24px", background: "#ffffff", minHeight: "100vh" }}>
+        <div
+            style={{
+                padding: "24px",
+                background: "var(--bg)",
+                minHeight: "100vh",
+                color: "var(--text)",
+            }}
+        >
             <div
                 style={{
                     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
@@ -249,25 +256,16 @@ function RecruiterDashboard() {
                 </p>
 
                 <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                    <button
-                        onClick={() => navigate("/organization")}
-                        style={primaryButtonStyle}
-                    >
+                    <button onClick={() => navigate("/organization")} style={primaryButtonStyle}>
                         Go to Organization
                     </button>
 
-                    <button
-                        onClick={() => navigate("/organization/interviews")}
-                        style={secondaryButtonStyle}
-                    >
+                    <button onClick={() => navigate("/organization/interviews")} style={secondaryButtonStyle}>
                         Interviews
                     </button>
 
-                    <button
-                        onClick={() => navigate("/organization/qanda")}
-                        style={secondaryButtonStyle}
-                    >
-                        Q&A
+                    <button onClick={() => navigate("/organization/qanda")} style={secondaryButtonStyle}>
+                        Q&amp;A
                     </button>
                 </div>
             </div>
@@ -305,24 +303,24 @@ function RecruiterDashboard() {
                             <div
                                 key={item.title}
                                 style={{
-                                    border: "1px solid #e5e7eb",
+                                    border: "1px solid var(--border)",
                                     borderRadius: "14px",
                                     padding: "18px",
-                                    background: "#fff",
+                                    background: "var(--card)",
                                 }}
                             >
                                 <div
                                     style={{
                                         fontSize: "18px",
                                         fontWeight: "700",
-                                        color: "#111827",
+                                        color: "var(--text)",
                                         marginBottom: "8px",
                                     }}
                                 >
                                     {item.title}
                                 </div>
 
-                                <div style={{ color: "#6b7280", marginBottom: "12px" }}>
+                                <div style={{ color: "var(--muted)", marginBottom: "12px" }}>
                                     {item.description}
                                 </div>
 
@@ -341,9 +339,9 @@ function RecruiterDashboard() {
                         </h2>
 
                         {dashboardLoading ? (
-                            <p style={{ color: "#666" }}>Loading interviews...</p>
+                            <p style={{ color: "var(--muted)" }}>Loading interviews...</p>
                         ) : interviewPreview.length === 0 ? (
-                            <p style={{ color: "#666" }}>No interviews scheduled yet.</p>
+                            <p style={{ color: "var(--muted)" }}>No interviews scheduled yet.</p>
                         ) : (
                             interviewPreview.map((interview) => (
                                 <div
@@ -358,11 +356,16 @@ function RecruiterDashboard() {
                                         e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.04)";
                                     }}
                                 >
-                                    <h3 style={jobTitleStyle}>
-                                        {interview.opportunityTitle}
-                                    </h3>
+                                    <h3 style={jobTitleStyle}>{interview.opportunityTitle}</h3>
 
-                                    <div style={{ ...metaTextStyle, marginTop: "8px", fontWeight: "600", color: "#334155" }}>
+                                    <div
+                                        style={{
+                                            ...metaTextStyle,
+                                            marginTop: "8px",
+                                            fontWeight: "600",
+                                            color: "var(--text)",
+                                        }}
+                                    >
                                         {interview.companyName}
                                     </div>
 
@@ -391,12 +394,12 @@ function RecruiterDashboard() {
                     </div>
 
                     <div style={panelStyle}>
-                        <h2 style={panelTitleStyle}>Candidate Q&A</h2>
+                        <h2 style={panelTitleStyle}>Candidate Q&amp;A</h2>
 
                         {dashboardLoading ? (
-                            <p style={{ color: "#666" }}>Loading questions...</p>
+                            <p style={{ color: "var(--muted)" }}>Loading questions...</p>
                         ) : unansweredQuestions.length === 0 ? (
-                            <p style={{ color: "#666" }}>No candidate questions yet.</p>
+                            <p style={{ color: "var(--muted)" }}>No candidate questions yet.</p>
                         ) : (
                             unansweredQuestions.slice(0, 3).map((q) => (
                                 <div
@@ -411,9 +414,7 @@ function RecruiterDashboard() {
                                         e.currentTarget.style.boxShadow = "0 4px 14px rgba(15, 23, 42, 0.04)";
                                     }}
                                 >
-                                    <h3 style={jobTitleStyle}>
-                                        {q.opportunityTitle}
-                                    </h3>
+                                    <h3 style={jobTitleStyle}>{q.opportunityTitle}</h3>
 
                                     <div style={badgeRowStyle}>
                                         <span style={softBadgeStyle}>
@@ -421,9 +422,7 @@ function RecruiterDashboard() {
                                         </span>
                                     </div>
 
-                                    <div style={subtleQuestionStyle}>
-                                        {q.question}
-                                    </div>
+                                    <div style={subtleQuestionStyle}>{q.question}</div>
                                 </div>
                             ))
                         )}
@@ -484,7 +483,7 @@ function CandidateDashboard() {
 
     if (loading) {
         return (
-            <div style={{ padding: "24px", fontSize: "18px" }}>
+            <div style={{ padding: "24px", fontSize: "18px", color: "var(--text)" }}>
                 Loading dashboard...
             </div>
         );
@@ -492,7 +491,7 @@ function CandidateDashboard() {
 
     if (error) {
         return (
-            <div style={{ padding: "24px", color: "red" }}>
+            <div style={{ padding: "24px", color: "var(--danger, #ef4444)" }}>
                 {error}
             </div>
         );
@@ -510,7 +509,14 @@ function CandidateDashboard() {
         .slice(0, 3);
 
     return (
-        <div style={{ padding: "24px", background: "#ffffff", minHeight: "100vh" }}>
+        <div
+            style={{
+                padding: "24px",
+                background: "var(--bg)",
+                minHeight: "100vh",
+                color: "var(--text)",
+            }}
+        >
             <div
                 style={{
                     background: "linear-gradient(135deg, #2563eb, #60a5fa)",
@@ -518,7 +524,7 @@ function CandidateDashboard() {
                     borderRadius: "20px",
                     padding: "28px",
                     marginBottom: "28px",
-                    boxShadow: "0 10px 20px rgba(0,0,0,0.08)"
+                    boxShadow: "0 10px 20px rgba(0,0,0,0.08)",
                 }}
             >
                 <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "700" }}>
@@ -536,7 +542,7 @@ function CandidateDashboard() {
                         height: "10px",
                         background: "rgba(255,255,255,0.3)",
                         borderRadius: "999px",
-                        overflow: "hidden"
+                        overflow: "hidden",
                     }}
                 >
                     <div
@@ -544,7 +550,7 @@ function CandidateDashboard() {
                             width: `${data?.profileCompletionPercentage ?? 0}%`,
                             height: "100%",
                             background: "white",
-                            borderRadius: "999px"
+                            borderRadius: "999px",
                         }}
                     />
                 </div>
@@ -555,7 +561,7 @@ function CandidateDashboard() {
                     display: "grid",
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                     gap: "16px",
-                    marginBottom: "28px"
+                    marginBottom: "28px",
                 }}
             >
                 <StatCard
@@ -580,7 +586,7 @@ function CandidateDashboard() {
                     <h2 style={panelTitleStyle}>Recommended Opportunities</h2>
 
                     {recommendedOpportunities.length === 0 ? (
-                        <p style={{ color: "#666" }}>
+                        <p style={{ color: "var(--muted)" }}>
                             No strong recommendations yet. Complete your profile and add skills.
                         </p>
                     ) : (
@@ -595,11 +601,11 @@ function CandidateDashboard() {
                         <h2 style={panelTitleStyle}>Saved Opportunities</h2>
 
                         {savedLoading ? (
-                            <p style={{ color: "#666" }}>Loading saved opportunities...</p>
+                            <p style={{ color: "var(--muted)" }}>Loading saved opportunities...</p>
                         ) : savedError ? (
-                            <p style={{ color: "red" }}>{savedError}</p>
+                            <p style={{ color: "var(--danger, #ef4444)" }}>{savedError}</p>
                         ) : savedOpportunities.length === 0 ? (
-                            <p style={{ color: "#666" }}>No saved opportunities yet.</p>
+                            <p style={{ color: "var(--muted)" }}>No saved opportunities yet.</p>
                         ) : (
                             savedOpportunities.slice(0, 3).map((job) => (
                                 <OpportunityCard key={job.id} job={job} showScore={false} />
@@ -609,14 +615,8 @@ function CandidateDashboard() {
                         <button
                             onClick={() => navigate("/browse")}
                             style={{
+                                ...primaryButtonStyle,
                                 marginTop: "12px",
-                                padding: "10px 14px",
-                                borderRadius: "10px",
-                                border: "none",
-                                background: "#2563eb",
-                                color: "white",
-                                fontWeight: "600",
-                                cursor: "pointer"
                             }}
                         >
                             View All
@@ -627,7 +627,7 @@ function CandidateDashboard() {
                         <h2 style={panelTitleStyle}>Upcoming Deadlines</h2>
 
                         {upcomingDeadlines.length === 0 ? (
-                            <p style={{ color: "#666" }}>No upcoming deadlines found.</p>
+                            <p style={{ color: "var(--muted)" }}>No upcoming deadlines found.</p>
                         ) : (
                             upcomingDeadlines.map((job) => (
                                 <DeadlineCard key={job.id} job={job} />
@@ -644,14 +644,15 @@ function StatCard({ title, value, icon }) {
     return (
         <div
             style={{
-                background: "white",
+                background: "var(--card)",
                 borderRadius: "16px",
                 padding: "20px",
                 boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
                 display: "flex",
                 alignItems: "center",
                 gap: "16px",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease"
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                border: "1px solid var(--border)",
             }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-4px)";
@@ -665,10 +666,10 @@ function StatCard({ title, value, icon }) {
             <div style={{ fontSize: "28px" }}>{icon}</div>
 
             <div>
-                <div style={{ color: "#666", marginBottom: "6px", fontSize: "14px" }}>
+                <div style={{ color: "var(--muted)", marginBottom: "6px", fontSize: "14px" }}>
                     {title}
                 </div>
-                <div style={{ fontSize: "28px", fontWeight: "bold", color: "#111827" }}>
+                <div style={{ fontSize: "28px", fontWeight: "bold", color: "var(--text)" }}>
                     {value}
                 </div>
             </div>
@@ -685,12 +686,12 @@ function OpportunityCard({ job, showScore }) {
     return (
         <div
             style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--border)",
                 borderRadius: "14px",
                 padding: "16px",
                 marginBottom: "14px",
-                background: "#fff",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease"
+                background: "var(--card)",
+                transition: "transform 0.15s ease, box-shadow 0.15s ease",
             }}
             onMouseEnter={(e) => {
                 e.currentTarget.style.transform = "translateY(-3px)";
@@ -703,13 +704,13 @@ function OpportunityCard({ job, showScore }) {
         >
             <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
                 <div>
-                    <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#111827" }}>
+                    <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "var(--text)" }}>
                         {job.title}
                     </h3>
-                    <p style={{ margin: "0 0 4px 0", color: "#555", fontWeight: "500" }}>
+                    <p style={{ margin: "0 0 4px 0", color: "var(--text)", fontWeight: "500" }}>
                         {job.companyName}
                     </p>
-                    <p style={{ margin: 0, color: "#777", fontSize: "14px" }}>
+                    <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px" }}>
                         {job.location} {job.workMode ? `• ${job.workMode}` : ""}
                     </p>
                 </div>
@@ -724,7 +725,7 @@ function OpportunityCard({ job, showScore }) {
                             fontWeight: "bold",
                             fontSize: "13px",
                             height: "fit-content",
-                            whiteSpace: "nowrap"
+                            whiteSpace: "nowrap",
                         }}
                     >
                         {rawScore}% match
@@ -741,20 +742,20 @@ function DeadlineCard({ job }) {
     return (
         <div
             style={{
-                border: "1px solid #e5e7eb",
+                border: "1px solid var(--border)",
                 borderRadius: "14px",
                 padding: "16px",
                 marginBottom: "14px",
-                background: "#fff"
+                background: "var(--card)",
             }}
         >
-            <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#111827" }}>
+            <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "var(--text)" }}>
                 {job.title}
             </h3>
-            <p style={{ margin: "0 0 4px 0", color: "#555", fontWeight: "500" }}>
+            <p style={{ margin: "0 0 4px 0", color: "var(--text)", fontWeight: "500" }}>
                 {job.companyName}
             </p>
-            <p style={{ margin: 0, color: "#777", fontSize: "14px" }}>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px" }}>
                 Closes on {formattedDeadline}
             </p>
         </div>
@@ -762,11 +763,11 @@ function DeadlineCard({ job }) {
 }
 
 const panelStyle = {
-    background: "#ffffff",
+    background: "var(--card)",
     borderRadius: "20px",
     padding: "22px",
-    border: "1px solid #eef2f7",
-    boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
+    border: "1px solid var(--border)",
+    boxShadow: "var(--shadow)",
 };
 
 const panelTitleStyle = {
@@ -774,15 +775,15 @@ const panelTitleStyle = {
     marginBottom: "18px",
     fontSize: "24px",
     fontWeight: "800",
-    color: "#0f172a",
+    color: "var(--text)",
     letterSpacing: "-0.02em",
 };
 
 const modernCardStyle = {
-    border: "1px solid #e5e7eb",
+    border: "1px solid var(--border)",
     borderRadius: "18px",
     padding: "18px",
-    background: "#ffffff",
+    background: "var(--card)",
     boxShadow: "0 4px 14px rgba(15, 23, 42, 0.04)",
     transition: "all 0.18s ease",
 };
@@ -792,13 +793,13 @@ const jobTitleStyle = {
     fontSize: "18px",
     fontWeight: "800",
     lineHeight: 1.25,
-    color: "#0f172a",
+    color: "var(--text)",
     letterSpacing: "-0.02em",
 };
 
 const metaTextStyle = {
     fontSize: "14px",
-    color: "#64748b",
+    color: "var(--muted)",
     lineHeight: 1.5,
 };
 
@@ -814,9 +815,9 @@ const softBadgeStyle = {
     alignItems: "center",
     padding: "6px 10px",
     borderRadius: "999px",
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    color: "#334155",
+    background: "var(--surface-2, #f8fafc)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
     fontSize: "13px",
     fontWeight: "600",
 };
@@ -828,9 +829,9 @@ const actionButtonStyle = {
     marginTop: "14px",
     padding: "10px 14px",
     borderRadius: "12px",
-    background: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    color: "#2563eb",
+    background: "rgba(37, 99, 235, 0.12)",
+    border: "1px solid rgba(37, 99, 235, 0.28)",
+    color: "var(--blue, #2563eb)",
     fontSize: "14px",
     fontWeight: "700",
     textDecoration: "none",
@@ -840,9 +841,9 @@ const subtleQuestionStyle = {
     marginTop: "12px",
     padding: "12px 14px",
     borderRadius: "12px",
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    color: "#1e293b",
+    background: "var(--surface-2, #f8fafc)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
     fontSize: "14px",
     lineHeight: 1.5,
 };
@@ -851,18 +852,18 @@ const primaryButtonStyle = {
     padding: "10px 14px",
     borderRadius: "10px",
     border: "none",
-    background: "#2563eb",
+    background: "var(--blue, #2563eb)",
     color: "white",
     fontWeight: "600",
-    cursor: "pointer"
+    cursor: "pointer",
 };
 
 const secondaryButtonStyle = {
     padding: "10px 14px",
     borderRadius: "10px",
-    border: "1px solid #d1d5db",
-    background: "white",
-    color: "#111827",
+    border: "1px solid var(--border)",
+    background: "var(--card)",
+    color: "var(--text)",
     fontWeight: "600",
-    cursor: "pointer"
+    cursor: "pointer",
 };

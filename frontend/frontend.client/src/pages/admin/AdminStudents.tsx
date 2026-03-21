@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
 import { Eye, FileText, Search } from "lucide-react";
 
-
+// Student Interface
 interface Student {
   id: string;
   email: string;
   fullName: string,
   createdAt: string;
   updatedAtUtc?: string;
+}
+
+// Application Interface
+interface Application {
+  job: string;
+  company: string;
+  date: string;
+  status: string;
 }
 
 const statusStyles: { [key: string]: { backgroundColor: string; color: string } } = {
@@ -19,14 +27,16 @@ const statusStyles: { [key: string]: { backgroundColor: string; color: string } 
 
 export default function AdminStudents() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [showApplications, setShowApplications] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   // Students
   const [students, setStudents] = useState<Student[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<(Student & { applications?: Application[] }) | null>(null);
 
+  // Applications
+  const [loadingApplications, setLoadingApplications] = useState(false);
+  const [showApplications, setShowApplications] = useState(false);
 
   // Fetching Students
   useEffect(() => {

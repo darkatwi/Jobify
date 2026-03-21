@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, FileText, Search } from "lucide-react";
 
 
@@ -19,6 +19,39 @@ export default function AdminStudents() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
 
+
+  // Fetching Students
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoadingStudents(true);
+
+        const token = localStorage.getItem("jobify_token");
+        
+        const res = await fetch("http://localhost:5000/api/users/by-role/Student", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        setStudents(data);
+      }
+      catch (err) {
+        console.log("Error in Fetching Students: ", err);
+      }
+      finally {
+        setLoadingStudents(false);
+      }
+
+    };
+
+    fetchStudents();
+  });
+
+
+  // Filtering Students
   const filteredStudents = students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

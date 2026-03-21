@@ -47,6 +47,36 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
+    // GET : /api/users/by-role/{role}
+    // Retures users based on their role (student/recruiter)
+    [Authorize(Roles = "Admin")]
+    [HttpGet("by-role/{role}")]
+    public async Task<IActionResult> GetUsersByRole(string role)
+    {
+        // Get users
+        var users = await _userManager.ToListAsync();
+
+        var results = new List<UserDto>();
+
+        foreach (var user in users)
+        {
+            var userRoles = await _userManager.GetRolesAsync(u);
+
+            if (userRoles.Contains(role)) {
+                results.Add(
+                    new UserDto(
+                        Id: u.Id,
+                        Email: u.Email ?? "";
+                        UserName: u.UserName ?? "";
+                        Roles: userRoles.ToList();
+                    )
+                );
+            } 
+        }
+
+        return Ok(resuls);
+    }
+
     // GET: /api/users/{id}
     // Returns one user's basic identity info + roles by userId.
     //

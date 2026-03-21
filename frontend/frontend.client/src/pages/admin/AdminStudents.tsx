@@ -30,6 +30,15 @@ export default function AdminStudents() {
     return name.split(" ").map((n) => n[0]).join("");
   };
 
+  // Loading Students
+  if(loadingStudents) {
+    return(
+      <div style={{ padding: "24px" }}>
+        <p>Loading Students...</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "24px", backgroundColor: "#f9fafb", minHeight: "100vh" }}>
       {/* Blue Gradient Header */}

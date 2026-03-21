@@ -404,3 +404,4 @@ export default function LoginPage() {
         </div>
     );
 }
+// keep dark mode option as it is on login page 

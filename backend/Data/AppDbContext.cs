@@ -21,6 +21,8 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
     public DbSet<StudentInterest> StudentInterests => Set<StudentInterest>();
     public DbSet<PortfolioDocument> PortfolioDocuments => Set<PortfolioDocument>();
 
+    public DbSet<Notification> Notifications { get; set; }
+    
     // =========================
     // OPPORTUNITIES
     // =========================

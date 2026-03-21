@@ -11,9 +11,11 @@ namespace Jobify.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly AppDbContext _context;
 
-    public UsersController(UserManager<IdentityUser> userManager)
-    {
+    public UsersController(AppDbContext context, UserManager<IdentityUser> userManager)
+    {   
+        _context = context;
         _userManager = userManager;
     }
 

@@ -60,7 +60,17 @@ public class UsersController : ControllerBase
             .Where(u => u.Role.ToLower() == role.ToLower())
             .ToListAsync();
 
-        return Ok(users);
+        var result = users.Select(
+            u => new CustomUserDto(
+                u.Id,
+                u.Email,
+                u.Role,
+                u.CreatedAt,
+                u.UpdatedAtUtc
+            )
+        );
+
+        return Ok(result);
     }
 
     // GET: /api/users/{id}
@@ -131,4 +141,7 @@ public class UsersController : ControllerBase
 
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
+
+    // DTO returned to frontend by the custom endpoint (by-role/{role})
+    public record CustomUserDto(int Id, string Email, string Role, DateTime CreatedAt, DateTime? UpdatedAtUtc);
 }

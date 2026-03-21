@@ -38,6 +38,12 @@ export default function AdminStudents() {
   const [loadingApplications, setLoadingApplications] = useState(false);
   const [showApplications, setShowApplications] = useState(false);
 
+  // Notification
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [notifyTitle, setNotifyTitle] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState("");
+
   // Fetching Students
   useEffect(() => {
     const fetchStudents = async () => {
@@ -118,6 +124,46 @@ export default function AdminStudents() {
       setLoadingApplications(false);
     }
   }
+
+  // Notification Handler
+  const handleSendNotification = async () => {
+    if(!selectedStudentId) return;
+
+    if(!notifyMessage.trim()) {
+      alert("Message is required");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("jobify_token");
+
+      const res = await fetch(`http://localhost:5159/api/users/admin/students/${selectedStudentId}/notify`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            title: notifyTitle,
+            message: notifyMessage
+          })
+        }
+      );
+
+      if(!res.ok) 
+        throw new Error("Failed");
+
+      alert("Notification sent ✅");
+
+      setShowNotifyModal(false);
+      setNotifyTitle("");
+      setNotifyMessage("");
+    }
+    catch(err) {
+      console.error(err);
+      alert("Failed to send ❌");
+    }
+  };
 
   return (
     <div style={{ padding: "24px", backgroundColor: "#f9fafb", minHeight: "100vh" }}>
@@ -297,26 +343,30 @@ export default function AdminStudents() {
                           <FileText style={{ width: "14px", height: "14px" }} />
                           Applications
                         </button>
-                        <button
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "white",
-                            color: "#374151",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9fafb")}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                        >
-                          Notify
-                        </button>
+                          <button
+                            onClick={() => {
+                              setSelectedStudentId(student.id);
+                              setNotifyTitle("Warning ⚠️"); // optional default
+                              setNotifyMessage("");
+                              setShowNotifyModal(true);
+                            }}
+                            style={{
+                              padding: "6px 12px",
+                              backgroundColor: "orange",
+                              color: "#958f83",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "6px",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            Notify
+                          </button>
                         <button
                           style={{
                             padding: "6px 12px",
@@ -455,6 +505,94 @@ export default function AdminStudents() {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showNotifyModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "24px",
+              borderRadius: "12px",
+              width: "420px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+            }}
+          >
+            <h3 style={{ marginBottom: "16px", fontSize: "18px", fontWeight: "700" }}>
+              Send Notification
+            </h3>
+
+            <input
+              type="text"
+              placeholder="Title"
+              value={notifyTitle}
+              onChange={(e) => setNotifyTitle(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                marginBottom: "12px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db"
+              }}
+            />
+
+            <textarea
+              placeholder="Message"
+              value={notifyMessage}
+              onChange={(e) => setNotifyMessage(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px",
+                height: "100px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+                marginBottom: "16px"
+              }}
+            />
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button
+                onClick={() => setShowNotifyModal(false)}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#e5e7eb",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleSendNotification}
+                style={{
+                  padding: "8px 16px",
+                  backgroundColor: "#ef4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                Send
+              </button>
             </div>
           </div>
         </div>

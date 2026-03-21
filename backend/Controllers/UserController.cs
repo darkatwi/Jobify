@@ -172,7 +172,7 @@ public class UsersController : ControllerBase
     }
 
 
-    // Notify (Warn) Student
+    // Notify Student
     [Authorize(Roles = "Admin")]
     [HttpPost("admin/students/{id}/notify")]
     public async Task<IActionResult> NotifyStudent(string id, [FromBody] NotifyRequest request)
@@ -190,7 +190,6 @@ public class UsersController : ControllerBase
         var notification = new Notification
         {
             UserId = id,
-            Title = string.IsNullOrWhiteSpace(request.Title) ? "Notification" : request.Title,
             Message = request.Message,
             Type = "warning",
             IsRead = false,

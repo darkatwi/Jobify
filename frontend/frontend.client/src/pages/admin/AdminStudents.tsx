@@ -63,7 +63,6 @@ export default function AdminStudents() {
       finally {
         setLoadingStudents(false);
       }
-
     };
 
     fetchStudents();
@@ -89,6 +88,35 @@ export default function AdminStudents() {
         <p>Loading Students...</p>
       </div>
     );
+  }
+
+  // Fetching Applications
+  async function fetchStudentApplications(student: Student){
+    try {
+      setLoadingApplications(true);
+
+      const token = localStorage.getItem("jobify_token");
+
+      const res = await fetch(`http://localhost:5159/api/application/by-student/${student.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const applications = await res.json();
+
+      console.log("Fetched apps:", applications);
+
+      setSelectedStudent({...student, applications});
+
+      setShowApplications(true);
+    }
+    catch(err) {
+      console.log("Error in fetching applications:", err);
+    }
+    finally {
+      setLoadingApplications(false);
+    }
   }
 
   return (
@@ -268,8 +296,7 @@ export default function AdminStudents() {
                         </button>
                         <button
                           onClick={() => {
-                            setSelectedStudent(student);
-                            setShowApplications(true);
+                            fetchStudentApplications(student)
                           }}
                           style={{
                             padding: "6px 12px",
@@ -359,7 +386,7 @@ export default function AdminStudents() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {selectedStudent.applications.length === 0 ? (
+              {!selectedStudent.applications || selectedStudent.applications.length === 0 ? (
                 <div
                   style={{
                     padding: "48px",

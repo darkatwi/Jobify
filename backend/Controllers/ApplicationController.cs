@@ -1330,17 +1330,17 @@ public class ApplicationController : ControllerBase
             .OrderByDescending(a => a.CreatedAtUtc)
             .Select(a => new
             {
-            job = a.Opportunity.Title,
-            company = a.Opportunity.CompanyName,
-            date = a.CreatedAtUtc,
-            status = a.Status.ToString()
+                job = a.Opportunity.Title,
+                company = a.Opportunity.CompanyName,
+                date = a.CreatedAtUtc,
+                status = a.Status.ToString()
             })
             .ToListAsync();
 
-        return ok(applications);
+        return Ok(applications);
     }
 
-    
+
 
     // ── Private helpers ───────────────────────────────────────────────────────
 

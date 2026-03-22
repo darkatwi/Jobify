@@ -376,6 +376,32 @@ public class AuthController : ControllerBase
         }
     }
 
+
+    // Revoke Recruiters
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin/recruiters/{userId}/revoke")]
+    public async Task<IActionResult> RevokeRecruiter(string userId)
+    {
+        var prof = await _db.RecruiterProfiles
+            .FirstOrDefaultAsync(r => r.UserId == userId);
+
+        if (prof == null)
+            return NotFound("Recruiter profile not found.");
+
+        // Only allow revoke if currently verified
+        if (prof.VerificationStatus != RecruiterVerificationStatus.Verified)
+            return BadRequest("Only verified recruiters can be revoked.");
+
+        // Update status
+        prof.VerificationStatus = RecruiterVerificationStatus.Rejected;
+        prof.Notes = "Access revoked by admin.";
+        prof.VerifiedAtUtc = null;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Recruiter access revoked." });
+    }
+
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {

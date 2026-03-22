@@ -127,6 +127,28 @@ export default function AdminRecruiters() {
 
   };
 
+  // Revoke handler
+  const handleRevoke = async (recruiterId: string) => {
+    try {
+      const token = localStorage.getItem("jobify_token");
+
+      await fetch(`http://localhost:5159/api/auth/admin/recruiters/${recruiterId}/revoke`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        }
+      });
+
+      fetchRecruiters();
+
+      alert("Recruiter Rejected Successfully.");
+    }
+    catch (err) {
+      console.error("Error in Rejecting Recruiter: ", err);
+    }
+
+  };
+
 
   // Notification handler
   const handleSendNotification = async () => {
@@ -574,7 +596,7 @@ export default function AdminRecruiters() {
                               Notify
                             </button>
                             <button
-                              onClick={() => handleReject(recruiter.id)}
+                              onClick={() => handleRevoke(recruiter.id)}
                               style={{
                                 marginTop: "5px",
                                 padding: "6px 12px",

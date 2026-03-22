@@ -412,6 +412,10 @@ namespace Jobify.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("EmailConfirmedAtUtc")
                         .HasColumnType("datetime2");
 

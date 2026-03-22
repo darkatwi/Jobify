@@ -8,8 +8,24 @@ interface Recruiter {
   company: string;
   createdAt: string;
   lastUpdated: string;
-  status: "pending_verification" | "pending_approval" | "verified";
+  status: "pending_verification" | "pending_approval" | "verified" | "rejected";
 }
+
+// Recruiter Status Mapper 
+function mapStatus(status: string) {
+  switch(status) {
+    case "EmailPending":
+      return "pending_verification";
+    case "Pending":
+      return "pending_approval";
+    case "Verified":
+      return "verified";
+    case "Rejected":
+      return "rejected";
+    default:
+      return "pending_verification";
+  }
+};
 
 const initialRecruiters: Recruiter[] = [
   {
@@ -104,6 +120,7 @@ export default function AdminRecruiters() {
   const pendingVerificationCount = recruiters.filter((r) => r.status === "pending_verification").length;
   const pendingApprovalCount = recruiters.filter((r) => r.status === "pending_approval").length;
   const verifiedCount = recruiters.filter((r) => r.status === "verified").length;
+  const rejectedCount = recruiters.filter((r) => r.status === "rejected").length;
 
   const getInitials = (name: string) => {
     return name.split(" ").map((n) => n[0]).join("");
@@ -113,6 +130,7 @@ export default function AdminRecruiters() {
     { value: "pending_verification", label: "Waiting for Email", icon: Mail, count: pendingVerificationCount, color: "#ea580c" },
     { value: "pending_approval", label: "Waiting for Approval", icon: Clock, count: pendingApprovalCount, color: "#3b82f6" },
     { value: "verified", label: "Verified", icon: CheckCircle, count: verifiedCount, color: "#16a34a" },
+    { value: "rejected", label: "Rejected", icon: XCircle, count: rejectedCount, color: "#dc2626" }
   ];
 
   return (

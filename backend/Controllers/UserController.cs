@@ -58,24 +58,46 @@ public class UsersController : ControllerBase
         // use AppDbContext instead of IdentityUser
         var context = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
 
-        var result = await (
-            from u in context.Users
-            join ur in context.UserRoles on u.Id equals ur.UserId
-            join r in context.Roles on ur.RoleId equals r.Id
-            join p in context.StudentProfiles on u.Email equals p.Email
-            where r.Name == role
-            select new CustomUserDto
-            {
-                Id = p.UserId,
-                Email = u.Email,
-                FullName = p.FullName,
-                CreatedAt = p.CreatedAt,
-                UpdatedAtUtc = p.UpdatedAtUtc
-            }
-        ).ToListAsync();
+        if(role.ToLower() == "student") {
+            var result = await (
+                from u in context.Users
+                join ur in context.UserRoles on u.Id equals ur.UserId
+                join r in context.Roles on ur.RoleId equals r.Id
+                join p in context.StudentProfiles on u.Email equals p.Email
+                where r.Name == role
+                select new CustomUserDto
+                {
+                    Id = p.UserId,
+                    Email = u.Email,
+                    FullName = p.FullName,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAtUtc = p.UpdatedAtUtc
+                }
+            ).ToListAsync();
+        }
+        else if (role.ToLower() == "recruiter") {
+            var result = await (
+                from u in context.Users
+                join ur in context.UserRoles on u.Id equals ur.UserId
+                join r in context.Roles on ur.RoleId equals r.Id
+                join p in context.RecruiterProfile on u.Email equals p.Email
+                where r.Name == role
+                select new CustomUserDto
+                {
+                    Id = p.UserId,
+                    Email = u.Email,
+                    FullName = p.FullName,
+                    CompanyName = p.CompanyName,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAtUtc = p.UpdatedAtUtc
+                    VerificationStatus = p.VerificationStatus
+                }
+            ).ToListAsync();
+        }
 
         return Ok(result);
     }
+    
 
     // GET: /api/users/{id}
     // Returns one user's basic identity info + roles by userId.

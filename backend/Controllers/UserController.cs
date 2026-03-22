@@ -230,6 +230,38 @@ public class UsersController : ControllerBase
     }
 
 
+    // Notify Recruiter
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin/recruiters/{id}/notify")]
+    public async Task<IActionResult> NotifyRecruiter(string id, [FromBody] NotifyRequest request)
+    {
+        // Check if user exists
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null)
+            return NotFound("User not found.");
+
+        // Validate input
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return BadRequest("Message is required.");
+
+        // Create notification
+        var notification = new Notification
+        {
+            UserId = id,
+            Message = request.Message,
+            Type = "warning",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Save to DB
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Recruiter notified successfully." });
+    }
+
+
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
 

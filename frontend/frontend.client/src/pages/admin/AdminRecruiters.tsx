@@ -37,6 +37,13 @@ export default function AdminRecruiters() {
   const [activeTab, setActiveTab] = useState<"pending_verification" | "pending_approval" | "verified" | "rejected">("pending_verification");
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
+  // Notifications
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState<string | null>(null);
+  const [notifyTitle, setNotifyTitle] = useState("");
+  const [notifyMessage, setNotifyMessage] = useState("");
+  const [notifyType, setNotifyType] = useState("info");
+
   // Recruiters Fetching
   async function fetchRecruiters() {
     try {
@@ -120,6 +127,48 @@ export default function AdminRecruiters() {
 
   };
 
+
+  // Notification handler
+  const handleSendNotification = async () => {
+    if (!selectedRecruiterId) return;
+
+    if (!notifyMessage.trim()) {
+      alert("Message is required");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("jobify_token");
+
+      const res = await fetch(
+        `http://localhost:5159/api/admin/recruiters/${selectedRecruiterId}/notify`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: notifyTitle,
+            message: notifyMessage,
+            type: notifyType
+          }),
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed");
+
+      alert("Notification sent ✅");
+
+      setShowNotifyModal(false);
+      setNotifyTitle("");
+      setNotifyMessage("");
+      setNotifyType("info");
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Filtered Recruiters
   const filteredRecruiters = recruiters.filter((recruiter) => {
@@ -494,33 +543,65 @@ export default function AdminRecruiters() {
                           </>
                         )}
                         {activeTab === "verified" && (
-                          <button
-                            onClick={() => handleReject(recruiter.id)}
-                            style={{
-                              padding: "6px 12px",
-                              backgroundColor: "white",
-                              color: "#dc2626",
-                              border: "1px solid #d1d5db",
-                              borderRadius: "6px",
-                              fontSize: "13px",
-                              fontWeight: "600",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = "#fee2e2";
-                              e.currentTarget.style.borderColor = "#dc2626";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = "white";
-                              e.currentTarget.style.borderColor = "#d1d5db";
-                            }}
-                          >
-                            <XCircle style={{ width: "14px", height: "14px" }} />
-                            Revoke
-                          </button>
+                          <div>
+                            <button
+                              onClick={() => {
+                                setSelectedRecruiterId(recruiter.id);
+                                setShowNotifyModal(true);
+                              }}
+                              style={{
+                                padding: "6px 15px",
+                                backgroundColor: "#3b82f6",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                transition: "all 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#2563eb";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "#3b82f6";
+                              }}
+                            >
+                              <Mail style={{ width: "16px", height: "14px" }} />
+                              Notify
+                            </button>
+                            <button
+                              onClick={() => handleReject(recruiter.id)}
+                              style={{
+                                marginTop: "5px",
+                                padding: "6px 12px",
+                                backgroundColor: "white",
+                                color: "#dc2626",
+                                border: "1px solid #d1d5db",
+                                borderRadius: "6px",
+                                fontSize: "13px",
+                                fontWeight: "600",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "#fee2e2";
+                                e.currentTarget.style.borderColor = "#dc2626";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "white";
+                                e.currentTarget.style.borderColor = "#d1d5db";
+                              }}
+                            >
+                              <XCircle style={{ width: "14px", height: "14px" }} />
+                              Revoke
+                            </button>
+                          </div>
                         )}
                         {activeTab === "rejected" && (
                           <button
@@ -541,7 +622,7 @@ export default function AdminRecruiters() {
                           >
                             <CheckCircle style={{ width: "14px", height: "14px" }} />
                             Re-Approve
-                          </button>
+                          </button> 
                         )}
                       </div>
                     </td>
@@ -552,6 +633,111 @@ export default function AdminRecruiters() {
           </table>
         </div>
       </div>
+      {showNotifyModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "24px",
+              borderRadius: "12px",
+              width: "400px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            }}
+          >
+            <h3 style={{ marginBottom: "16px" }}>Send Notification</h3>
+
+            {/* TYPE */}
+            <select
+              value={notifyType}
+              onChange={(e) => setNotifyType(e.target.value)}
+              style={{
+                width: "100%",
+                marginBottom: "12px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+              }}
+            >
+              <option value="info">Info</option>
+              <option value="success">Success</option>
+              <option value="warning">Warning</option>
+            </select>
+
+            {/* TITLE */}
+            <input
+              type="text"
+              placeholder="Title"
+              value={notifyTitle}
+              onChange={(e) => setNotifyTitle(e.target.value)}
+              style={{
+                width: "100%",
+                marginBottom: "12px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+              }}
+            />
+
+            {/* MESSAGE */}
+            <textarea
+              placeholder="Message"
+              value={notifyMessage}
+              onChange={(e) => setNotifyMessage(e.target.value)}
+              style={{
+                width: "100%",
+                marginBottom: "16px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #d1d5db",
+                minHeight: "80px",
+              }}
+            />
+
+            {/* ACTIONS */}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <button
+                onClick={() => setShowNotifyModal(false)}
+                style={{
+                  padding: "8px 12px",
+                  backgroundColor: "#e5e7eb",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleSendNotification}
+                style={{
+                  padding: "8px 12px",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

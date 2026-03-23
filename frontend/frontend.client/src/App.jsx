@@ -15,7 +15,6 @@ import OAuthCallbackPage from "./pages/LoginPage/OAuthCallbackPage";
 import EmailConfirmed from "./pages/LoginPage/EmailConfirmed";
 
 // job details pages
-// job details pages
 import ProfileReviewPage from "./pages/JobDetails/ProfileReviewPage";
 import ApplicationReviewPage from "./pages/JobDetails/ApplicationReviewPage";
 import AssessmentPage from "./pages/JobDetails/AssesmentsPage";
@@ -29,15 +28,60 @@ import MatchesPage from "./pages/MatchesPage";
 // organization page
 import OrganizationDashboard from "./pages/OrganizationDashboard";
 
+// Admin panel
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCompanies from "./pages/admin/AdminCompanies";
+import AdminRecruiters from "./pages/admin/AdminRecruiters";
+import AdminStudents from "./pages/admin/AdminStudents";
+import AdminSettings from "./pages/admin/AdminSettings";
+
+// Layouts
 import AppLayout from "./layout/AppLayout";
+import AdminLayout from "./layout/AdminLayout";
 
 import { BrowseOpportunities } from "./pages/BrowseOpportunities";
 import ProfilePage from "./pages/ProfilePage";
 import Dashboard from "./pages/Dashboard";
 
+// Reads and validates the current user from localStorage
+function getUser() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem("jobify_user"));
+        if (!parsed) return null;
+        
+        return parsed;
+    }
+    catch {
+        return null;
+    }
+}
+
+// Guards the AdminLayout — redirects non-admins to /dashboard.
+function AdminGuard() {
+    const user = getUser();
+    const isAdmin = user?.roles?.[0] === "Admin";
+    if (!user) return <Navigate to="/login" replace />;
+    if (!isAdmin) return <Navigate to="/dashboard" replace />;
+    return <AdminLayout />;
+}
+
+// Guards the AppLayout — redirects admins to /admin, unauthenticated to /login.
+function AppGuard() {
+    const user = getUser();
+    const isAdmin = user?.roles?.[0] === "Admin";
+    if (!user) return <Navigate to="/login" replace />;
+    if (isAdmin) return <Navigate to="/admin" replace />;
+    return <AppLayout />;
+}
+
 export default function App() {
+
+    const user = getUser()
+    const isAdmin = user?.roles?.[0] === "Admin";
+
     return (
         <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
@@ -46,7 +90,17 @@ export default function App() {
             <Route path="/oauth-confirm" element={<OAuthCallbackPage />} />
             <Route path="/email-confirmed" element={<EmailConfirmed />} />
 
-            <Route element={<AppLayout />}>
+            {/* Admin routes */}
+            <Route element={<AdminGuard />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/students" element={<AdminStudents />} />
+                <Route path="/admin/recruiters" element={<AdminRecruiters />} />
+                <Route path="/admin/companies" element={<AdminCompanies />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+            </Route>
+
+            {/* App routes */}
+            <Route element={<AppGuard />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/browse" element={<BrowseOpportunities />} />
                 <Route path="/match" element={<MatchesPage />} />
@@ -64,7 +118,15 @@ export default function App() {
                 <Route path="/application/:applicationId/result" element={<ApplicationResultPage />} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Fallback */}
+            <Route
+                path="*"
+                element={
+                    !user
+                        ? <Navigate to="/login" replace />
+                        : <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />
+                }
+            />
         </Routes>
     );
 }

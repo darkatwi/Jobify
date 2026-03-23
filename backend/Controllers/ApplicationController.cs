@@ -1326,6 +1326,30 @@ public class ApplicationController : ControllerBase
         });
     }
 
+
+    // Get all Applications per Student
+    [Authorize(Roles= "Admin")]
+    [HttpGet("by-student/{userId}")]
+    public async Task<IActionResult> GetApplicationsByStudent (string userId)
+    {
+        var applications = await _db.Applications.AsNoTracking()
+            .Include(a => a.Opportunity)
+            .Where(a => a.UserId == userId && a.Status != ApplicationStatus.Withdrawn)
+            .OrderByDescending(a => a.CreatedAtUtc)
+            .Select(a => new
+            {
+                job = a.Opportunity.Title,
+                company = a.Opportunity.CompanyName,
+                date = a.CreatedAtUtc,
+                status = a.Status.ToString()
+            })
+            .ToListAsync();
+
+        return Ok(applications);
+    }
+
+
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private async Task SendEmailAsync(string to, string subject, string htmlBody)

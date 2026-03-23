@@ -41,7 +41,9 @@ export default function OAuthCallbackPage() {
                         })
                     );
 
-                    navigate("/dashboard", { replace: true });
+                    const isAdmin = Array.isArray(data.roles) && data.roles.includes("Admin");
+                    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+
                 } catch (e) {
                     console.error("OAuth complete failed:", e);
                     navigate("/login", { replace: true });

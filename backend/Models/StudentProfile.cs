@@ -8,6 +8,8 @@ public class StudentProfile
     [Key]
     public string UserId { get; set; }
 
+    public string Email { get; set; } = "";
+
     public string? FullName { get; set; }
     public string? University { get; set; }
     public string? Major { get; set; }
@@ -32,6 +34,7 @@ public class StudentProfile
     public string? UniversityProofContentType { get; set; }
     public DateTime? UniversityProofUploadedAtUtc { get; set; }
 
+    public bool? isVerified { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
 }

@@ -15,6 +15,8 @@ public class RecruiterProfile
     [Key]
     public string UserId { get; set; } = string.Empty;
 
+    public string Email { get; set; } = "";
+
     [Required, MaxLength(120)]
     public string CompanyName { get; set; } = string.Empty;
 

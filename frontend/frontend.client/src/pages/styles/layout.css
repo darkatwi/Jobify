@@ -291,6 +291,10 @@ body {
     transition: background 120ms ease, border-color 120ms ease;
 }
 
+.al-linkText {
+    display: inline-block;
+}
+
 .al-link:hover {
     background: var(--hover-bg);
     transform: translateY(-1px);
@@ -341,6 +345,11 @@ body {
     font-weight: 900;
     color: #fff;
     background: linear-gradient(135deg, var(--blue), var(--blue2));
+    flex-shrink: 0;
+}
+
+.al-userMeta {
+    min-width: 0;
 }
 
 .al-userName {
@@ -452,6 +461,11 @@ body {
    NOTIFICATIONS
 ========================= */
 
+.al-notifWrap {
+    position: relative;
+    display: inline-block;
+}
+
 .notif-badge {
     position: absolute;
     top: -5px;
@@ -473,8 +487,8 @@ body {
 
 .notif-dropdown {
     position: absolute;
-    right: 0;
     top: 48px;
+    right: 0;
     width: 300px;
     max-height: 380px;
     overflow-y: auto;
@@ -486,16 +500,16 @@ body {
     z-index: 1000;
 }
 
-.notif-dropdown h4 {
-    margin: 0 0 10px 0;
-    color: var(--text);
+.notif-dropdownHeader {
     font-size: 16px;
     font-weight: 800;
+    color: var(--text);
+    margin-bottom: 10px;
 }
 
-.notif-dropdown p {
-    margin: 0;
+.notif-empty {
     color: var(--muted);
+    margin: 0;
     font-size: 14px;
 }
 
@@ -508,7 +522,7 @@ body {
     transition: background 120ms ease, transform 120ms ease, border-color 120ms ease;
 }
 
-.notif-item:last-child {
+.notif-item:last-of-type {
     border-bottom: none;
 }
 
@@ -534,6 +548,25 @@ body {
     color: var(--muted);
     font-size: 13px;
     line-height: 1.45;
+}
+
+.notif-viewAll {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.notif-viewAll:hover {
+    background: var(--surface-2);
+    border-color: rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
 }
 
 /* Responsive */

@@ -88,7 +88,7 @@ namespace Jobify.Migrations
                     b.HasIndex("ApplicationId")
                         .IsUnique();
 
-                    b.ToTable("ApplicationAssessments");
+                    b.ToTable("ApplicationAssessments", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.Application", b =>
@@ -135,7 +135,7 @@ namespace Jobify.Migrations
                     b.HasIndex("StudentUserId", "OpportunityId")
                         .IsUnique();
 
-                    b.ToTable("Applications");
+                    b.ToTable("Applications", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.Interview", b =>
@@ -174,7 +174,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("ApplicationId");
 
-                    b.ToTable("Interviews");
+                    b.ToTable("Interviews", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.Opportunity", b =>
@@ -274,7 +274,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Opportunities");
+                    b.ToTable("Opportunities", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.OpportunityReport", b =>
@@ -311,7 +311,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("OpportunityId", "ReporterUserId", "Reason");
 
-                    b.ToTable("OpportunityReports");
+                    b.ToTable("OpportunityReports", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.OpportunitySkill", b =>
@@ -334,7 +334,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("SkillId");
 
-                    b.ToTable("OpportunitySkills");
+                    b.ToTable("OpportunitySkills", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.PasswordResetToken", b =>
@@ -363,7 +363,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PasswordResetTokens");
+                    b.ToTable("PasswordResetTokens", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.PortfolioDocument", b =>
@@ -396,7 +396,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PortfolioDocuments");
+                    b.ToTable("PortfolioDocuments", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.RecruiterProfile", b =>
@@ -411,10 +411,6 @@ namespace Jobify.Migrations
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("EmailConfirmedAtUtc")
                         .HasColumnType("datetime2");
@@ -447,35 +443,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("RecruiterProfiles");
-                });
-
-            modelBuilder.Entity("Jobify.Api.Models.SavedOpportunity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OpportunityId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SavedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OpportunityId");
-
-                    b.HasIndex("UserId", "OpportunityId")
-                        .IsUnique();
-
-                    b.ToTable("SavedOpportunities");
+                    b.ToTable("RecruiterProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.Skill", b =>
@@ -492,7 +460,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Skills");
+                    b.ToTable("Skills", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentEducation", b =>
@@ -533,7 +501,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("StudentUserId");
 
-                    b.ToTable("StudentEducations");
+                    b.ToTable("StudentEducations", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentExperience", b =>
@@ -571,7 +539,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("StudentUserId");
 
-                    b.ToTable("StudentExperiences");
+                    b.ToTable("StudentExperiences", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentInterest", b =>
@@ -597,7 +565,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("StudentUserId");
 
-                    b.ToTable("StudentInterests");
+                    b.ToTable("StudentInterests", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentProfile", b =>
@@ -683,7 +651,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("StudentProfiles");
+                    b.ToTable("StudentProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentProject", b =>
@@ -720,7 +688,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("StudentUserId");
 
-                    b.ToTable("StudentProjects");
+                    b.ToTable("StudentProjects", (string)null);
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentSkill", b =>
@@ -734,8 +702,7 @@ namespace Jobify.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsVerified")
-                        .HasColumnType("bit");
+                   
 
                     b.Property<int>("SkillId")
                         .HasColumnType("int");
@@ -760,7 +727,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("StudentUserId");
 
-                    b.ToTable("StudentSkills");
+                    b.ToTable("StudentSkills", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -827,10 +794,7 @@ namespace Jobify.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
+                   
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
@@ -989,7 +953,7 @@ namespace Jobify.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("OpportunityQuestion", b =>
@@ -1017,7 +981,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("OpportunityId");
 
-                    b.ToTable("OpportunityQuestions");
+                    b.ToTable("OpportunityQuestions", (string)null);
                 });
 
             modelBuilder.Entity("ProctorEvent", b =>
@@ -1045,7 +1009,7 @@ namespace Jobify.Migrations
 
                     b.HasIndex("ApplicationAssessmentId");
 
-                    b.ToTable("ProctorEvents");
+                    b.ToTable("ProctorEvents", (string)null);
                 });
 
             modelBuilder.Entity("ApplicationAssessment", b =>
@@ -1109,17 +1073,6 @@ namespace Jobify.Migrations
                     b.Navigation("Opportunity");
 
                     b.Navigation("Skill");
-                });
-
-            modelBuilder.Entity("Jobify.Api.Models.SavedOpportunity", b =>
-                {
-                    b.HasOne("Jobify.Api.Models.Opportunity", "Opportunity")
-                        .WithMany()
-                        .HasForeignKey("OpportunityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Opportunity");
                 });
 
             modelBuilder.Entity("Jobify.Api.Models.StudentEducation", b =>

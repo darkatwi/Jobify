@@ -175,45 +175,45 @@ public class OpportunitiesController : ControllerBase
                 .ToListAsync();
 
             var items = rawItems.Select(o =>
-{
-    var safeSkills = o.OpportunitySkills?
-        .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
-        .Select(os => os.Skill!.Name.Trim())
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToList() ?? new List<string>();
+            {
+                var safeSkills = o.OpportunitySkills?
+                    .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
+                    .Select(os => os.Skill!.Name.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>();
 
-    var matchedSkills = safeSkills
-        .Where(skill => applicantSkillNames.Contains(skill.Trim().ToLower()))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToList();
+                var matchedSkills = safeSkills
+                    .Where(skill => applicantSkillNames.Contains(skill.Trim().ToLower()))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-    var matchPercentage = CalculateMatchPercentage(
-        applicantSkills.Select(a => a.Name).Where(n => !string.IsNullOrWhiteSpace(n)).ToList()!,
-        safeSkills
-    );
+                var matchPercentage = CalculateMatchPercentage(
+                    applicantSkills.Select(a => a.Name).Where(n => !string.IsNullOrWhiteSpace(n)).ToList()!,
+                    safeSkills
+                );
 
-    return new OpportunityCardDto
-    {
-        Id = o.Id,
-        Title = o.Title,
-        CompanyName = o.CompanyName,
-        Location = o.Location,
-        IsRemote = o.IsRemote,
-        WorkMode = o.WorkMode.ToString(),
-        Type = o.Type.ToString(),
-        Level = o.Level.ToString(),
-        MinPay = o.MinPay,
-        MaxPay = o.MaxPay,
-        CreatedAtUtc = o.CreatedAtUtc,
-        DeadlineUtc = o.DeadlineUtc,
-        Skills = safeSkills,
-        AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
-        AssessmentMcqCount = o.AssessmentMcqCount,
-        AssessmentChallengeCount = o.AssessmentChallengeCount,
-        MatchPercentage = matchPercentage,
-        MatchedSkills = matchedSkills
-    };
-}).ToList();
+                return new OpportunityCardDto
+                {
+                    Id = o.Id,
+                    Title = o.Title,
+                    CompanyName = o.CompanyName,
+                    Location = o.Location,
+                    IsRemote = o.IsRemote,
+                    WorkMode = o.WorkMode.ToString(),
+                    Type = o.Type.ToString(),
+                    Level = o.Level.ToString(),
+                    MinPay = o.MinPay,
+                    MaxPay = o.MaxPay,
+                    CreatedAtUtc = o.CreatedAtUtc,
+                    DeadlineUtc = o.DeadlineUtc,
+                    Skills = safeSkills,
+                    AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
+                    AssessmentMcqCount = o.AssessmentMcqCount,
+                    AssessmentChallengeCount = o.AssessmentChallengeCount,
+                    MatchPercentage = matchPercentage,
+                    MatchedSkills = matchedSkills
+                };
+            }).ToList();
 
             items = items
                 .OrderByDescending(x => x.MatchPercentage)
@@ -234,78 +234,78 @@ public class OpportunitiesController : ControllerBase
     }
 
     [Authorize]
-[HttpGet("{id:int}")]
-public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
-{
-    var o = await _db.Opportunities
-        .AsNoTracking()
-        .Include(x => x.OpportunitySkills)
-            .ThenInclude(os => os.Skill)
-        .FirstOrDefaultAsync(x => x.Id == id);
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
+    {
+        var o = await _db.Opportunities
+            .AsNoTracking()
+            .Include(x => x.OpportunitySkills)
+                .ThenInclude(os => os.Skill)
+            .FirstOrDefaultAsync(x => x.Id == id);
 
-    if (o == null) return NotFound();
+        if (o == null) return NotFound();
 
-    var qa = await _db.OpportunityQuestions
-        .AsNoTracking()
-        .Where(q => q.OpportunityId == id)
-        .OrderByDescending(q => q.AskedAtUtc)
-        .Select(q => new QaDto
+        var qa = await _db.OpportunityQuestions
+            .AsNoTracking()
+            .Where(q => q.OpportunityId == id)
+            .OrderByDescending(q => q.AskedAtUtc)
+            .Select(q => new QaDto
+            {
+                Id = q.Id,
+                Question = q.Question,
+                Answer = q.Answer,
+                AskedAtUtc = q.AskedAtUtc
+            })
+            .ToListAsync();
+
+        var opportunitySkills = o.OpportunitySkills
+            .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
+            .Select(os => os.Skill!.Name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var matchPercentage = 0;
+
+        if (!string.IsNullOrEmpty(userId))
         {
-            Id = q.Id,
-            Question = q.Question,
-            Answer = q.Answer,
-            AskedAtUtc = q.AskedAtUtc
-        })
-        .ToListAsync();
+            var studentSkillNames = await GetStudentSkillNames(userId);
+            matchPercentage = CalculateMatchPercentage(studentSkillNames, opportunitySkills);
+        }
 
-    var opportunitySkills = o.OpportunitySkills
-        .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
-        .Select(os => os.Skill!.Name.Trim())
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToList();
-
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    var matchPercentage = 0;
-
-    if (!string.IsNullOrEmpty(userId))
-    {
-        var studentSkillNames = await GetStudentSkillNames(userId);
-        matchPercentage = CalculateMatchPercentage(studentSkillNames, opportunitySkills);
+        return Ok(new OpportunityDetailsDto
+        {
+            Id = o.Id,
+            Title = o.Title,
+            CompanyName = o.CompanyName,
+            Location = o.Location,
+            IsRemote = o.IsRemote,
+            WorkMode = o.WorkMode.ToString(),
+            LocationName = o.LocationName,
+            FullAddress = o.FullAddress,
+            Latitude = o.Latitude,
+            Longitude = o.Longitude,
+            Type = o.Type.ToString(),
+            Level = o.Level.ToString(),
+            MinPay = o.MinPay,
+            MaxPay = o.MaxPay,
+            Description = o.Description,
+            CreatedAtUtc = o.CreatedAtUtc,
+            DeadlineUtc = o.DeadlineUtc,
+            Responsibilities = ReadList(o.ResponsibilitiesJson),
+            PreferredSkills = ReadList(o.PreferredSkillsJson),
+            Benefits = ReadList(o.BenefitsJson),
+            Assessment = string.IsNullOrWhiteSpace(o.AssessmentJson)
+                ? null
+                : JsonSerializer.Deserialize<object>(o.AssessmentJson),
+            AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
+            AssessmentMcqCount = o.AssessmentMcqCount,
+            AssessmentChallengeCount = o.AssessmentChallengeCount,
+            MatchPercentage = matchPercentage,
+            Skills = opportunitySkills,
+            Qa = qa
+        });
     }
-
-    return Ok(new OpportunityDetailsDto
-    {
-        Id = o.Id,
-        Title = o.Title,
-        CompanyName = o.CompanyName,
-        Location = o.Location,
-        IsRemote = o.IsRemote,
-        WorkMode = o.WorkMode.ToString(),
-        LocationName = o.LocationName,
-        FullAddress = o.FullAddress,
-        Latitude = o.Latitude,
-        Longitude = o.Longitude,
-        Type = o.Type.ToString(),
-        Level = o.Level.ToString(),
-        MinPay = o.MinPay,
-        MaxPay = o.MaxPay,
-        Description = o.Description,
-        CreatedAtUtc = o.CreatedAtUtc,
-        DeadlineUtc = o.DeadlineUtc,
-        Responsibilities = ReadList(o.ResponsibilitiesJson),
-        PreferredSkills = ReadList(o.PreferredSkillsJson),
-        Benefits = ReadList(o.BenefitsJson),
-        Assessment = string.IsNullOrWhiteSpace(o.AssessmentJson)
-            ? null
-            : JsonSerializer.Deserialize<object>(o.AssessmentJson),
-        AssessmentTimeLimitSeconds = o.AssessmentTimeLimitSeconds,
-        AssessmentMcqCount = o.AssessmentMcqCount,
-        AssessmentChallengeCount = o.AssessmentChallengeCount,
-        MatchPercentage = matchPercentage,
-        Skills = opportunitySkills,
-        Qa = qa
-    });
-}
 
     [HttpGet("{id}/similar")]
     public async Task<ActionResult<List<OpportunityCardDto>>> GetSimilar(
@@ -709,7 +709,7 @@ public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
         if (!oppExists) return NotFound("Opportunity not found.");
 
         var existing = await _db.Applications
-            .FirstOrDefaultAsync(a => a.OpportunityId == id && a.UserId == userId && a.Status != ApplicationStatus.Withdrawn);
+            .FirstOrDefaultAsync(a => a.OpportunityId == id && a.StudentUserId == userId && a.Status != ApplicationStatus.Withdrawn);
 
         if (existing != null)
             return Ok(new { applicationId = existing.Id, status = existing.Status.ToString() });
@@ -717,7 +717,7 @@ public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
         var app = new Application
         {
             OpportunityId = id,
-            UserId = userId,
+            StudentUserId = userId,
             Status = ApplicationStatus.Draft,
             CreatedAtUtc = DateTime.UtcNow
         };
@@ -770,47 +770,47 @@ public async Task<ActionResult<OpportunityDetailsDto>> GetById(int id)
         await _db.SaveChangesAsync();
     }
     private static int CalculateMatchPercentage(List<string> applicantSkills, List<string> opportunitySkills)
-{
-    if (opportunitySkills == null || opportunitySkills.Count == 0)
-        return 0;
+    {
+        if (opportunitySkills == null || opportunitySkills.Count == 0)
+            return 0;
 
-    if (applicantSkills == null || applicantSkills.Count == 0)
-        return 0;
+        if (applicantSkills == null || applicantSkills.Count == 0)
+            return 0;
 
-    var applicantSet = applicantSkills
-        .Where(s => !string.IsNullOrWhiteSpace(s))
-        .Select(s => s.Trim().ToLower())
-        .ToHashSet();
+        var applicantSet = applicantSkills
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim().ToLower())
+            .ToHashSet();
 
-    var opportunitySet = opportunitySkills
-        .Where(s => !string.IsNullOrWhiteSpace(s))
-        .Select(s => s.Trim().ToLower())
-        .ToHashSet();
+        var opportunitySet = opportunitySkills
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim().ToLower())
+            .ToHashSet();
 
-    if (opportunitySet.Count == 0)
-        return 0;
+        if (opportunitySet.Count == 0)
+            return 0;
 
-    var matchedCount = opportunitySet.Count(skill => applicantSet.Contains(skill));
+        var matchedCount = opportunitySet.Count(skill => applicantSet.Contains(skill));
 
-    return (int)Math.Round((double)matchedCount * 100 / opportunitySet.Count);
-}
+        return (int)Math.Round((double)matchedCount * 100 / opportunitySet.Count);
+    }
 
-private async Task<List<string>> GetStudentSkillNames(string userId)
-{
-    return await _db.StudentSkills
-        .AsNoTracking()
-        .Where(ss => ss.StudentUserId == userId && ss.SkillId != null)
-        .Join(
-            _db.Skills,
-            ss => ss.SkillId,
-            s => s.Id,
-            (ss, s) => s.Name
-        )
-        .Where(name => !string.IsNullOrWhiteSpace(name))
-        .Select(name => name.Trim())
-        .Distinct()
-        .ToListAsync();
-}
+    private async Task<List<string>> GetStudentSkillNames(string userId)
+    {
+        return await _db.StudentSkills
+            .AsNoTracking()
+            .Where(ss => ss.StudentUserId == userId && ss.SkillId != null)
+            .Join(
+                _db.Skills,
+                ss => ss.SkillId,
+                s => s.Id,
+                (ss, s) => s.Name
+            )
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim())
+            .Distinct()
+            .ToListAsync();
+    }
 
     private static List<string> ReadList(string? json)
         => string.IsNullOrWhiteSpace(json)

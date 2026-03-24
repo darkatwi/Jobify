@@ -161,5 +161,27 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
 
         modelBuilder.Entity<OpportunityReport>()
             .HasIndex(r => new { r.OpportunityId, r.ReporterUserId, r.Reason });
+
+        // =========================
+        // Notifications
+        // =========================
+        modelBuilder.Entity<Notification>()
+            .HasKey(n => n.Id);
+
+        modelBuilder.Entity<Notification>()
+            .Property(n => n.Title)
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<Notification>()
+            .Property(n => n.Message)
+            .HasMaxLength(1000);
+
+        modelBuilder.Entity<Notification>()
+            .Property(n => n.Type)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Notification>()
+            .Property(n => n.UserId)
+            .IsRequired();
     }
 }

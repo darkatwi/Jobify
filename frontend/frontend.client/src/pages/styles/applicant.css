@@ -1,0 +1,423 @@
+body {
+    margin: 0;
+    font-family: Inter, Arial, sans-serif;
+    background: #ffffff;
+}
+
+/* PAGE */
+.org-page {
+    min-height: 100vh;
+    background: #ffffff;
+}
+
+/* CONTENT */
+.org-content.full {
+    padding: 32px 40px;
+}
+
+    .org-content.full h2 {
+        margin: 0 0 8px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+/* SUBTITLE */
+.org-subtitle {
+    margin: 0 0 20px;
+    font-size: 15px;
+    color: #475569;
+}
+
+/* DROPDOWN */
+.org-job-select-wrap {
+    margin-bottom: 16px;
+}
+
+.org-dropdown {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+}
+
+.org-dropdown-trigger {
+    width: 100%;
+    height: 46px;
+    border-radius: 999px;
+    border: 1px solid #dbe3ef;
+    background: #ffffff;
+    padding: 0 16px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.org-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+    padding: 6px;
+    z-index: 1000;
+}
+
+.org-dropdown-item {
+    padding: 10px 14px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+    .org-dropdown-item:hover {
+        background: #f1f5f9;
+    }
+
+    .org-dropdown-item.active {
+        background: #e8eefc;
+        font-weight: 600;
+    }
+
+/* SELECTED JOB */
+.org-selected-job {
+    margin: 12px 0 22px;
+    color: #64748b;
+    font-size: 14px;
+}
+
+/* GRID */
+.org-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 22px; /* 🔥 more spacing between cards */
+}
+
+/* CARD */
+.org-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 20px; /* 🔥 MORE INNER SPACE */
+    display: flex;
+    flex-direction: column;
+    gap: 14px; /* 🔥 KEY FIX */
+    transition: 0.2s;
+}
+
+    .org-card:hover {
+        box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+    }
+
+/* HEADER */
+.org-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.org-applicant-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* BADGE */
+.org-badge {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+    .org-badge.pending {
+        background: #fef3c7;
+        color: #a16207;
+    }
+
+    .org-badge.review {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .org-badge.accepted {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .org-badge.rejected {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+/* INFO */
+.org-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 🔥 MORE SPACING */
+}
+
+    .org-card-info div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #475569;
+    }
+
+/* MATCH */
+.org-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* 🔥 spacing between badge & score */
+}
+
+/* MATCH COLORS */
+.org-match {
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+    .org-match.high {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .org-match.medium {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .org-match.low {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+.org-score {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+}
+
+/* ACTIONS */
+.org-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px; /* 🔥 MORE SPACE BETWEEN BUTTONS */
+}
+
+.org-btn {
+    height: 40px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* BUTTONS */
+.org-btn-outline {
+    background: white;
+    border: 1px solid #d1d5db;
+}
+
+    .org-btn-outline:hover {
+        background: #f9fafb;
+    }
+
+.org-btn-dark {
+    background: #0f172a;
+    color: white;
+}
+
+    .org-btn-dark:hover {
+        background: #1e293b;
+    }
+
+/* SELECT */
+.org-select {
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid #d1d5db;
+    padding: 0 10px;
+    background: #f8fafc;
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+    .org-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* MODAL OVERLAY */
+.org-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+/* MODAL BOX */
+.org-modal {
+    width: 100%;
+    max-width: 480px;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 28px 24px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+    border: 1px solid #e5e7eb;
+    animation: orgModalIn 0.18s ease;
+}
+
+    /* TITLE */
+    .org-modal h2 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .org-modal p {
+        margin: 0 0 22px;
+        font-size: 15px;
+        color: #475569;
+        line-height: 1.5;
+    }
+
+/* FORM */
+.org-form-group {
+    margin-bottom: 16px;
+}
+
+    .org-form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .org-form-group input,
+    .org-form-group select {
+        width: 100%;
+        height: 46px;
+        border-radius: 14px;
+        border: 1px solid #d1d5db;
+        background: #ffffff;
+        padding: 0 14px;
+        font-size: 14px;
+        color: #111827;
+        outline: none;
+        box-sizing: border-box;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+        .org-form-group input:focus,
+        .org-form-group select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+        }
+
+/* ACTIONS */
+.org-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+    .org-modal-actions .org-btn {
+        min-width: 110px;
+        height: 44px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    /* OPTIONAL: smoother buttons inside modal */
+    .org-modal-actions .org-btn-outline {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #0f172a;
+    }
+
+        .org-modal-actions .org-btn-outline:hover {
+            background: #f8fafc;
+        }
+
+    .org-modal-actions .org-btn-dark {
+        background: #0f172a;
+        color: #ffffff;
+    }
+
+        .org-modal-actions .org-btn-dark:hover {
+            background: #1e293b;
+        }
+
+/* ANIMATION */
+@keyframes orgModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* MOBILE */
+@media (max-width: 640px) {
+    .org-modal {
+        max-width: 100%;
+        padding: 22px 18px;
+        border-radius: 20px;
+    }
+
+        .org-modal h2 {
+            font-size: 24px;
+        }
+
+    .org-modal-actions {
+        flex-direction: column;
+    }
+
+        .org-modal-actions .org-btn {
+            width: 100%;
+        }
+}
+
+.org-input {
+    width: 100%;
+    height: 46px;
+    border-radius: 14px;
+    border: 1px solid #d1d5db;
+    padding: 0 14px;
+    font-size: 14px;
+    background: #ffffff;
+    color: #111827;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+    .org-input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+.org-badge.shortlisted {
+    background: #f3e8ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+}

@@ -3,6 +3,7 @@ import "leaflet/dist/leaflet.css";
 
 import QAPage from "./pages/QAPage";
 import RecruiterInterviewsPage from "./pages/RecruiterInterviewsPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 import LoginPage from "./pages/LoginPage/LoginPage";
 import SignupPage from "./pages/LoginPage/SignupPage";
@@ -40,10 +41,9 @@ function getUser() {
     try {
         const parsed = JSON.parse(localStorage.getItem("jobify_user"));
         if (!parsed) return null;
-        
+
         return parsed;
-    }
-    catch {
+    } catch {
         return null;
     }
 }
@@ -67,8 +67,7 @@ function AppGuard() {
 }
 
 export default function App() {
-
-    const user = getUser()
+    const user = getUser();
     const isAdmin = user?.roles?.[0] === "Admin";
 
     return (
@@ -96,6 +95,7 @@ export default function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/browse" element={<BrowseOpportunities />} />
                 <Route path="/match" element={<MatchesPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/organization" element={<OrganizationDashboard />} />
                 <Route path="/organization/interviews" element={<RecruiterInterviewsPage />} />
                 <Route path="/organization/qanda" element={<QAPage />} />

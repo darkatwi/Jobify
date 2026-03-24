@@ -444,11 +444,6 @@ function CandidateDashboard() {
     const [savedLoading, setSavedLoading] = useState(true);
     const [savedError, setSavedError] = useState("");
 
-    const [notifications, setNotifications] = useState([]);
-    const [notificationsLoading, setNotificationsLoading] = useState(true);
-    const [notificationsError, setNotificationsError] = useState("");
-    const [unreadCount, setUnreadCount] = useState(0);
-
     useEffect(() => {
         async function loadDashboard() {
             try {
@@ -485,54 +480,6 @@ function CandidateDashboard() {
 
         loadSavedOpportunities();
     }, []);
-
-    useEffect(() => {
-        async function loadNotifications() {
-            try {
-                setNotificationsLoading(true);
-                setNotificationsError("");
-
-                const [notificationsRes, unreadRes] = await Promise.all([
-                    api.get("/Notifications"),
-                    api.get("/Notifications/unread-count"),
-                ]);
-
-                setNotifications(Array.isArray(notificationsRes.data) ? notificationsRes.data : []);
-                setUnreadCount(unreadRes.data?.unreadCount ?? 0);
-            } catch (err) {
-                console.error(err);
-                setNotificationsError(err.message || "Failed to load notifications");
-                setNotifications([]);
-                setUnreadCount(0);
-            } finally {
-                setNotificationsLoading(false);
-            }
-        }
-
-        loadNotifications();
-    }, []);
-
-    async function handleNotificationClick(notification) {
-        try {
-            if (!notification.isRead) {
-                await api.put(`/Notifications/${notification.id}/read`);
-
-                setNotifications((prev) =>
-                    prev.map((n) =>
-                        n.id === notification.id ? { ...n, isRead: true } : n
-                    )
-                );
-
-                setUnreadCount((prev) => Math.max(prev - 1, 0));
-            }
-
-            if (notification.opportunityId) {
-                navigate(`/opportunities/${notification.opportunityId}`);
-            }
-        } catch (err) {
-            console.error("Failed to update notification:", err);
-        }
-    }
 
     if (loading) {
         return (
@@ -650,85 +597,6 @@ function CandidateDashboard() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                    <div style={panelStyle}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center", marginBottom: "18px" }}>
-                            <h2 style={{ ...panelTitleStyle, marginBottom: 0 }}>Notifications</h2>
-                            <span
-                                style={{
-                                    ...softBadgeStyle,
-                                    background: unreadCount > 0 ? "rgba(37, 99, 235, 0.12)" : "var(--surface-2, #f8fafc)",
-                                    color: unreadCount > 0 ? "var(--blue, #2563eb)" : "var(--text)",
-                                }}
-                            >
-                                {unreadCount} unread
-                            </span>
-                        </div>
-
-                        {notificationsLoading ? (
-                            <p style={{ color: "var(--muted)" }}>Loading notifications...</p>
-                        ) : notificationsError ? (
-                            <p style={{ color: "var(--danger, #ef4444)" }}>{notificationsError}</p>
-                        ) : notifications.length === 0 ? (
-                            <p style={{ color: "var(--muted)" }}>No notifications yet.</p>
-                        ) : (
-                            notifications.slice(0, 5).map((notification) => (
-                                <div
-                                    key={notification.id}
-                                    onClick={() => handleNotificationClick(notification)}
-                                    style={{
-                                        border: notification.isRead
-                                            ? "1px solid var(--border)"
-                                            : "1px solid rgba(37, 99, 235, 0.25)",
-                                        borderRadius: "14px",
-                                        padding: "16px",
-                                        marginBottom: "14px",
-                                        background: notification.isRead
-                                            ? "var(--card)"
-                                            : "rgba(37, 99, 235, 0.06)",
-                                        cursor: "pointer",
-                                        transition: "transform 0.15s ease, box-shadow 0.15s ease",
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = "translateY(-3px)";
-                                        e.currentTarget.style.boxShadow = "0 8px 18px rgba(0,0,0,0.06)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = "translateY(0)";
-                                        e.currentTarget.style.boxShadow = "none";
-                                    }}
-                                >
-                                    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "start" }}>
-                                        <div>
-                                            <h3 style={{ margin: "0 0 6px 0", fontSize: "16px", color: "var(--text)" }}>
-                                                {notification.title}
-                                            </h3>
-                                            <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.5 }}>
-                                                {notification.message}
-                                            </p>
-                                        </div>
-
-                                        {!notification.isRead && (
-                                            <span
-                                                style={{
-                                                    width: "10px",
-                                                    height: "10px",
-                                                    borderRadius: "999px",
-                                                    background: "var(--blue, #2563eb)",
-                                                    flexShrink: 0,
-                                                    marginTop: "6px",
-                                                }}
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div style={{ marginTop: "10px", color: "var(--muted)", fontSize: "12px" }}>
-                                        {new Date(notification.createdAtUtc).toLocaleString()}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
                     <div style={panelStyle}>
                         <h2 style={panelTitleStyle}>Saved Opportunities</h2>
 

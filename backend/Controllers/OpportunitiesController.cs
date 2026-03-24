@@ -633,11 +633,23 @@ public class OpportunitiesController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        await _notificationService.NotifyMatchedStudentsForOpportunityAsync(
-            opportunity,
-            notificationSkillNames,
-            40.0
-        );
+        if (notificationSkillNames.Count == 0)
+        {
+            notificationSkillNames = ReadList(opportunity.PreferredSkillsJson)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        if (notificationSkillNames.Count > 0)
+        {
+            await _notificationService.NotifyMatchedStudentsForOpportunityAsync(
+                opportunity,
+                notificationSkillNames,
+                40.0
+            );
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = opportunity.Id }, new { opportunity.Id });
     }

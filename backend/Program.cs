@@ -47,6 +47,9 @@ builder.Services.AddScoped<SkillService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<UniversityProofOcrService>();
 
+// notifications
+builder.Services.AddScoped<NotificationService>();
+
 builder.Services.AddHttpClient<MlSkillClient>(client =>
 {
     client.BaseAddress = new Uri(

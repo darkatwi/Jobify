@@ -18,12 +18,18 @@ public class OpportunitiesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly SkillService _skillService;
     private readonly MlSkillClient _mlSkillClient;
+    private readonly NotificationService _notificationService;
 
-    public OpportunitiesController(AppDbContext db, SkillService skillService, MlSkillClient mlSkillClient)
+    public OpportunitiesController(
+        AppDbContext db,
+        SkillService skillService,
+        MlSkillClient mlSkillClient,
+        NotificationService notificationService)
     {
         _db = db;
         _skillService = skillService;
         _mlSkillClient = mlSkillClient;
+        _notificationService = notificationService;
     }
 
     [Authorize]
@@ -580,6 +586,8 @@ public class OpportunitiesController : ControllerBase
         _db.Opportunities.Add(opportunity);
         await _db.SaveChangesAsync();
 
+        var notificationSkillNames = new List<string>();
+
         if (dto.Skills != null && dto.Skills.Count > 0)
         {
             foreach (var skillName in dto.Skills)
@@ -589,6 +597,11 @@ public class OpportunitiesController : ControllerBase
 
                 var trimmed = skillName.Trim();
                 var normalized = trimmed.ToLower();
+
+                if (notificationSkillNames.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                notificationSkillNames.Add(trimmed);
 
                 var skill = await _db.Skills
                     .FirstOrDefaultAsync(s => s.Name.ToLower() == normalized);
@@ -604,14 +617,38 @@ public class OpportunitiesController : ControllerBase
                     await _db.SaveChangesAsync();
                 }
 
-                _db.OpportunitySkills.Add(new OpportunitySkill
+                var alreadyLinked = await _db.OpportunitySkills.AnyAsync(os =>
+                    os.OpportunityId == opportunity.Id && os.SkillId == skill.Id);
+
+                if (!alreadyLinked)
                 {
-                    OpportunityId = opportunity.Id,
-                    SkillId = skill.Id
-                });
+                    _db.OpportunitySkills.Add(new OpportunitySkill
+                    {
+                        OpportunityId = opportunity.Id,
+                        SkillId = skill.Id
+                    });
+                }
             }
 
             await _db.SaveChangesAsync();
+        }
+
+        if (notificationSkillNames.Count == 0)
+        {
+            notificationSkillNames = ReadList(opportunity.PreferredSkillsJson)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        if (notificationSkillNames.Count > 0)
+        {
+            await _notificationService.NotifyMatchedStudentsForOpportunityAsync(
+                opportunity,
+                notificationSkillNames,
+                40.0
+            );
         }
 
         return CreatedAtAction(nameof(GetById), new { id = opportunity.Id }, new { opportunity.Id });
@@ -769,6 +806,7 @@ public class OpportunitiesController : ControllerBase
         _db.OpportunitySkills.AddRange(joinsToAdd);
         await _db.SaveChangesAsync();
     }
+
     private static int CalculateMatchPercentage(List<string> applicantSkills, List<string> opportunitySkills)
     {
         if (opportunitySkills == null || opportunitySkills.Count == 0)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CalendarDays, Clock3, Link as LinkIcon, User2 } from "lucide-react";
 import { api } from "../api/api";
 import "./styles/recruiter.css";
 
@@ -54,11 +55,12 @@ export default function RecruiterInterviewsPage() {
                     {interviews.map((i) => (
                         <div key={i.id} className="recruiter-interview-card">
                             <div className="recruiter-interview-card-top">
-                                <h2 className="recruiter-interview-title">
+                                <h2 className="recruiter-interview-title-card">
                                     {i.opportunityTitle}
                                 </h2>
 
                                 <div className="recruiter-interview-date-badge">
+                                    <CalendarDays size={14} />
                                     {formatInterviewDate(i.scheduledAtUtc)}
                                 </div>
                             </div>
@@ -69,10 +71,12 @@ export default function RecruiterInterviewsPage() {
 
                             <div className="recruiter-interview-meta">
                                 <span className="recruiter-interview-pill">
+                                    <User2 size={14} />
                                     Candidate: {i.candidateName || "Unknown"}
                                 </span>
 
                                 <span className="recruiter-interview-pill">
+                                    <Clock3 size={14} />
                                     {formatInterviewTime(i.scheduledAtUtc)}
                                 </span>
                             </div>
@@ -89,6 +93,7 @@ export default function RecruiterInterviewsPage() {
                                         rel="noreferrer"
                                         className="recruiter-interview-link"
                                     >
+                                        <LinkIcon size={14} />
                                         Open Meeting
                                     </a>
                                 ) : null}

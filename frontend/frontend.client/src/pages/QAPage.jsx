@@ -1,16 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-    MessageSquare, Clock, CheckCircle2,
-    ChevronDown, ChevronUp, Send, RefreshCw, AlertCircle
+    MessageSquare,
+    Clock,
+    CheckCircle2,
+    ChevronDown,
+    ChevronUp,
+    Send,
+    RefreshCw,
+    AlertCircle
 } from "lucide-react";
 import { api } from "../api/api";
 import "./styles/qa.css";
 
-// ─── API helpers ──────────────────────────────────────────────────────────────
-
 async function fetchRecruiterOpportunities() {
     const res = await api.get("/opportunities/my");
-    return res.data; // [{ id, title, companyName, isClosed }]
+    return res.data;
 }
 
 async function fetchQuestionsForOpportunity(opportunityId) {
@@ -22,8 +26,6 @@ async function postAnswer(questionId, answer) {
     await api.put(`/opportunities/questions/${questionId}/answer`, { answer });
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -34,8 +36,6 @@ function timeAgo(dateStr) {
     return `${Math.floor(hrs / 24)}d ago`;
 }
 
-// ─── PostingSelector ─────────────────────────────────────────────────────────
-
 function PostingSelector({ postings, selectedId, onSelect }) {
     if (postings.length === 0) {
         return (
@@ -44,6 +44,7 @@ function PostingSelector({ postings, selectedId, onSelect }) {
             </div>
         );
     }
+
     return (
         <div className="qa-sidebar">
             <p className="qa-sidebar__label">Your Postings</p>
@@ -66,8 +67,6 @@ function PostingSelector({ postings, selectedId, onSelect }) {
     );
 }
 
-// ─── OpportunityStrip ─────────────────────────────────────────────────────────
-
 function OpportunityStrip({ title, company, pendingCount, answeredCount, onRefresh, loading }) {
     return (
         <div className="qa-strip">
@@ -75,28 +74,30 @@ function OpportunityStrip({ title, company, pendingCount, answeredCount, onRefre
                 <h2 className="qa-strip__title">{title}</h2>
                 <p className="qa-strip__company">{company}</p>
             </div>
+
             <div className="qa-strip__stats">
                 <span className="qa-pill qa-pill--pending">
-                    <Clock />
+                    <Clock size={16} />
                     {pendingCount} pending
                 </span>
+
                 <span className="qa-pill qa-pill--answered">
-                    <CheckCircle2 />
+                    <CheckCircle2 size={16} />
                     {answeredCount} answered
                 </span>
+
                 <button
                     onClick={onRefresh}
                     disabled={loading}
                     className={`qa-refresh-btn${loading ? " qa-refresh-btn--spinning" : ""}`}
+                    type="button"
                 >
-                    <RefreshCw />
+                    <RefreshCw size={16} />
                 </button>
             </div>
         </div>
     );
 }
-
-// ─── FilterTabs ───────────────────────────────────────────────────────────────
 
 function FilterTabs({ activeFilter, onFilterChange, pendingCount }) {
     const tabs = [
@@ -104,6 +105,7 @@ function FilterTabs({ activeFilter, onFilterChange, pendingCount }) {
         { value: "pending", label: "Pending", badge: pendingCount > 0 ? pendingCount : null },
         { value: "answered", label: "Answered" },
     ];
+
     return (
         <div className="qa-filters">
             {tabs.map((tab) => (
@@ -111,18 +113,15 @@ function FilterTabs({ activeFilter, onFilterChange, pendingCount }) {
                     key={tab.value}
                     onClick={() => onFilterChange(tab.value)}
                     className={`qa-filter-btn${activeFilter === tab.value ? " qa-filter-btn--active" : ""}`}
+                    type="button"
                 >
                     {tab.label}
-                    {tab.badge && (
-                        <span className="qa-filter-badge">{tab.badge}</span>
-                    )}
+                    {tab.badge && <span className="qa-filter-badge">{tab.badge}</span>}
                 </button>
             ))}
         </div>
     );
 }
-
-// ─── QuestionCard ─────────────────────────────────────────────────────────────
 
 function QuestionCard({ question, onReply }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -131,12 +130,14 @@ function QuestionCard({ question, onReply }) {
     const [error, setError] = useState(null);
 
     const isAnswered = !!question.answer;
-    const borderColor = isAnswered ? "#22c55e" : "#facc15";
+    const borderClass = isAnswered ? "qa-card--answered" : "qa-card--pending";
 
     const handleSubmit = async () => {
         if (!replyText.trim()) return;
+
         setSaving(true);
         setError(null);
+
         try {
             await onReply(question.id, replyText.trim());
             setIsExpanded(false);
@@ -154,36 +155,40 @@ function QuestionCard({ question, onReply }) {
     };
 
     return (
-        <div className="qa-card" style={{ borderLeft: `3px solid ${borderColor}` }}>
-            {/* Clickable header */}
+        <div className={`qa-card ${borderClass}`}>
             <button
                 className="qa-card__header"
                 onClick={() => setIsExpanded(!isExpanded)}
+                type="button"
             >
                 <div className="qa-card__header-inner">
                     <div className="qa-card__header-content">
                         {isAnswered ? (
                             <span className="qa-status-badge qa-status-badge--answered">
-                                <CheckCircle2 /> Answered
+                                <CheckCircle2 size={16} />
+                                Answered
                             </span>
                         ) : (
                             <span className="qa-status-badge qa-status-badge--pending">
-                                <Clock /> Awaiting Reply
+                                <Clock size={16} />
+                                Awaiting Reply
                             </span>
                         )}
+
                         <p className="qa-card__question">{question.question}</p>
+
                         <div className="qa-card__time">
-                            <Clock />
+                            <Clock size={14} />
                             <span>{timeAgo(question.askedAtUtc)}</span>
                         </div>
                     </div>
+
                     <div className="qa-card__chevron">
-                        {isExpanded ? <ChevronUp /> : <ChevronDown />}
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </div>
                 </div>
             </button>
 
-            {/* Preview (answered, collapsed) */}
             {isAnswered && !isExpanded && question.answer && (
                 <div className="qa-card__preview">
                     <span className="qa-card__preview-label">Your reply:</span>{" "}
@@ -191,12 +196,12 @@ function QuestionCard({ question, onReply }) {
                 </div>
             )}
 
-            {/* Expanded reply editor */}
             {isExpanded && (
                 <div className="qa-card__editor">
                     <label className="qa-card__editor-label">
                         {isAnswered ? "Edit Your Reply" : "Write a Reply"}
                     </label>
+
                     <textarea
                         className="qa-card__textarea"
                         value={replyText}
@@ -204,23 +209,30 @@ function QuestionCard({ question, onReply }) {
                         placeholder="Type a clear, helpful answer for candidates…"
                         rows={4}
                     />
+
                     {error && (
                         <div className="qa-card__error">
-                            <AlertCircle /> {error}
+                            <AlertCircle size={16} />
+                            {error}
                         </div>
                     )}
+
                     <div className="qa-card__actions">
                         <button
                             className="qa-btn-primary"
                             onClick={handleSubmit}
                             disabled={saving || !replyText.trim()}
+                            type="button"
                         >
-                            <Send /> {saving ? "Posting…" : "Post Reply"}
+                            <Send size={16} />
+                            {saving ? "Posting…" : "Post Reply"}
                         </button>
+
                         <button
                             className="qa-btn-secondary"
                             onClick={handleCancel}
                             disabled={saving}
+                            type="button"
                         >
                             Cancel
                         </button>
@@ -231,25 +243,23 @@ function QuestionCard({ question, onReply }) {
     );
 }
 
-// ─── EmptyState ───────────────────────────────────────────────────────────────
-
 function EmptyState({ filter }) {
     const messages = {
         all: { title: "No questions yet", sub: "Questions from candidates will appear here." },
         pending: { title: "All caught up!", sub: "No pending questions for this posting." },
         answered: { title: "No answered questions", sub: "Questions you reply to will appear here." },
     };
+
     const msg = messages[filter] ?? messages.all;
+
     return (
         <div className="qa-empty">
-            <MessageSquare />
+            <MessageSquare size={28} />
             <p className="qa-empty__title">{msg.title}</p>
             <p className="qa-empty__sub">{msg.sub}</p>
         </div>
     );
 }
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function QAPage() {
     const [postings, setPostings] = useState([]);
@@ -260,7 +270,6 @@ export default function QAPage() {
     const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [postingsError, setPostingsError] = useState(null);
 
-    // Load recruiter postings once on mount
     useEffect(() => {
         setLoadingPostings(true);
         fetchRecruiterOpportunities()
@@ -276,9 +285,9 @@ export default function QAPage() {
             .finally(() => setLoadingPostings(false));
     }, []);
 
-    // Reload questions whenever the selected posting changes
     const loadQuestions = useCallback(() => {
         if (!selectedId) return;
+
         setLoadingQuestions(true);
         fetchQuestionsForOpportunity(selectedId)
             .then(setQuestions)
@@ -286,11 +295,13 @@ export default function QAPage() {
             .finally(() => setLoadingQuestions(false));
     }, [selectedId]);
 
-    useEffect(() => { loadQuestions(); }, [loadQuestions]);
+    useEffect(() => {
+        loadQuestions();
+    }, [loadQuestions]);
 
     const handleReply = async (questionId, answer) => {
         await postAnswer(questionId, answer);
-        // Optimistic update — no need to refetch
+
         setQuestions((prev) =>
             prev.map((q) =>
                 String(q.id) === String(questionId) ? { ...q, answer } : q
@@ -299,38 +310,37 @@ export default function QAPage() {
     };
 
     const selectedPosting = postings.find((p) => String(p.id) === String(selectedId));
+
     const filteredQuestions = questions.filter((q) => {
         if (filter === "pending") return !q.answer;
         if (filter === "answered") return !!q.answer;
         return true;
     });
+
     const pendingCount = questions.filter((q) => !q.answer).length;
     const answeredCount = questions.filter((q) => !!q.answer).length;
 
     return (
         <div className="qa-page">
             <div className="qa-shell">
-
-                {/* ── Page Header ── */}
                 <div className="qa-page-header">
                     <div className="qa-page-header__title-row">
                         <MessageSquare className="qa-page-header__icon" />
                         <h1 className="qa-page-header__title">Candidate Q&amp;A</h1>
                     </div>
+
                     <p className="qa-page-header__sub">
                         Answer questions from candidates. Replies appear publicly on the job listing.
                     </p>
                 </div>
 
-                {/* ── Error ── */}
                 {postingsError && (
                     <div className="qa-error">
-                        <AlertCircle />
+                        <AlertCircle size={16} />
                         {postingsError}
                     </div>
                 )}
 
-                {/* ── Loading state (postings) ── */}
                 {loadingPostings ? (
                     <div className="qa-skeleton">
                         {[1, 2, 3].map((i) => (
@@ -339,8 +349,6 @@ export default function QAPage() {
                     </div>
                 ) : (
                     <div className="qa-layout">
-
-                        {/* Left sidebar */}
                         <div>
                             <PostingSelector
                                 postings={postings}
@@ -352,7 +360,6 @@ export default function QAPage() {
                             />
                         </div>
 
-                        {/* Right panel */}
                         <div className="qa-main">
                             {selectedPosting && (
                                 <OpportunityStrip
@@ -391,10 +398,8 @@ export default function QAPage() {
                                 </div>
                             )}
                         </div>
-
                     </div>
                 )}
-
             </div>
         </div>
     );

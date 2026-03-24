@@ -219,7 +219,7 @@ public class UsersController : ControllerBase
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow
         };
 
         // Save to DB
@@ -252,7 +252,7 @@ public class UsersController : ControllerBase
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow
         };
 
         // Save to DB

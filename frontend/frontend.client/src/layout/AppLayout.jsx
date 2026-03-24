@@ -10,11 +10,11 @@ import {
   Star,
   UserCircle,
   Building2,
+  FileText,
 } from "lucide-react";
 import { api } from "../api/api";
 import { useTheme } from "./useTheme";
 import "../pages/styles/layout.css";
-import { FileText } from "lucide-react";
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -27,8 +27,7 @@ export default function AppLayout() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [profileError, setProfileError] = useState("");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const profileMenuRef = useRef(null);
 
@@ -94,7 +93,7 @@ export default function AppLayout() {
 
   function handleLogout() {
     setShowProfileMenu(false);
-     localStorage.removeItem("jobify_token");
+    localStorage.removeItem("jobify_token");
     localStorage.removeItem("jobify_user");
     localStorage.removeItem("jobify_signup");
     navigate("/login");
@@ -105,19 +104,20 @@ export default function AppLayout() {
     navigate("/profile");
   }
 
-    return (
-        <div className="al-shell">
-            <header className={`al-header ${scrolled ? "isScrolled" : ""}`}>
-                <div className="al-headerInner">
-                    <div className="al-headerSide al-left">
-                        <div className="al-logo">Jobify</div>
-                        <button
-                            className="al-hamburger"
-                            onClick={() => setSidebarOpen(prev => !prev)}
-                        >
-                            ☰
-                        </button>
-                    </div>
+  return (
+    <div className="al-shell">
+      <header className={`al-header ${scrolled ? "isScrolled" : ""}`}>
+        <div className="al-headerInner">
+          <div className="al-headerSide al-left">
+            <div className="al-logo">Jobify</div>
+            <button
+              className="al-hamburger"
+              onClick={() => setSidebarOpen((prev) => !prev)}
+              type="button"
+            >
+              ☰
+            </button>
+          </div>
 
           <div className="al-headerCenter">
             <div className="al-search">
@@ -171,47 +171,61 @@ export default function AppLayout() {
         </div>
       </header>
 
-            <div className="al-body">
-                <div className="al-body">
-                    {sidebarOpen && (
-                        <div
-                            className="al-overlay"
-                            onClick={() => setSidebarOpen(false)}
-                        />
-                    )}
-                <aside className={`al-sidebar ${sidebarOpen ? "open" : ""}`}>
-                    <nav className="al-nav">
-                        <NavLink to="/dashboard" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
-                            <span className="al-linkIcon"><LayoutGrid size={18} /></span>
-                            <span className="al-linkText">Dashboard</span>
-                        </NavLink>
+      <div className="al-body">
+        {sidebarOpen && (
+          <div
+            className="al-overlay"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-                        {!loadingProfile && role === "Recruiter" && (
-                            <NavLink to="/organization" className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}>
-                                <span className="al-linkIcon"><Building2 size={18} /></span>
-                                <span className="al-linkText">Posting</span>
-                            </NavLink>
-                        )}
+        <aside className={`al-sidebar ${sidebarOpen ? "open" : ""}`}>
+          <nav className="al-nav">
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+            >
+              <span className="al-linkIcon">
+                <LayoutGrid size={18} />
+              </span>
+              <span className="al-linkText">Dashboard</span>
+            </NavLink>
 
-                        {!loadingProfile && role === "Recruiter" && (
-                            <NavLink
-                                to="/applicants"
-                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                            >
-                                <span className="al-linkIcon"><FileText size={18} /></span>
-                                <span className="al-linkText">Applicants</span>
-                            </NavLink>
-                        )}
+            {!loadingProfile && role === "Recruiter" && (
+              <NavLink
+                to="/organization"
+                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+              >
+                <span className="al-linkIcon">
+                  <Building2 size={18} />
+                </span>
+                <span className="al-linkText">Posting</span>
+              </NavLink>
+            )}
 
-                        {!loadingProfile && role === "Student" && (
-                            <NavLink
-                                to="/browse"
-                                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
-                            >
-                                <span className="al-linkIcon"><Sparkles size={18} /></span>
-                                <span className="al-linkText">Browse</span>
-                            </NavLink>
-                        )}
+            {!loadingProfile && role === "Recruiter" && (
+              <NavLink
+                to="/applicants"
+                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+              >
+                <span className="al-linkIcon">
+                  <FileText size={18} />
+                </span>
+                <span className="al-linkText">Applicants</span>
+              </NavLink>
+            )}
+
+            {!loadingProfile && role === "Student" && (
+              <NavLink
+                to="/browse"
+                className={({ isActive }) => `al-link ${isActive ? "isActive" : ""}`}
+              >
+                <span className="al-linkIcon">
+                  <Sparkles size={18} />
+                </span>
+                <span className="al-linkText">Browse</span>
+              </NavLink>
+            )}
 
             {!loadingProfile && role === "Student" && (
               <NavLink
@@ -252,7 +266,7 @@ export default function AppLayout() {
 
         <main className="al-main">
           <div className="al-content">
-            <Outlet />
+            <Outlet context={{ displayName, role, loadingProfile }} />
           </div>
         </main>
       </div>

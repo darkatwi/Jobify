@@ -1303,7 +1303,9 @@ public class ApplicationController : ControllerBase
         var app = await _db.Applications
             .AsNoTracking()
             .Include(a => a.Opportunity)
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId);
+            .FirstOrDefaultAsync(a =>
+                a.Id == applicationId &&
+                (a.UserId == userId || a.StudentUserId == userId));
 
         if (app == null) return NotFound();
 
@@ -1344,7 +1346,7 @@ public class ApplicationController : ControllerBase
                 applicationId = a.Id,
                 opportunityId = a.OpportunityId,
                 opportunityTitle = a.Opportunity!.Title,
-                studentUserId = a.UserId,
+                studentUserId = a.StudentUserId ?? a.UserId,
                 status = a.Status.ToString(),
                 note = a.Note,
                 UpdatedAtUtc = a.UpdatedAtUtc
@@ -1421,7 +1423,7 @@ public class ApplicationController : ControllerBase
         if (app.Opportunity == null || app.Opportunity.RecruiterUserId != recruiterId)
             return Forbid();
 
-        var studentUserId = app.UserId ?? app.StudentUserId;
+        var studentUserId = app.StudentUserId ?? app.UserId;
         if (string.IsNullOrEmpty(studentUserId))
             return Ok(new { app.Id });
 

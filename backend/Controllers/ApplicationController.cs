@@ -216,6 +216,42 @@ public class ApplicationController : ControllerBase
         public string Base64Jpeg { get; set; } = "";
     }
 
+    public class RecruiterApplicantProfileDto
+    {
+        public int ApplicationId { get; set; }
+        public int OpportunityId { get; set; }
+        public string OpportunityTitle { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string? Note { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
+        public DateTime UpdatedAtUtc { get; set; }
+
+        public string StudentUserId { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string? PhoneNumber { get; set; }
+        public string? Location { get; set; }
+        public string? Bio { get; set; }
+        public string? University { get; set; }
+        public string? Major { get; set; }
+        public string? GraduationYear { get; set; }
+
+        public bool HasResume { get; set; }
+        public string? ResumeFileName { get; set; }
+        public bool HasUniversityProof { get; set; }
+        public string? UniversityProofFileName { get; set; }
+
+        public List<string> Skills { get; set; } = new();
+        public List<object> Education { get; set; } = new();
+        public List<object> Experience { get; set; } = new();
+        public List<object> Projects { get; set; } = new();
+        public List<string> Interests { get; set; } = new();
+
+        public decimal? AssessmentScore { get; set; }
+        public bool? Flagged { get; set; }
+        public string? FlagReason { get; set; }
+    }
+
     [Authorize(Roles = "Student")]
     [HttpGet("me")]
     public async Task<ActionResult<List<MyApplicationDto>>> GetMyApplications()
@@ -970,12 +1006,14 @@ public class ApplicationController : ControllerBase
         public int MatchPercentage { get; set; }
         public DateTime? InterviewScheduledAtUtc { get; set; }
         public bool HasActiveInterview { get; set; }
+        public string UserId { get; set; } = "";
     }
 
     public class ResendRejectionDto
     {
         public string? RejectionReason { get; set; }
     }
+
     [Authorize(Roles = "Recruiter")]
     [HttpGet("recruiter/opportunity/{opportunityId:int}")]
     public async Task<ActionResult<List<RecruiterAppListDto>>> GetApplicationsForOpportunity(int opportunityId)
@@ -1061,6 +1099,7 @@ public class ApplicationController : ControllerBase
             result.Add(new RecruiterAppListDto
             {
                 ApplicationId = app.Id,
+                UserId = candidateUserId,
                 CandidateName =
         !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName! :
         !string.IsNullOrWhiteSpace(student?.Email) ? student.Email.Split('@')[0] :
@@ -1315,54 +1354,6 @@ public class ApplicationController : ControllerBase
         return Ok(apps);
     }
 
-
-    // GET application details (for recruiter)
-    [Authorize(Roles = "Recruiter")]
-    [HttpGet("recruiter/{applicationId:int}")]
-    public async Task<IActionResult> GetApplicationDetailsForRecruiter(int applicationId)
-    {
-        var recruiterId = CurrentUserId();
-        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
-
-        var recruiter = await _db.RecruiterProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.UserId == recruiterId);
-
-        if (recruiter == null) return Forbid();
-
-        var app = await _db.Applications
-            .Include(a => a.Opportunity)
-            .Include(a => a.Assessment)
-            .FirstOrDefaultAsync(a => a.Id == applicationId);
-
-        if (app == null) return NotFound();
-
-        if (app.Opportunity.RecruiterUserId != recruiterId)
-            return Forbid();
-
-        return Ok(new
-        {
-            applicationId = app.Id,
-            opportunityId = app.OpportunityId,
-            opportunityTitle = app.Opportunity.Title,
-            studentUserId = app.UserId,
-            status = app.Status.ToString(),
-            note = app.Note,
-            createdAtUtc = app.CreatedAtUtc,
-            UpdatedAtUtc = app.UpdatedAtUtc,
-
-            assessment = app.Assessment == null ? null : new
-            {
-                score = app.Assessment.Score,
-                startedAtUtc = app.Assessment.StartedAtUtc,
-                submittedAtUtc = app.Assessment.SubmittedAtUtc,
-                flagged = app.Assessment.Flagged,
-                flagReason = app.Assessment.FlagReason
-            }
-        });
-    }
-
-
     // Withdraw application (student)
     [Authorize(Roles = "Student")]
     [HttpPost("{applicationId:int}/withdraw")]
@@ -1411,6 +1402,130 @@ public class ApplicationController : ControllerBase
             .ToListAsync();
 
         return Ok(applications);
+    }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("recruiter/{applicationId:int}")]
+    public async Task<IActionResult> GetApplicationWithProfile(int applicationId)
+    {
+        var recruiterId = CurrentUserId();
+        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
+
+        var app = await _db.Applications
+            .Include(a => a.Opportunity)
+            .Include(a => a.Assessment)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (app == null) return NotFound();
+
+        if (app.Opportunity == null || app.Opportunity.RecruiterUserId != recruiterId)
+            return Forbid();
+
+        var studentUserId = app.UserId ?? app.StudentUserId;
+        if (string.IsNullOrEmpty(studentUserId))
+            return Ok(new { app.Id });
+
+        var profile = await _db.StudentProfiles
+            .FirstOrDefaultAsync(p => p.UserId == studentUserId);
+
+        var education = await _db.StudentEducations
+            .Where(e => e.StudentUserId == studentUserId)
+            .OrderByDescending(e => e.GraduationYear)
+            .ToListAsync();
+
+        var experience = await _db.StudentExperiences
+            .Where(e => e.StudentUserId == studentUserId)
+            .OrderByDescending(e => e.Id)
+            .ToListAsync();
+
+        var projects = await _db.StudentProjects
+            .Where(p => p.StudentUserId == studentUserId)
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();
+
+        var interests = await _db.StudentInterests
+            .Where(i => i.StudentUserId == studentUserId)
+            .Select(i => i.Interest)
+            .Where(i => !string.IsNullOrWhiteSpace(i))
+            .Distinct()
+            .ToListAsync();
+
+        var dbSkills = await _db.StudentSkills
+            .Where(ss => ss.StudentUserId == studentUserId)
+            .Join(
+                _db.Skills,
+                ss => ss.SkillId,
+                s => s.Id,
+                (ss, s) => s.Name
+            )
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct()
+            .ToListAsync();
+
+        var projectTechSkills = projects
+            .SelectMany(p => SplitSkills(p.TechStack))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var skills = dbSkills
+            .Concat(projectTechSkills)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+
+        var dto = new
+        {
+            applicationId = app.Id,
+            userId = studentUserId,
+            opportunityTitle = app.Opportunity.Title,
+            status = app.Status.ToString(),
+            createdAtUtc = app.CreatedAtUtc,
+
+            fullName = profile?.FullName,
+            email = profile?.Email,
+            phoneNumber = profile?.PhoneNumber,
+            location = profile?.Location,
+            bio = profile?.Bio,
+            university = profile?.University,
+            major = profile?.Major,
+            portfolioUrl = profile?.PortfolioUrl,
+
+            educationText = profile?.EducationText,
+            experienceText = profile?.ExperienceText,
+            projectsText = profile?.ProjectsText,
+            interestsText = profile?.InterestsText,
+            certificationsText = profile?.CertificationsText,
+            awardsText = profile?.AwardsText,
+
+            resumeFileName = profile?.ResumeFileName,
+            universityProofFileName = profile?.UniversityProofFileName,
+
+            education,
+            experience,
+            projects,
+            interests,
+            skills,
+
+            assessmentScore = app.Assessment?.Score,
+            flagged = app.Assessment?.Flagged,
+            flagReason = app.Assessment?.FlagReason
+        };
+
+        return Ok(dto);
+    }
+
+    private static List<string> SplitSkills(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<string>();
+
+        return value
+            .Split(new[] { ',', '\n', ';', '|', '/' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -1466,6 +1581,33 @@ public class ApplicationController : ControllerBase
         );
 
         return percentage;
+    }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("student-file")]
+    public async Task<IActionResult> GetStudentFile([FromQuery] string userId, [FromQuery] string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(fileName))
+            return BadRequest();
+
+        var fullPath = Path.Combine(_env.ContentRootPath, "Uploads", "Students", userId, fileName);
+
+        if (!System.IO.File.Exists(fullPath))
+            return NotFound();
+
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        var contentType = ext switch
+        {
+            ".pdf" => "application/pdf",
+            ".png" => "image/png",
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream"
+        };
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+        return File(bytes, contentType, fileName);
     }
 
     private static string BuildRejectionEmail(

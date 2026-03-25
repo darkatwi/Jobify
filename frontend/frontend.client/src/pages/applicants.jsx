@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, Mail, ChevronDown, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/api";
 import "./styles/applicant.css";
 
-function ApplicantCard({ applicant, onSchedule, onStatus, updatingId }) {
+
+function ApplicantCard({ applicant, onSchedule, onStatus, onViewProfile, updatingId }) {
     const getStatusClass = (status) => {
         switch (status) {
             case "Pending":
                 return "org-badge pending";
-            case "In Review":
+            case "InReview":
                 return "org-badge review";
             case "Shortlisted":
                 return "org-badge shortlisted";
@@ -22,9 +24,9 @@ function ApplicantCard({ applicant, onSchedule, onStatus, updatingId }) {
     };
 
     const getMatchClass = (match) => {
-        if (match >= 75) return "org-match high";   // GREEN
-        if (match >= 50) return "org-match medium"; // BLUE
-        return "org-match low";                     // RED
+        if (match >= 75) return "org-match high";
+        if (match >= 50) return "org-match medium";
+        return "org-match low";
     };
 
     return (
@@ -36,7 +38,7 @@ function ApplicantCard({ applicant, onSchedule, onStatus, updatingId }) {
                     </div>
 
                     <span className={getStatusClass(applicant.status)}>
-                        {applicant.status}
+                        {applicant.status === "InReview" ? "In Review" : applicant.status}
                     </span>
                 </div>
             </div>
@@ -67,7 +69,10 @@ function ApplicantCard({ applicant, onSchedule, onStatus, updatingId }) {
             </div>
 
             <div className="org-card-actions">
-                <button className="org-btn org-btn-outline">
+                <button
+                    className="org-btn org-btn-outline"
+                    onClick={() => onViewProfile(applicant)}
+                >
                     View Profile
                 </button>
 
@@ -78,7 +83,7 @@ function ApplicantCard({ applicant, onSchedule, onStatus, updatingId }) {
                     onChange={(e) => onStatus(applicant.id, e.target.value)}
                 >
                     <option value="Pending">Pending</option>
-                    <option value="In Review">In Review</option>
+                    <option value="InReview">In Review</option>
                     <option value="Shortlisted">Shortlisted</option>
                     <option value="Accepted">Accepted</option>
                     <option value="Rejected">Rejected</option>
@@ -205,6 +210,99 @@ function ScheduleInterviewModal({
     );
 }
 
+function StatusModal({ open, onClose, onConfirm, applicant, newStatus, loading }) {
+    const [message, setMessage] = useState("");
+    const [reason, setReason] = useState("");
+    const [suggestions, setSuggestions] = useState("");
+
+    useEffect(() => {
+        if (!open) return;
+
+        if (newStatus === "Rejected") {
+            setMessage(
+                "We regret to inform you that, after careful consideration, your application was not selected to move forward at this time. We sincerely appreciate your interest in this opportunity."
+            );
+        } else if (newStatus === "Accepted") {
+            setMessage(
+                "We are pleased to inform you that your application has been accepted. Congratulations on this achievement. Our team will be in touch shortly with the next steps and any additional information required."
+            );
+        } else if (newStatus === "Shortlisted") {
+            setMessage(
+                "We are pleased to inform you that you have been shortlisted for this opportunity. An interview has been scheduled, and you can find the details in the Interviews tab of your dashboard. We look forward to speaking with you."
+            );
+        } else {
+            setMessage("");
+        }
+
+        setReason("");
+        setSuggestions("");
+    }, [open, newStatus]);
+
+    if (!open || !applicant) return null;
+
+    return (
+        <div className="org-modal-overlay">
+            <div className="org-modal">
+                <h2>Send {newStatus} Notification</h2>
+                <p>Message to {applicant.name}</p>
+
+                <textarea
+                    className="org-textarea"
+                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                />
+
+                {newStatus === "Rejected" && (
+                    <div className="org-rejection-section">
+                        <div className="org-form-group">
+                            <label>Reason (optional)</label>
+                            <input
+                                type="text"
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                className="org-input"
+                                placeholder="e.g. Limited experience in required technologies"
+                            />
+                        </div>
+
+                        <div className="org-form-group">
+                            <label>Suggestions (optional)</label>
+                            <textarea
+                                value={suggestions}
+                                onChange={(e) => setSuggestions(e.target.value)}
+                                className="org-textarea small"
+                                rows={3}
+                                placeholder="e.g. Strengthen projects, improve CV clarity..."
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <div className="org-modal-actions">
+                    <button className="org-btn org-btn-outline" onClick={onClose}>
+                        Cancel
+                    </button>
+
+                    <button
+                        className="org-btn org-btn-dark"
+                        onClick={() =>
+                            onConfirm({
+                                message,
+                                reason,
+                                suggestions
+                            })
+                        }
+                        disabled={loading}
+                    >
+                        {loading ? "Sending..." : "Send"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function formatDate(dateValue) {
     if (!dateValue) return "—";
     const d = new Date(dateValue);
@@ -222,9 +320,7 @@ function normalizeStatus(status) {
     const value = String(status).trim().toLowerCase();
 
     if (value === "pending") return "Pending";
-    if (value === "in review" || value === "inreview" || value === "review") {
-        return "In Review";
-    }
+    if (value === "in review" || value === "inreview") return "InReview";
     if (value === "shortlisted") return "Shortlisted";
     if (value === "accepted") return "Accepted";
     if (value === "rejected") return "Rejected";
@@ -252,7 +348,7 @@ function hasActiveInterview(item) {
     const end =
         item.interviewEndsAtUtc
             ? new Date(item.interviewEndsAtUtc)
-            : new Date(start.getTime() + 60 * 60 * 1000); // assume 1 hour
+            : new Date(start.getTime() + 60 * 60 * 1000);
 
     return end > new Date();
 }
@@ -310,6 +406,7 @@ function mapOpportunity(item) {
 }
 
 export default function Applicants() {
+    const navigate = useNavigate();
     const [opportunities, setOpportunities] = useState([]);
     const [selectedOpportunityId, setSelectedOpportunityId] = useState("");
     const [selectedOpportunityTitle, setSelectedOpportunityTitle] = useState("");
@@ -324,6 +421,13 @@ export default function Applicants() {
     const [selectedApplicant, setSelectedApplicant] = useState(null);
     const [updatingId, setUpdatingId] = useState(null);
     const [scheduling, setScheduling] = useState(false);
+
+    const [statusModalOpen, setStatusModalOpen] = useState(false);
+    const [selectedStatus, setSelectedStatus] = useState("");
+    const [selectedApplicantForStatus, setSelectedApplicantForStatus] = useState(null);
+    const [sendingStatus, setSendingStatus] = useState(false);
+
+    const [stageFilter, setStageFilter] = useState("All");
 
     const dropdownRef = useRef(null);
 
@@ -346,13 +450,11 @@ export default function Applicants() {
             const existingScore = existing.matchPercentage ?? 0;
             const currentScore = applicant.matchPercentage ?? 0;
 
-            // keep the better one
             if (currentScore > existingScore) {
                 byUser.set(key, applicant);
                 continue;
             }
 
-            // if same score, prefer the one with assessment score
             const existingHasAssessment =
                 existing.assessmentScore !== null &&
                 existing.assessmentScore !== undefined;
@@ -370,13 +472,55 @@ export default function Applicants() {
         );
     }, [applicants]);
 
+    const filteredApplicants = useMemo(() => {
+        if (stageFilter === "All") return sortedApplicants;
+        return sortedApplicants.filter((applicant) => applicant.status === stageFilter);
+    }, [sortedApplicants, stageFilter]);
+
+    const handleConfirmInterview = async ({
+        applicant,
+        date,
+        time,
+        interviewType,
+        meetingLink,
+    }) => {
+        setScheduling(true);
+
+        try {
+            const scheduledAtUtc = buildInterviewDateTime(date, time);
+
+            await api.post("/Interviews", {
+                applicationId: applicant.applicationId,
+                scheduledAtUtc,
+                type: interviewType,
+                meetingLink: meetingLink || null,
+            });
+
+            setApplicants((prev) =>
+                prev.map((a) =>
+                    a.id === applicant.id
+                        ? { ...a, hasActiveInterview: true, status: "Shortlisted" }
+                        : a
+                )
+            );
+
+            setModalOpen(false);
+            setSelectedApplicant(null);
+            alert("Interview scheduled successfully.");
+        } catch (err) {
+            console.error("Failed to schedule interview:", err);
+            alert("Failed to schedule interview.");
+        } finally {
+            setScheduling(false);
+        }
+    };
+    const handleViewProfile = (applicant) => {
+        navigate(`/organization/applicants/${applicant.applicationId}/profile`);
+    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target)
-            ) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setOpenDropdown(false);
             }
         };
@@ -458,18 +602,32 @@ export default function Applicants() {
         setModalOpen(true);
     };
 
-    const handleStatus = async (id, status) => {
+    const handleStatus = (id, status) => {
+        const applicant = applicants.find((a) => a.id === id);
+
+        if (["Rejected", "Accepted", "Shortlisted"].includes(status)) {
+            setSelectedApplicantForStatus(applicant);
+            setSelectedStatus(status);
+            setStatusModalOpen(true);
+            return;
+        }
+
+        updateStatusOnly(id, status);
+    };
+
+    const updateStatusOnly = async (id, status) => {
         const oldApplicants = [...applicants];
 
         setApplicants((prev) =>
             prev.map((a) => (a.id === id ? { ...a, status } : a))
         );
+
         setUpdatingId(id);
 
         try {
             await api.patch(`/Application/${id}/status`, { status });
+            await fetchApplicantsForOpportunity(selectedOpportunityId);
         } catch (err) {
-            console.error("Failed to update status:", err);
             setApplicants(oldApplicants);
             alert("Failed to update status.");
         } finally {
@@ -477,33 +635,52 @@ export default function Applicants() {
         }
     };
 
-    const handleConfirmInterview = async ({
-        applicant,
-        date,
-        time,
-        interviewType,
-        meetingLink,
-    }) => {
-        setScheduling(true);
+    const handleConfirmStatus = async ({ message, reason, suggestions }) => {
+        if (!selectedApplicantForStatus) return;
+
+        setSendingStatus(true);
 
         try {
-            const scheduledAtUtc = buildInterviewDateTime(date, time);
+            let finalMessage = message;
 
-            await api.post("/Interviews", {
-                applicationId: applicant.applicationId,
-                scheduledAtUtc,
-                type: interviewType,
-                meetingLink: meetingLink || null,
+            if (selectedStatus === "Rejected") {
+                if (reason?.trim()) {
+                    finalMessage += `\n\nReason:\n${reason.trim()}`;
+                }
+
+                if (suggestions?.trim()) {
+                    finalMessage += `\n\nSuggestions for improvement:\n${suggestions.trim()}`;
+                }
+            }
+
+            await api.patch(`/Application/${selectedApplicantForStatus.id}/status`, {
+                status: selectedStatus
             });
 
-            setModalOpen(false);
-            setSelectedApplicant(null);
-            alert("Interview scheduled successfully.");
+            await fetchApplicantsForOpportunity(selectedOpportunityId);
+
+            await api.post(`/Notifications`, {
+                userId: selectedApplicantForStatus.userId,
+                title: `Application ${selectedStatus}`,
+                message: finalMessage
+            });
+
+            setApplicants((prev) =>
+                prev.map((a) =>
+                    a.id === selectedApplicantForStatus.id
+                        ? { ...a, status: selectedStatus }
+                        : a
+                )
+            );
+
+            setStatusModalOpen(false);
+            setSelectedApplicantForStatus(null);
+            setSelectedStatus("");
         } catch (err) {
-            console.error("Failed to schedule interview:", err);
-            alert("Failed to schedule interview.");
+            console.error(err);
+            alert("Failed to send notification.");
         } finally {
-            setScheduling(false);
+            setSendingStatus(false);
         }
     };
 
@@ -525,9 +702,7 @@ export default function Applicants() {
                                 setOpenDropdown((prev) => !prev)
                             }
                         >
-                            <span>
-                                {selectedOpportunityTitle || "Select job"}
-                            </span>
+                            <span>{selectedOpportunityTitle || "Select job"}</span>
                             <ChevronDown size={16} />
                         </div>
 
@@ -535,28 +710,20 @@ export default function Applicants() {
                             <div className="org-dropdown-menu">
                                 {opportunities.length === 0 ? (
                                     <div className="org-dropdown-item disabled">
-                                        {loadingJobs
-                                            ? "Loading jobs..."
-                                            : "No jobs found"}
+                                        {loadingJobs ? "Loading jobs..." : "No jobs found"}
                                     </div>
                                 ) : (
                                     opportunities.map((job) => {
                                         const isActive =
-                                            String(job.id) ===
-                                            String(selectedOpportunityId);
+                                            String(job.id) === String(selectedOpportunityId);
 
                                         return (
                                             <div
                                                 key={job.id}
-                                                className={`org-dropdown-item ${isActive ? "active" : ""
-                                                    }`}
+                                                className={`org-dropdown-item ${isActive ? "active" : ""}`}
                                                 onClick={() => {
-                                                    setSelectedOpportunityId(
-                                                        String(job.id)
-                                                    );
-                                                    setSelectedOpportunityTitle(
-                                                        job.title
-                                                    );
+                                                    setSelectedOpportunityId(String(job.id));
+                                                    setSelectedOpportunityTitle(job.title);
                                                     setOpenDropdown(false);
                                                 }}
                                             >
@@ -571,27 +738,36 @@ export default function Applicants() {
                     </div>
                 </div>
 
-                {selectedOpportunityTitle ? (
-                    <p className="org-selected-job">
-                        Showing applicants for:{" "}
-                        <strong>{selectedOpportunityTitle}</strong>
-                    </p>
-                ) : null}
+                <div className="org-filters-row">
+                    <select
+                        className="org-stage-filter"
+                        value={stageFilter}
+                        onChange={(e) => setStageFilter(e.target.value)}
+                    >
+                        <option value="All">All stages</option>
+                        <option value="Pending">Pending</option>
+                        <option value="InReview">In Review</option>
+                        <option value="Shortlisted">Shortlisted</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
+                </div>
 
                 {loadingApplicants ? (
                     <p>Loading applicants...</p>
                 ) : error ? (
                     <p>{error}</p>
-                ) : sortedApplicants.length === 0 ? (
-                    <p>No applicants found.</p>
+                ) : filteredApplicants.length === 0 ? (
+                    <p>No applicants found for this stage.</p>
                 ) : (
                     <div className="org-grid">
-                        {sortedApplicants.map((a) => (
+                        {filteredApplicants.map((a) => (
                             <ApplicantCard
                                 key={a.id}
                                 applicant={a}
                                 onSchedule={handleSchedule}
                                 onStatus={handleStatus}
+                                onViewProfile={handleViewProfile}
                                 updatingId={updatingId}
                             />
                         ))}
@@ -605,6 +781,19 @@ export default function Applicants() {
                 applicant={selectedApplicant}
                 onConfirm={handleConfirmInterview}
                 scheduling={scheduling}
+            />
+
+            <StatusModal
+                open={statusModalOpen}
+                onClose={() => {
+                    setStatusModalOpen(false);
+                    setSelectedApplicantForStatus(null);
+                    setSelectedStatus("");
+                }}
+                applicant={selectedApplicantForStatus}
+                newStatus={selectedStatus}
+                onConfirm={handleConfirmStatus}
+                loading={sendingStatus}
             />
         </div>
     );

@@ -43,14 +43,23 @@ public class InterviewsController : ControllerBase
         if (application.Opportunity.RecruiterUserId != recruiterUserId)
             return Forbid();
 
-        if (application.Status != ApplicationStatus.Shortlisted)
-            return BadRequest("Only shortlisted applications can be scheduled for interview.");
+        if (application.Status != ApplicationStatus.Shortlisted &&
+    application.Status != ApplicationStatus.InterviewScheduled)
+        {
+            return BadRequest("Only shortlisted or already interviewed applications can be scheduled.");
+        }
 
-        var alreadyExists = await _db.Interviews
-            .AnyAsync(i => i.ApplicationId == dto.ApplicationId && !i.IsCancelled);
+        var now = DateTime.UtcNow;
 
-        if (alreadyExists)
-            return BadRequest("An active interview already exists for this application.");
+        var hasActiveInterview = await _db.Interviews
+            .AnyAsync(i =>
+                i.ApplicationId == dto.ApplicationId &&
+                !i.IsCancelled &&
+                i.ScheduledAtUtc.AddHours(1) > now // ⏱️ still ongoing or future
+            );
+
+        if (hasActiveInterview)
+            return BadRequest("An active interview is already scheduled for this application.");
 
         var interview = new Interview
         {
@@ -95,15 +104,31 @@ public class InterviewsController : ControllerBase
             var app = i.Application;
             if (app == null || app.Opportunity == null) continue;
 
-            var student = await _db.StudentProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+            var candidateUserId = !string.IsNullOrWhiteSpace(app.UserId)
+                ? app.UserId
+                : app.StudentUserId;
+
+            var student = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.StudentProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == candidateUserId);
+
+            var user = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == candidateUserId);
 
             result.Add(new
             {
                 id = i.Id,
                 applicationId = i.ApplicationId,
-                candidateName = student?.FullName ?? "Candidate",
+                candidateName =
+                    !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName :
+                    !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email.Split('@')[0] :
+                    "Candidate",
                 opportunityTitle = app.Opportunity.Title,
                 companyName = app.Opportunity.CompanyName,
                 scheduledAtUtc = i.ScheduledAtUtc,
@@ -143,15 +168,31 @@ public class InterviewsController : ControllerBase
             var app = i.Application;
             if (app == null || app.Opportunity == null) continue;
 
-            var student = await _db.StudentProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+            var candidateUserId = !string.IsNullOrWhiteSpace(app.UserId)
+                ? app.UserId
+                : app.StudentUserId;
+
+            var student = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.StudentProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == candidateUserId);
+
+            var user = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == candidateUserId);
 
             result.Add(new
             {
                 id = i.Id,
                 applicationId = i.ApplicationId,
-                candidateName = student?.FullName ?? "Candidate",
+                candidateName =
+                    !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName :
+                    !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email.Split('@')[0] :
+                    "Candidate",
                 opportunityTitle = app.Opportunity.Title,
                 companyName = app.Opportunity.CompanyName,
                 scheduledAtUtc = i.ScheduledAtUtc,

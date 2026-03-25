@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Clock3, Link as LinkIcon, User2 } from "lucide-react";
 import { api } from "../api/api";
 import "./styles/recruiter.css";
 
@@ -37,6 +36,34 @@ export default function RecruiterInterviewsPage() {
         );
     }
 
+    function getCandidateName(interview) {
+        const safeUserName =
+            interview.userName &&
+                interview.userName.trim().toLowerCase() !== "candidate"
+                ? interview.userName
+                : null;
+
+        const email =
+            interview.candidateEmail ||
+            interview.studentEmail ||
+            interview.email ||
+            interview.userEmail ||
+            null;
+
+        return (
+            interview.candidateName ||
+            interview.studentName ||
+            interview.applicantName ||
+            interview.fullName ||
+            interview.name ||
+            interview.student?.fullName ||
+            interview.candidate?.fullName ||
+            interview.user?.fullName ||
+            safeUserName ||
+            (email ? email.split("@")[0] : "Unknown")
+        );
+    }
+
     return (
         <div className="recruiter-interviews-page">
             <div className="recruiter-interviews-header">
@@ -55,12 +82,11 @@ export default function RecruiterInterviewsPage() {
                     {interviews.map((i) => (
                         <div key={i.id} className="recruiter-interview-card">
                             <div className="recruiter-interview-card-top">
-                                <h2 className="recruiter-interview-title-card">
+                                <h2 className="recruiter-interview-title">
                                     {i.opportunityTitle}
                                 </h2>
 
                                 <div className="recruiter-interview-date-badge">
-                                    <CalendarDays size={14} />
                                     {formatInterviewDate(i.scheduledAtUtc)}
                                 </div>
                             </div>
@@ -71,12 +97,10 @@ export default function RecruiterInterviewsPage() {
 
                             <div className="recruiter-interview-meta">
                                 <span className="recruiter-interview-pill">
-                                    <User2 size={14} />
-                                    Candidate: {i.candidateName || "Unknown"}
+                                    Candidate: {getCandidateName(i)}
                                 </span>
 
                                 <span className="recruiter-interview-pill">
-                                    <Clock3 size={14} />
                                     {formatInterviewTime(i.scheduledAtUtc)}
                                 </span>
                             </div>
@@ -93,7 +117,6 @@ export default function RecruiterInterviewsPage() {
                                         rel="noreferrer"
                                         className="recruiter-interview-link"
                                     >
-                                        <LinkIcon size={14} />
                                         Open Meeting
                                     </a>
                                 ) : null}

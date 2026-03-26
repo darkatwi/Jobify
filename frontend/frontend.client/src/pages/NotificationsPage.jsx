@@ -11,13 +11,22 @@ export default function NotificationsPage() {
     const [error, setError] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
     const [successMessage, setSuccessMessage] = useState("");
+    const [activeTab, setActiveTab] = useState("active");
 
     useEffect(() => {
-        async function loadNotifications() {
-            try {
-                setLoading(true);
-                setError("");
+        loadNotifications(activeTab);
+    }, [activeTab]);
 
+    async function loadNotifications(tab) {
+        try {
+            setLoading(true);
+            setError("");
+
+            if (tab === "archived") {
+                const archivedRes = await api.get("/Notifications/archived");
+                const items = Array.isArray(archivedRes.data) ? archivedRes.data : [];
+                setNotifications(items);
+            } else {
                 const [notificationsRes, unreadRes] = await Promise.all([
                     api.get("/Notifications"),
                     api.get("/Notifications/unread-count"),
@@ -26,22 +35,22 @@ export default function NotificationsPage() {
                 const items = Array.isArray(notificationsRes.data) ? notificationsRes.data : [];
                 setNotifications(items);
                 setUnreadCount(unreadRes.data?.unreadCount ?? 0);
-            } catch (err) {
-                console.error(err);
-                setError(err.message || "Failed to load notifications");
-                setNotifications([]);
-                setUnreadCount(0);
-            } finally {
-                setLoading(false);
             }
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Failed to load notifications");
+            setNotifications([]);
+            if (tab === "active") {
+                setUnreadCount(0);
+            }
+        } finally {
+            setLoading(false);
         }
-
-        loadNotifications();
-    }, []);
+    }
 
     async function handleNotificationClick(notification) {
         try {
-            if (!notification.isRead) {
+            if (activeTab === "active" && !notification.isRead) {
                 await api.put(`/Notifications/${notification.id}/read`);
 
                 setNotifications((prev) =>
@@ -110,9 +119,33 @@ export default function NotificationsPage() {
                     </p>
                 </div>
 
-                <div style={badgeStyle}>
-                    {unreadCount} unread
-                </div>
+                {activeTab === "active" && (
+                    <div style={badgeStyle}>
+                        {unreadCount} unread
+                    </div>
+                )}
+            </div>
+
+            <div style={tabsWrapperStyle}>
+                <button
+                    onClick={() => setActiveTab("active")}
+                    style={{
+                        ...tabButtonStyle,
+                        ...(activeTab === "active" ? activeTabStyle : {}),
+                    }}
+                >
+                    Active
+                </button>
+
+                <button
+                    onClick={() => setActiveTab("archived")}
+                    style={{
+                        ...tabButtonStyle,
+                        ...(activeTab === "archived" ? activeTabStyle : {}),
+                    }}
+                >
+                    Archived
+                </button>
             </div>
 
             <div style={panelStyle}>
@@ -121,7 +154,11 @@ export default function NotificationsPage() {
                 ) : error ? (
                     <p style={{ color: "var(--danger, #ef4444)" }}>{error}</p>
                 ) : notifications.length === 0 ? (
-                    <p style={{ color: "var(--muted)" }}>No notifications yet.</p>
+                    <p style={{ color: "var(--muted)" }}>
+                        {activeTab === "archived"
+                            ? "No archived notifications."
+                            : "No notifications yet."}
+                    </p>
                 ) : (
                     notifications.map((notification) => (
                         <div
@@ -176,24 +213,26 @@ export default function NotificationsPage() {
                                             {notification.title}
                                         </h3>
 
-                                        <button
-                                            title="Archive"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleArchive(notification.id, notification.isRead);
-                                            }}
-                                            style={archiveIconButtonStyle}
-                                            onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = "rgba(0,0,0,0.05)";
-                                                e.currentTarget.style.color = "var(--text)";
-                                            }}
-                                            onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = "transparent";
-                                                e.currentTarget.style.color = "var(--muted)";
-                                            }}
-                                        >
-                                            <Archive size={16} />
-                                        </button>
+                                        {activeTab === "active" && (
+                                            <button
+                                                title="Archive"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleArchive(notification.id, notification.isRead);
+                                                }}
+                                                style={archiveIconButtonStyle}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+                                                    e.currentTarget.style.color = "var(--text)";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = "transparent";
+                                                    e.currentTarget.style.color = "var(--muted)";
+                                                }}
+                                            >
+                                                <Archive size={16} />
+                                            </button>
+                                        )}
                                     </div>
 
                                     <p
@@ -208,7 +247,7 @@ export default function NotificationsPage() {
                                     </p>
                                 </div>
 
-                                {!notification.isRead && (
+                                {activeTab === "active" && !notification.isRead && (
                                     <span
                                         style={{
                                             width: "10px",
@@ -257,6 +296,30 @@ const badgeStyle = {
     border: "1px solid rgba(37, 99, 235, 0.2)",
     color: "var(--blue, #2563eb)",
     fontWeight: "700",
+};
+
+const tabsWrapperStyle = {
+    display: "flex",
+    gap: "10px",
+    marginBottom: "18px",
+};
+
+const tabButtonStyle = {
+    border: "1px solid var(--border)",
+    background: "var(--card)",
+    color: "var(--muted)",
+    borderRadius: "999px",
+    padding: "8px 14px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+};
+
+const activeTabStyle = {
+    background: "rgba(37, 99, 235, 0.12)",
+    border: "1px solid rgba(37, 99, 235, 0.2)",
+    color: "var(--blue, #2563eb)",
 };
 
 const panelStyle = {

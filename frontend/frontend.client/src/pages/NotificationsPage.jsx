@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Archive } from "lucide-react";
 import { api } from "../api/api";
 
 export default function NotificationsPage() {
@@ -176,13 +177,22 @@ export default function NotificationsPage() {
                                         </h3>
 
                                         <button
+                                            title="Archive"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleArchive(notification.id, notification.isRead);
                                             }}
-                                            style={archiveButtonStyle}
+                                            style={archiveIconButtonStyle}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+                                                e.currentTarget.style.color = "var(--text)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "transparent";
+                                                e.currentTarget.style.color = "var(--muted)";
+                                            }}
                                         >
-                                            Archive
+                                            <Archive size={16} />
                                         </button>
                                     </div>
 
@@ -257,16 +267,18 @@ const panelStyle = {
     boxShadow: "var(--shadow)",
 };
 
-const archiveButtonStyle = {
-    border: "1px solid var(--border)",
+const archiveIconButtonStyle = {
+    border: "none",
     background: "transparent",
     color: "var(--muted)",
-    borderRadius: "10px",
-    padding: "6px 10px",
-    fontSize: "12px",
-    fontWeight: "600",
+    borderRadius: "8px",
+    padding: "6px",
     cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     flexShrink: 0,
+    transition: "background 0.15s ease, color 0.15s ease",
 };
 
 const successToastStyle = {

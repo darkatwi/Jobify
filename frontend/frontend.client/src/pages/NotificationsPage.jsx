@@ -9,6 +9,7 @@ export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
+    const [successMessage, setSuccessMessage] = useState("");
 
     useEffect(() => {
         async function loadNotifications() {
@@ -59,6 +60,29 @@ export default function NotificationsPage() {
         }
     }
 
+    async function handleArchive(notificationId, isRead) {
+        try {
+            await api.put(`/Notifications/${notificationId}/archive`);
+
+            setNotifications((prev) =>
+                prev.filter((n) => n.id !== notificationId)
+            );
+
+            if (!isRead) {
+                setUnreadCount((prev) => Math.max(prev - 1, 0));
+            }
+
+            setSuccessMessage("Notification archived");
+
+            setTimeout(() => {
+                setSuccessMessage("");
+            }, 2000);
+        } catch (err) {
+            console.error("Failed to archive notification:", err);
+            setError("Failed to archive notification");
+        }
+    }
+
     return (
         <div
             style={{
@@ -68,6 +92,12 @@ export default function NotificationsPage() {
                 color: "var(--text)",
             }}
         >
+            {successMessage && (
+                <div style={successToastStyle}>
+                    ✅ {successMessage}
+                </div>
+            )}
+
             <div style={pageHeaderStyle}>
                 <div>
                     <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "800" }}>
@@ -117,12 +147,52 @@ export default function NotificationsPage() {
                                 e.currentTarget.style.boxShadow = "none";
                             }}
                         >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "start" }}>
-                                <div>
-                                    <h3 style={{ margin: "0 0 6px 0", fontSize: "17px", color: "var(--text)" }}>
-                                        {notification.title}
-                                    </h3>
-                                    <p style={{ margin: 0, color: "var(--muted)", fontSize: "14px", lineHeight: 1.5 }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: "12px",
+                                    alignItems: "start",
+                                }}
+                            >
+                                <div style={{ flex: 1 }}>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "start",
+                                            gap: "12px",
+                                        }}
+                                    >
+                                        <h3
+                                            style={{
+                                                margin: "0 0 6px 0",
+                                                fontSize: "17px",
+                                                color: "var(--text)",
+                                            }}
+                                        >
+                                            {notification.title}
+                                        </h3>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleArchive(notification.id, notification.isRead);
+                                            }}
+                                            style={archiveButtonStyle}
+                                        >
+                                            Archive
+                                        </button>
+                                    </div>
+
+                                    <p
+                                        style={{
+                                            margin: 0,
+                                            color: "var(--muted)",
+                                            fontSize: "14px",
+                                            lineHeight: 1.5,
+                                        }}
+                                    >
                                         {notification.message}
                                     </p>
                                 </div>
@@ -141,7 +211,13 @@ export default function NotificationsPage() {
                                 )}
                             </div>
 
-                            <div style={{ marginTop: "10px", color: "var(--muted)", fontSize: "12px" }}>
+                            <div
+                                style={{
+                                    marginTop: "10px",
+                                    color: "var(--muted)",
+                                    fontSize: "12px",
+                                }}
+                            >
                                 {new Date(notification.createdAtUtc).toLocaleString()}
                             </div>
                         </div>
@@ -178,4 +254,30 @@ const panelStyle = {
     padding: "22px",
     border: "1px solid var(--border)",
     boxShadow: "var(--shadow)",
+};
+
+const archiveButtonStyle = {
+    border: "1px solid var(--border)",
+    background: "transparent",
+    color: "var(--muted)",
+    borderRadius: "10px",
+    padding: "6px 10px",
+    fontSize: "12px",
+    fontWeight: "600",
+    cursor: "pointer",
+    flexShrink: 0,
+};
+
+const successToastStyle = {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    background: "#16a34a",
+    color: "#fff",
+    padding: "10px 16px",
+    borderRadius: "10px",
+    fontSize: "14px",
+    fontWeight: "600",
+    boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+    zIndex: 1000,
 };

@@ -91,4 +91,18 @@ public class NotificationsController : ControllerBase
         await _notificationService.ArchiveAsync(id, userId);
         return NoContent();
     }
+
+    // =========================
+    // UNARCHIVE NOTIFICATION 🔥
+    // =========================
+    [HttpPut("{id}/unarchive")]
+    public async Task<IActionResult> UnarchiveNotification(int id)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        await _notificationService.UnarchiveAsync(id, userId);
+        return NoContent();
+    }
 }

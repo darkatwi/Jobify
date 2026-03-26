@@ -36,6 +36,27 @@ public class NotificationService
     }
 
     // =========================
+    // GET ARCHIVED NOTIFICATIONS
+    // =========================
+    public async Task<List<NotificationDto>> GetArchivedNotificationsAsync(string userId)
+    {
+        return await _db.Notifications
+            .Where(n => n.UserId == userId && n.IsArchived)
+            .OrderByDescending(n => n.CreatedAtUtc)
+            .Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Message = n.Message,
+                Type = n.Type,
+                OpportunityId = n.OpportunityId,
+                IsRead = n.IsRead,
+                CreatedAtUtc = n.CreatedAtUtc
+            })
+            .ToListAsync();
+    }
+
+    // =========================
     // UNREAD COUNT
     // =========================
     public async Task<int> GetUnreadCountAsync(string userId)

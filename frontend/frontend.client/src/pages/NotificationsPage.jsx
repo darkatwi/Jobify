@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Archive } from "lucide-react";
+import { Archive, RotateCcw } from "lucide-react";
 import { api } from "../api/api";
 
 export default function NotificationsPage() {
@@ -40,6 +40,7 @@ export default function NotificationsPage() {
             console.error(err);
             setError(err.message || "Failed to load notifications");
             setNotifications([]);
+
             if (tab === "active") {
                 setUnreadCount(0);
             }
@@ -91,6 +92,26 @@ export default function NotificationsPage() {
         } catch (err) {
             console.error("Failed to archive notification:", err);
             setError("Failed to archive notification");
+        }
+    }
+
+    async function handleUnarchive(notificationId) {
+        try {
+            setError("");
+            await api.put(`/Notifications/${notificationId}/unarchive`);
+
+            setNotifications((prev) =>
+                prev.filter((n) => n.id !== notificationId)
+            );
+
+            setSuccessMessage("Notification restored");
+
+            setTimeout(() => {
+                setSuccessMessage("");
+            }, 2000);
+        } catch (err) {
+            console.error("Failed to unarchive notification:", err);
+            setError("Failed to restore notification");
         }
     }
 
@@ -213,14 +234,14 @@ export default function NotificationsPage() {
                                             {notification.title}
                                         </h3>
 
-                                        {activeTab === "active" && (
+                                        {activeTab === "active" ? (
                                             <button
                                                 title="Archive"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleArchive(notification.id, notification.isRead);
                                                 }}
-                                                style={archiveIconButtonStyle}
+                                                style={actionIconButtonStyle}
                                                 onMouseEnter={(e) => {
                                                     e.currentTarget.style.background = "rgba(0,0,0,0.05)";
                                                     e.currentTarget.style.color = "var(--text)";
@@ -231,6 +252,25 @@ export default function NotificationsPage() {
                                                 }}
                                             >
                                                 <Archive size={16} />
+                                            </button>
+                                        ) : (
+                                            <button
+                                                title="Restore"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleUnarchive(notification.id);
+                                                }}
+                                                style={actionIconButtonStyle}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+                                                    e.currentTarget.style.color = "var(--text)";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = "transparent";
+                                                    e.currentTarget.style.color = "var(--muted)";
+                                                }}
+                                            >
+                                                <RotateCcw size={16} />
                                             </button>
                                         )}
                                     </div>
@@ -330,7 +370,7 @@ const panelStyle = {
     boxShadow: "var(--shadow)",
 };
 
-const archiveIconButtonStyle = {
+const actionIconButtonStyle = {
     border: "none",
     background: "transparent",
     color: "var(--muted)",

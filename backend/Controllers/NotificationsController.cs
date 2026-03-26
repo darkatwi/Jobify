@@ -54,4 +54,15 @@ public class NotificationsController : ControllerBase
         await _notificationService.MarkAsReadAsync(id, userId);
         return NoContent();
     }
+
+    [HttpPut("{id}/archive")]
+    public async Task<IActionResult> ArchiveNotification(int id)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        await _notificationService.ArchiveAsync(id, userId);
+        return NoContent();
+    }
 }

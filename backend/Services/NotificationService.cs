@@ -96,6 +96,21 @@ public class NotificationService
     }
 
     // =========================
+    // UNARCHIVE NOTIFICATION
+    // =========================
+    public async Task UnarchiveAsync(int notificationId, string userId)
+    {
+        var notification = await _db.Notifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId && n.IsArchived);
+
+        if (notification == null)
+            return;
+
+        notification.IsArchived = false;
+        await _db.SaveChangesAsync();
+    }
+
+    // =========================
     // CREATE SINGLE NOTIFICATION
     // =========================
     public async Task CreateAsync(Notification notification)

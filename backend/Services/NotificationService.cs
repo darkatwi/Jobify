@@ -20,7 +20,28 @@ public class NotificationService
     public async Task<List<NotificationDto>> GetUserNotificationsAsync(string userId)
     {
         return await _db.Notifications
-            .Where(n => n.UserId == userId)
+            .Where(n => n.UserId == userId && !n.IsArchived)
+            .OrderByDescending(n => n.CreatedAtUtc)
+            .Select(n => new NotificationDto
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Message = n.Message,
+                Type = n.Type,
+                OpportunityId = n.OpportunityId,
+                IsRead = n.IsRead,
+                CreatedAtUtc = n.CreatedAtUtc
+            })
+            .ToListAsync();
+    }
+
+    // =========================
+    // GET ARCHIVED NOTIFICATIONS
+    // =========================
+    public async Task<List<NotificationDto>> GetArchivedNotificationsAsync(string userId)
+    {
+        return await _db.Notifications
+            .Where(n => n.UserId == userId && n.IsArchived)
             .OrderByDescending(n => n.CreatedAtUtc)
             .Select(n => new NotificationDto
             {
@@ -41,7 +62,7 @@ public class NotificationService
     public async Task<int> GetUnreadCountAsync(string userId)
     {
         return await _db.Notifications
-            .CountAsync(n => n.UserId == userId && !n.IsRead);
+            .CountAsync(n => n.UserId == userId && !n.IsRead && !n.IsArchived);
     }
 
     // =========================
@@ -50,11 +71,42 @@ public class NotificationService
     public async Task MarkAsReadAsync(int notificationId, string userId)
     {
         var notification = await _db.Notifications
-            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
+            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId && !n.IsArchived);
 
-        if (notification == null) return;
+        if (notification == null)
+            return;
 
         notification.IsRead = true;
+        await _db.SaveChangesAsync();
+    }
+
+    // =========================
+    // ARCHIVE NOTIFICATION
+    // =========================
+    public async Task ArchiveAsync(int notificationId, string userId)
+    {
+        var notification = await _db.Notifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId);
+
+        if (notification == null)
+            return;
+
+        notification.IsArchived = true;
+        await _db.SaveChangesAsync();
+    }
+
+    // =========================
+    // UNARCHIVE NOTIFICATION
+    // =========================
+    public async Task UnarchiveAsync(int notificationId, string userId)
+    {
+        var notification = await _db.Notifications
+            .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId && n.IsArchived);
+
+        if (notification == null)
+            return;
+
+        notification.IsArchived = false;
         await _db.SaveChangesAsync();
     }
 
@@ -68,69 +120,67 @@ public class NotificationService
     }
 
     // =========================
-    // 🔥 CREATE NOTIFICATIONS FOR MATCHED STUDENTS
+    // CREATE NOTIFICATIONS FOR MATCHED STUDENTS
     // =========================
     public async Task NotifyMatchedStudentsForOpportunityAsync(
         Opportunity opportunity,
         List<string> opportunitySkills,
         double threshold = 40.0)
     {
-        // Get all students (users with Student role)
         var students = await _db.Users
             .Join(_db.UserRoles,
-                  u => u.Id,
-                  ur => ur.UserId,
-                  (u, ur) => new { u, ur })
+                u => u.Id,
+                ur => ur.UserId,
+                (u, ur) => new { u, ur })
             .Join(_db.Roles,
-                  x => x.ur.RoleId,
-                  r => r.Id,
-                  (x, r) => new { x.u, RoleName = r.Name })
+                x => x.ur.RoleId,
+                r => r.Id,
+                (x, r) => new { x.u, RoleName = r.Name })
             .Where(x => x.RoleName == "Student")
             .Select(x => x.u)
             .ToListAsync();
 
+        var normalizedOpportunitySkills = opportunitySkills
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim().ToLower())
+            .Distinct()
+            .ToList();
+
+        if (normalizedOpportunitySkills.Count == 0)
+            return;
+
         foreach (var student in students)
         {
-            // Get student's skills
             var studentSkills = await _db.StudentSkills
                 .Where(ss => ss.StudentUserId == student.Id)
                 .Join(_db.Skills,
-                      ss => ss.SkillId,
-                      s => s.Id,
-                      (ss, s) => s.Name)
+                    ss => ss.SkillId,
+                    s => s.Id,
+                    (ss, s) => s.Name)
                 .ToListAsync();
 
             if (studentSkills.Count == 0)
                 continue;
 
             var normalizedStudentSkills = studentSkills
+                .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(s => s.Trim().ToLower())
                 .Distinct()
                 .ToList();
 
-            var normalizedOpportunitySkills = opportunitySkills
-                .Select(s => s.Trim().ToLower())
-                .Distinct()
-                .ToList();
-
-            if (normalizedOpportunitySkills.Count == 0)
-                continue;
-
-            // Calculate match
             var matchedCount = normalizedOpportunitySkills
                 .Count(skill => normalizedStudentSkills.Contains(skill));
 
             var matchPercentage =
                 (double)matchedCount / normalizedOpportunitySkills.Count * 100.0;
 
-            // Apply threshold
             if (matchPercentage >= threshold)
             {
-                // Prevent duplicates
                 var alreadyExists = await _db.Notifications.AnyAsync(n =>
                     n.UserId == student.Id &&
                     n.OpportunityId == opportunity.Id &&
-                    n.Type == "OpportunityMatch");
+                    n.Type == "OpportunityMatch" &&
+                    !n.IsArchived);
 
                 if (alreadyExists)
                     continue;
@@ -143,6 +193,7 @@ public class NotificationService
                     Type = "OpportunityMatch",
                     OpportunityId = opportunity.Id,
                     IsRead = false,
+                    IsArchived = false,
                     CreatedAtUtc = DateTime.UtcNow
                 });
             }

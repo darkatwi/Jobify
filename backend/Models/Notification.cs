@@ -16,4 +16,6 @@ public class Notification
     public bool IsRead { get; set; } = false;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public bool IsArchived { get; set; } = false;
 }

@@ -31,6 +31,7 @@ public class AuthController : ControllerBase
     private readonly JwtTokenService _jwt;
     private readonly IConfiguration _config;
     private readonly AppDbContext _db;
+    private readonly NotificationService _notificationService;
 
     private static readonly Dictionary<string, (string Email, DateTime ExpiresAtUtc)> _oauthTemp = new();
 
@@ -40,7 +41,8 @@ public class AuthController : ControllerBase
         RoleManager<IdentityRole> roleManager,
         JwtTokenService jwt,
         IConfiguration config,
-        AppDbContext db)
+        AppDbContext db,
+        NotificationService notificationService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -48,6 +50,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
         _config = config;
         _db = db;
+        _notificationService = notificationService;
     }
 
     [HttpPost("register")]
@@ -92,6 +95,7 @@ public class AuthController : ControllerBase
 
         await EnsureRoleExists(role);
         await _userManager.AddToRoleAsync(user, role);
+        await CreateWelcomeNotificationAsync(user, role);
 
         if (role == "Recruiter")
         {
@@ -376,8 +380,6 @@ public class AuthController : ControllerBase
         }
     }
 
-
-    // Revoke Recruiters
     [Authorize(Roles = "Admin")]
     [HttpPost("admin/recruiters/{userId}/revoke")]
     public async Task<IActionResult> RevokeRecruiter(string userId)
@@ -388,11 +390,9 @@ public class AuthController : ControllerBase
         if (prof == null)
             return NotFound("Recruiter profile not found.");
 
-        // Only allow revoke if currently verified
         if (prof.VerificationStatus != RecruiterVerificationStatus.Verified)
             return BadRequest("Only verified recruiters can be revoked.");
 
-        // Update status
         prof.VerificationStatus = RecruiterVerificationStatus.Rejected;
         prof.Notes = "Access revoked by admin.";
         prof.VerifiedAtUtc = null;
@@ -508,6 +508,7 @@ public class AuthController : ControllerBase
             var role = "Student";
             await EnsureRoleExists(role);
             await _userManager.AddToRoleAsync(user, role);
+            await CreateWelcomeNotificationAsync(user, role);
         }
 
         var code = Guid.NewGuid().ToString("N");
@@ -558,6 +559,24 @@ public class AuthController : ControllerBase
     {
         if (!await _roleManager.RoleExistsAsync(role))
             await _roleManager.CreateAsync(new IdentityRole(role));
+    }
+
+    private async Task CreateWelcomeNotificationAsync(IdentityUser user, string role)
+    {
+        var message = role == "Recruiter"
+            ? "Welcome to Jobify. Create your first opportunity to start receiving applications."
+            : "Welcome to Jobify. Complete your profile and upload your CV to get better opportunity matches.";
+
+        await _notificationService.CreateAsync(new Notification
+        {
+            UserId = user.Id,
+            Title = "Welcome to Jobify!",
+            Message = message,
+            Type = "System",
+            IsRead = false,
+            IsArchived = false,
+            CreatedAtUtc = DateTime.UtcNow
+        });
     }
 
     private async Task SendRecruiterConfirmEmail(IdentityUser user)

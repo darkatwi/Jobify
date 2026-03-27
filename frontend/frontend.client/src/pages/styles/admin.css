@@ -1,0 +1,1363 @@
+* {
+    box-sizing: border-box;
+}
+
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f3f4f6;
+}
+
+.admin-sidebar {
+    width: 260px;
+    background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%);
+    color: white;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-shrink: 0;
+    z-index: 1001;
+}
+
+.admin-sidebar-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+    position: relative;
+}
+
+.admin-brand-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-brand-title {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.admin-brand-subtitle {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+.admin-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: white;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-weight: 600;
+    transition: 0.2s ease;
+}
+
+    .admin-nav-link.active {
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+.admin-user-box {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.admin-user-role {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.admin-user-email {
+    font-size: 12px;
+    opacity: 0.8;
+    word-break: break-word;
+}
+
+.admin-logout-btn {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.admin-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-page {
+    padding: 24px;
+    background: #f9fafb;
+    min-height: 100vh;
+}
+
+.admin-header {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 24px;
+    color: white;
+}
+
+    .admin-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .admin-header p {
+        margin: 0;
+        font-size: 16px;
+        opacity: 0.9;
+    }
+
+.admin-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.admin-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.admin-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+}
+
+.admin-search-wrap {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.admin-search-input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+}
+
+.admin-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+}
+
+.admin-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #f3f4f6;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1100;
+}
+
+.admin-modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow: auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.admin-mobile-menu-btn,
+.admin-mobile-close-btn {
+    display: none;
+}
+
+.admin-sidebar-backdrop {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .admin-header {
+        padding: 24px;
+    }
+
+        .admin-header h1 {
+            font-size: 28px;
+        }
+
+    .admin-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-mobile-menu-btn {
+        display: flex;
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 1200;
+        width: 42px;
+        height: 42px;
+        border: none;
+        border-radius: 10px;
+        background: #1e3a8a;
+        color: white;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .admin-mobile-close-btn {
+        display: flex;
+        margin-left: auto;
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.16);
+        color: white;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        width: 280px;
+        height: 100vh;
+    }
+
+        .admin-sidebar.open {
+            transform: translateX(0);
+        }
+
+    .admin-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 1000;
+    }
+
+    .admin-page {
+        padding: 72px 16px 16px;
+    }
+
+    .admin-header {
+        padding: 20px;
+        border-radius: 10px;
+    }
+
+        .admin-header h1 {
+            font-size: 24px;
+        }
+
+        .admin-header p {
+            font-size: 14px;
+        }
+
+    .admin-card {
+        padding: 16px;
+    }
+
+    .admin-grid-4,
+    .admin-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-modal {
+        padding: 16px;
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-page {
+        padding: 68px 12px 12px;
+    }
+
+    .admin-header {
+        padding: 16px;
+    }
+
+        .admin-header h1 {
+            font-size: 22px;
+        }
+
+    .admin-card {
+        padding: 14px;
+    }
+
+    .admin-table {
+        min-width: 760px;
+    }
+}
+.admin-recruiter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #f3f4f6;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+    .admin-recruiter-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+.admin-recruiter-tab {
+    border: none;
+    background: transparent;
+    padding: 12px 18px;
+    margin-bottom: -2px;
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+    .admin-recruiter-tab:hover {
+        color: #374151;
+    }
+
+    .admin-recruiter-tab.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+    }
+
+.admin-recruiter-tab-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.admin-recruiter-tab-badge {
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+    .admin-recruiter-tab-badge.active {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+@media (max-width: 768px) {
+    .admin-recruiter-tab {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+}
+.admin-recruiters-table-wrap {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: white;
+    -webkit-overflow-scrolling: touch;
+}
+
+
+/* =========================
+   Admin Students Responsive
+   ========================= */
+
+.admin-students-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.admin-students-table-wrap {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+.admin-students-table-scroll {
+    width: 100%;
+    overflow-x: visible;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-students-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+    .admin-students-table thead tr {
+        background: #f9fafb;
+    }
+
+    .admin-students-table th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        white-space: nowrap;
+    }
+
+    .admin-students-table td {
+        padding: 16px;
+        border-top: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+.admin-students-row:hover {
+    background: #f9fafb;
+}
+
+/* column sizing */
+.admin-students-table th:nth-child(1),
+.admin-students-table td:nth-child(1) {
+    width: 22%;
+}
+
+.admin-students-table th:nth-child(2),
+.admin-students-table td:nth-child(2) {
+    width: 10%;
+}
+
+.admin-students-table th:nth-child(3),
+.admin-students-table td:nth-child(3) {
+    width: 22%;
+}
+
+.admin-students-table th:nth-child(4),
+.admin-students-table td:nth-child(4) {
+    width: 11%;
+}
+
+.admin-students-table th:nth-child(5),
+.admin-students-table td:nth-child(5) {
+    width: 11%;
+}
+
+.admin-students-table th:nth-child(6),
+.admin-students-table td:nth-child(6) {
+    width: 24%;
+}
+
+/* student cell */
+.admin-student-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.admin-student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.admin-student-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #111827;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+/* student id */
+.admin-student-id {
+    display: inline-block;
+    background: #f3f4f6;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #111827;
+    line-height: 1.35;
+    word-break: break-all;
+    max-width: 92px;
+}
+
+/* email + dates */
+.admin-student-email {
+    color: #6b7280;
+    font-size: 14px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.admin-student-date {
+    color: #6b7280;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* actions */
+.admin-student-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    transition: 0.2s ease;
+    white-space: nowrap;
+}
+
+.admin-btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+    .admin-btn-primary:hover {
+        background: #2563eb;
+    }
+
+.admin-btn-warning {
+    background: #f59e0b;
+    color: white;
+}
+
+    .admin-btn-warning:hover {
+        background: #d97706;
+    }
+
+.admin-btn-secondary {
+    background: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+    .admin-btn-secondary:hover {
+        background: #f9fafb;
+    }
+
+.admin-empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+/* laptop */
+@media (max-width: 1200px) {
+    .admin-btn {
+        padding: 7px 10px;
+        font-size: 12px;
+    }
+
+    .admin-student-id {
+        max-width: 82px;
+        font-size: 10.5px;
+    }
+}
+
+/* tablet + phone */
+@media (max-width: 768px) {
+    .admin-students-card {
+        padding: 16px;
+    }
+
+    .admin-students-table-scroll {
+        overflow-x: auto;
+    }
+
+    .admin-students-table {
+        min-width: 900px;
+        table-layout: auto;
+    }
+
+    .admin-student-id {
+        max-width: 140px;
+        font-size: 11px;
+    }
+}
+
+/* small phones */
+@media (max-width: 480px) {
+    .admin-students-table {
+        min-width: 850px;
+    }
+
+    .admin-student-avatar {
+        width: 36px;
+        height: 36px;
+        font-size: 13px;
+    }
+}
+
+.admin-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 9999;
+    box-sizing: border-box;
+}
+
+.admin-students-modal {
+    width: min(820px, 100%);
+    max-height: 85vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+    border: 1px solid #e2e8f0;
+}
+
+.admin-students-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-students-modal-title {
+    margin: 0 0 6px;
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.admin-students-modal-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    word-break: break-word;
+}
+
+.admin-students-app-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-students-app-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px;
+    transition: all 0.2s ease;
+}
+
+    .admin-students-app-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    }
+
+.admin-students-app-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.admin-students-app-job {
+    margin: 0 0 8px;
+    font-size: 19px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.25;
+}
+
+.admin-students-app-company {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: #475569;
+    font-weight: 600;
+}
+
+.admin-students-app-date {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.admin-students-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.admin-notify-modal {
+    width: min(520px, 100%);
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 26px;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+    border: 1px solid #e2e8f0;
+}
+
+.admin-notify-title {
+    margin: 0 0 18px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.admin-notify-input,
+.admin-notify-textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: #0f172a;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-notify-input {
+    margin-bottom: 12px;
+}
+
+.admin-notify-textarea {
+    min-height: 130px;
+    resize: vertical;
+    margin-bottom: 18px;
+    line-height: 1.5;
+}
+
+    .admin-notify-input:focus,
+    .admin-notify-textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+    }
+
+.admin-notify-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+.admin-recruiter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #f3f4f6;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+    .admin-recruiter-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+.admin-recruiter-tab {
+    border: none;
+    background: transparent;
+    padding: 12px 18px;
+    margin-bottom: -2px;
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+    .admin-recruiter-tab:hover {
+        color: #374151;
+    }
+
+    .admin-recruiter-tab.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+    }
+
+.admin-recruiter-tab-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.admin-recruiter-tab-badge {
+    background: #f3f4f6;
+    color: #6b7280;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+    .admin-recruiter-tab-badge.active {
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+.admin-recruiters-table-wrap {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+}
+
+/* Only scroll on smaller screens */
+@media (max-width: 1024px) {
+    .admin-recruiters-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+.admin-recruiters-table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+}
+
+    .admin-recruiters-table td,
+    .admin-recruiters-table th {
+        white-space: nowrap;
+    }
+
+.admin-recruiter-actions-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+@media (max-width: 768px) {
+    .admin-recruiter-tab {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+
+    .admin-recruiter-actions-stack {
+        align-items: stretch;
+    }
+}
+
+/* MOBILE ONLY → allow scroll */
+@media (max-width: 1024px) {
+    .admin-recruiters-table {
+        min-width: 900px;
+    }
+}
+/* =========================
+   COMPANIES MODAL FIXED
+   ========================= */
+
+.admin-company-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 99999;
+    box-sizing: border-box;
+}
+
+.admin-company-modal {
+    position: relative;
+    z-index: 100000;
+    width: min(980px, calc(100vw - 48px));
+    max-height: 85vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+    border: 1px solid #e2e8f0;
+    margin: 0 auto;
+}
+
+.admin-company-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-company-modal-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+    flex: 1;
+}
+
+.admin-company-modal-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.admin-company-modal-title {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.admin-company-modal-subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    word-break: break-word;
+}
+
+.admin-company-modal-close {
+    padding: 10px 18px;
+    background: #f3f4f6;
+    color: #374151;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+    flex-shrink: 0;
+}
+
+    .admin-company-modal-close:hover {
+        background: #e5e7eb;
+    }
+
+.admin-company-table-wrap {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    overflow: hidden;
+    background: white;
+}
+
+.admin-company-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+    .admin-company-table th {
+        padding: 14px 16px;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        background: #f8fafc;
+    }
+
+    .admin-company-table td {
+        padding: 16px;
+        vertical-align: middle;
+    }
+
+        .admin-company-table th:nth-child(1),
+        .admin-company-table td:nth-child(1) {
+            width: 56%;
+        }
+
+        .admin-company-table th:nth-child(2),
+        .admin-company-table td:nth-child(2) {
+            width: 22%;
+        }
+
+        .admin-company-table th:nth-child(3),
+        .admin-company-table td:nth-child(3) {
+            width: 22%;
+        }
+
+.admin-company-recruiter-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.admin-company-recruiter-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: #16a34a;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.admin-company-recruiter-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.admin-company-recruiter-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #111827;
+    line-height: 1.2;
+}
+
+.admin-company-recruiter-email {
+    font-size: 12px;
+    color: #6b7280;
+    word-break: break-word;
+}
+
+.admin-company-joined {
+    color: #6b7280;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.admin-company-recruiter-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.admin-company-empty {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: white;
+    padding: 56px 24px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .admin-company-modal-overlay {
+        padding: 12px;
+    }
+
+    .admin-company-modal {
+        width: 100%;
+        max-height: 90vh;
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .admin-company-modal-header {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .admin-company-modal-brand {
+        gap: 12px;
+    }
+
+    .admin-company-modal-logo {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+        border-radius: 12px;
+    }
+
+    .admin-company-modal-title {
+        font-size: 22px;
+    }
+
+    .admin-company-modal-close {
+        padding: 10px 14px;
+        border-radius: 10px;
+    }
+
+    .admin-company-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-company-table {
+        min-width: 620px;
+        table-layout: auto;
+    }
+
+        .admin-company-table th,
+        .admin-company-table td {
+            white-space: nowrap;
+        }
+}
+
+/* =========================
+   COMPANIES GRID
+   ========================= */
+
+.admin-companies-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+/* =========================
+   COMPANY CARD
+   ========================= */
+
+.admin-company-card {
+    background: white;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+    .admin-company-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+    }
+
+/* =========================
+   TOP SECTION
+   ========================= */
+
+.admin-company-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.admin-company-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.admin-company-main {
+    flex: 1;
+    min-width: 0;
+}
+
+/* =========================
+   NAME + META
+   ========================= */
+
+.admin-company-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: #111827;
+}
+
+.admin-company-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+/* STATUS BADGE */
+.admin-company-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* =========================
+   EMAIL
+   ========================= */
+
+.admin-company-email {
+    font-size: 14px;
+    color: #374151;
+    word-break: break-word;
+}
+
+/* =========================
+   LINKS
+   ========================= */
+
+.admin-company-links {
+    display: flex;
+    gap: 10px;
+    font-size: 16px;
+}
+
+/* =========================
+   BUTTON
+   ========================= */
+
+.admin-company-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: 0.2s ease;
+}
+
+    .admin-company-btn:hover {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 768px) {
+    .admin-companies-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-company-card {
+        padding: 18px;
+    }
+}

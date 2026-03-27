@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../../api/api";
-import "../../styles/matches.css"
+import "../../styles/matches.css";
 
 function getInitials(company = "") {
     return company.slice(0, 2).toUpperCase();
@@ -27,12 +27,18 @@ function scoreColor(score) {
 
 function statusClass(status) {
     switch (status) {
-        case "Applied":
+        case "Draft":
+            return "status-pill draft";
+        case "Pending":
             return "status-pill applied";
-        case "Under Review":
+        case "In Review":
             return "status-pill review";
-        case "Offer":
+        case "Shortlisted":
+            return "status-pill shortlisted";
+        case "Accepted":
             return "status-pill offer";
+        case "Rejected":
+            return "status-pill rejected";
         default:
             return "status-pill";
     }
@@ -40,18 +46,24 @@ function statusClass(status) {
 
 function stepInfo(status) {
     switch (status) {
-        case "Applied":
-            return { step: "Step 1", filled: 1 };
-        case "Assessment":
-            return { step: "Step 2", filled: 2 };
-        case "Under Review":
-            return { step: "Step 3", filled: 3 };
-        case "Interview":
-            return { step: "Step 4", filled: 4 };
-        case "Offer":
-            return { step: "Step 5", filled: 5 };
+        case "Draft":
+            return { step: "Stage 1", filled: 1 };
+
+        case "Pending":
+            return { step: "Stage 2", filled: 2 };
+
+        case "In Review":
+            return { step: "Stage 3", filled: 3 };
+
+        case "Shortlisted":
+            return { step: "Stage 4", filled: 4 };
+
+        case "Accepted":
+        case "Rejected":
+            return { step: "Stage 5", filled: 5 };
+
         default:
-            return { step: "Step 1", filled: 1 };
+            return { step: "Stage 1", filled: 1 };
     }
 }
 
@@ -75,7 +87,6 @@ function Steps({ status }) {
 
 export function OpportunityCard({ match }) {
     const [expanded, setExpanded] = useState(false);
-
     const navigate = useNavigate();
 
     return (
@@ -134,7 +145,11 @@ export function OpportunityCard({ match }) {
                 <div className="match-expanded">
                     <div className="match-analysis-header">
                         <div className="match-analysis-title">⚡ MATCH ANALYSIS</div>
-                        <button type="button" className="job-link-btn" onClick={() => navigate(`/opportunities/${match.id}`)}>
+                        <button
+                            type="button"
+                            className="job-link-btn"
+                            onClick={() => navigate(`/opportunities/${match.id}`)}
+                        >
                             See Full Job Description ↗
                         </button>
                     </div>
@@ -179,7 +194,7 @@ export function OpportunityCard({ match }) {
 }
 
 export function OpportunitiesTab({ matches = [] }) {
-    const opportunities = matches.filter((m) => m.status === "Saved");
+    const opportunities = matches.filter((m) => m.type === "opportunity");
 
     if (!opportunities.length) {
         return <div className="matches-empty">No new opportunities found.</div>;
@@ -195,9 +210,7 @@ export function OpportunitiesTab({ matches = [] }) {
 }
 
 export function ApplicationsTab({ matches = [] }) {
-    const applications = matches.filter((m) =>
-        ["Applied", "Assessment", "Under Review", "Offer", "Rejected"].includes(m.status)
-    );
+    const applications = matches.filter((m) => m.type === "application");
 
     const navigate = useNavigate();
 
@@ -217,27 +230,40 @@ export function ApplicationsTab({ matches = [] }) {
 
                             <div className="match-main">
                                 <h3 className="match-job-title">{match.jobTitle}</h3>
+
                                 <div className="match-meta">
                                     <span className="match-company">
                                         <Building2 size={15} />
                                         {match.company}
                                     </span>
+
                                     <span className="match-dot">•</span>
-                                    <span className={statusClass(match.status)}>{match.status}</span>
+
+                                    <span className={statusClass(match.status)}>
+                                        {match.status}
+                                    </span>
+                                </div>
+
+                                <div className="app-extra-left">
+                                    <Steps status={match.status} />
+
+                                    {match.status === "Draft" && (
+                                        <div className="assessment-pill">
+                                            <Clock size={14} />
+                                            Assessment Available
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="app-middle">
-                            <Steps status={match.status} />
-                        </div>
-
                         <div className="app-right">
-                            <div className="deadline-pill">
-                                <Clock size={15} />
-                                {match.deadline}
-                            </div>
-                            <button className="arrow-btn" onClick={() => navigate(`/apply/${match.id}/review`)}>→</button>
+                            <button
+                                className="arrow-btn"
+                                onClick={() => navigate(`/apply/${match.id}/review`)}
+                            >
+                                →
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -246,7 +272,7 @@ export function ApplicationsTab({ matches = [] }) {
     );
 }
 
-export function InterviewsTab({ matches = [] }) {
+export function InterviewsTab() {
     const navigate = useNavigate();
 
     const [interviews, setInterviews] = useState([]);

@@ -43,14 +43,23 @@ public class InterviewsController : ControllerBase
         if (application.Opportunity.RecruiterUserId != recruiterUserId)
             return Forbid();
 
-        if (application.Status != ApplicationStatus.Shortlisted)
-            return BadRequest("Only shortlisted applications can be scheduled for interview.");
+        if (application.Status != ApplicationStatus.Shortlisted &&
+    application.Status != ApplicationStatus.InterviewScheduled)
+        {
+            return BadRequest("Only shortlisted or already interviewed applications can be scheduled.");
+        }
 
-        var alreadyExists = await _db.Interviews
-            .AnyAsync(i => i.ApplicationId == dto.ApplicationId && !i.IsCancelled);
+        var now = DateTime.UtcNow;
 
-        if (alreadyExists)
-            return BadRequest("An active interview already exists for this application.");
+        var hasActiveInterview = await _db.Interviews
+            .AnyAsync(i =>
+                i.ApplicationId == dto.ApplicationId &&
+                !i.IsCancelled &&
+                i.ScheduledAtUtc.AddHours(1) > now // ⏱️ still ongoing or future
+            );
+
+        if (hasActiveInterview)
+            return BadRequest("An active interview is already scheduled for this application.");
 
         var interview = new Interview
         {
@@ -84,26 +93,51 @@ public class InterviewsController : ControllerBase
             .Where(i =>
                 !i.IsCancelled &&
                 i.Application != null &&
+                i.Application.Opportunity != null &&
                 (i.Application.UserId == studentUserId || i.Application.StudentUserId == studentUserId))
-            .OrderBy(i => i.ScheduledAtUtc)
+            .OrderByDescending(i => i.ScheduledAtUtc)
             .ToListAsync();
+
+        // keep only ONE interview per opportunity/job (latest one)
+        var latestPerOpportunity = interviews
+            .GroupBy(i => i.Application!.OpportunityId)
+            .Select(g => g.OrderByDescending(x => x.ScheduledAtUtc).First())
+            .OrderBy(x => x.ScheduledAtUtc)
+            .ToList();
 
         var result = new List<object>();
 
-        foreach (var i in interviews)
+        foreach (var i in latestPerOpportunity)
         {
             var app = i.Application;
             if (app == null || app.Opportunity == null) continue;
 
-            var student = await _db.StudentProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+            var candidateUserId = !string.IsNullOrWhiteSpace(app.UserId)
+                ? app.UserId
+                : app.StudentUserId;
+
+            var student = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.StudentProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == candidateUserId);
+
+            var user = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == candidateUserId);
 
             result.Add(new
             {
                 id = i.Id,
                 applicationId = i.ApplicationId,
-                candidateName = student?.FullName ?? "Candidate",
+                opportunityId = app.OpportunityId,
+                candidateName =
+                    !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName :
+                    !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email.Split('@')[0] :
+                    "Candidate",
                 opportunityTitle = app.Opportunity.Title,
                 companyName = app.Opportunity.CompanyName,
                 scheduledAtUtc = i.ScheduledAtUtc,
@@ -133,25 +167,49 @@ public class InterviewsController : ControllerBase
                 i.Application.Opportunity != null &&
                 i.Application.Opportunity.RecruiterUserId == recruiterUserId
             )
-            .OrderBy(i => i.ScheduledAtUtc)
+            .OrderByDescending(i => i.ScheduledAtUtc)
             .ToListAsync();
+
+        // keep only ONE interview per opportunity/job (latest one)
+        var latestPerOpportunity = interviews
+            .GroupBy(i => i.Application!.OpportunityId)
+            .Select(g => g.OrderByDescending(x => x.ScheduledAtUtc).First())
+            .OrderBy(x => x.ScheduledAtUtc)
+            .ToList();
 
         var result = new List<object>();
 
-        foreach (var i in interviews)
+        foreach (var i in latestPerOpportunity)
         {
             var app = i.Application;
             if (app == null || app.Opportunity == null) continue;
 
-            var student = await _db.StudentProfiles
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+            var candidateUserId = !string.IsNullOrWhiteSpace(app.UserId)
+                ? app.UserId
+                : app.StudentUserId;
+
+            var student = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.StudentProfiles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == candidateUserId);
+
+            var user = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == candidateUserId);
 
             result.Add(new
             {
                 id = i.Id,
                 applicationId = i.ApplicationId,
-                candidateName = student?.FullName ?? "Candidate",
+                opportunityId = app.OpportunityId,
+                candidateName =
+                    !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName :
+                    !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email.Split('@')[0] :
+                    "Candidate",
                 opportunityTitle = app.Opportunity.Title,
                 companyName = app.Opportunity.CompanyName,
                 scheduledAtUtc = i.ScheduledAtUtc,
@@ -162,5 +220,34 @@ public class InterviewsController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateInterviewDto dto)
+    {
+        var recruiterUserId = GetUserId();
+        if (string.IsNullOrWhiteSpace(recruiterUserId))
+            return Unauthorized();
+
+        var interview = await _db.Interviews
+            .Include(i => i.Application)
+                .ThenInclude(a => a!.Opportunity)
+            .FirstOrDefaultAsync(i => i.Id == id);
+
+        if (interview == null)
+            return NotFound("Interview not found.");
+
+        if (interview.Application?.Opportunity?.RecruiterUserId != recruiterUserId)
+            return Forbid();
+
+        interview.ScheduledAtUtc = dto.ScheduledAtUtc;
+        interview.MeetingLink = dto.MeetingLink;
+        interview.Location = dto.Location;
+        interview.Notes = dto.Notes;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "Interview updated successfully." });
     }
 }

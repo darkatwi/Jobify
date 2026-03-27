@@ -92,9 +92,6 @@ public class NotificationsController : ControllerBase
         return NoContent();
     }
 
-    // =========================
-    // UNARCHIVE NOTIFICATION 🔥
-    // =========================
     [HttpPut("{id}/unarchive")]
     public async Task<IActionResult> UnarchiveNotification(int id)
     {
@@ -105,4 +102,22 @@ public class NotificationsController : ControllerBase
         await _notificationService.UnarchiveAsync(id, userId);
         return NoContent();
     }
+
+    [HttpPost]
+    [Authorize(Roles = "Recruiter,Admin")]
+    public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        await _notificationService.CreateNotificationAsync(
+            dto.UserId,
+            dto.Title,
+            dto.Message
+        );
+
+        return Ok(new { message = "Notification created successfully." });
+    }
+
+
 }

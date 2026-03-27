@@ -1,1145 +1,933 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  Briefcase,
-  MapPin,
-  Calendar,
-  Users,
-  Plus,
-  X,
-  Gift,
-  Compass,
-  RotateCcw,
-  XCircle,
+    Briefcase,
+    MapPin,
+    Calendar,
+    Plus,
+    X,
+    Gift,
+    Compass,
+    RotateCcw,
+    XCircle,
+    Pencil,
+    ListChecks,
+    DollarSign,
+    Building2,
+    Trash2
 } from "lucide-react";
+import { api } from "../api/api";
+import "./styles/organizationdashboard.css";
 
-type Tab = "post" | "listings" | "applications";
+type Tab = "post" | "listings";
 type JobStatus = "active" | "draft" | "closed";
 
 type Listing = {
-  id: number;
-  title: string;
-  status: JobStatus;
-  postedDate: string;
-  deadline: string;
-  applicants: number;
-  location: string;
-  type: string;
-  workMode: string;
-  description: string;
-  benefitsPerks: string;
-  skillsRequired: string[];
-  skillsPreferred: string[];
-  latitude: string;
-  longitude: string;
-};
+    id: number;
+    title: string;
+    status: JobStatus;
+    postedDate: string;
+    deadline: string;
+    applicants: number;
+    location: string;
+    type: string;
+    workMode: string;
+    level: string;
+    description: string;
+    benefitsPerks: string;
+    responsibilities: string[];
+    skillsRequired: string[];
+    skillsPreferred: string[];
+    latitude: string;
+    longitude: string;
+    minPay: string;
+    maxPay: string;
 
-const API_BASE = "http://localhost:5159/api";
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    padding: 20,
-    maxWidth: 1150,
-    margin: "0 auto",
-    fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
-    color: "var(--text)",
-    background: "var(--bg)",
-  },
-  card: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
-    borderRadius: 12,
-    padding: 18,
-    boxShadow: "var(--shadow)",
-  },
-  headerRow: {
-    display: "flex",
-    gap: 14,
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  orgLeft: { display: "flex", gap: 14, alignItems: "center" },
-  orgAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    background: "var(--blue)",
-    display: "grid",
-    placeItems: "center",
-    color: "white",
-    fontWeight: 800,
-    fontSize: 18,
-  },
-  h1: { margin: 0, fontSize: 22, fontWeight: 800, color: "var(--text)" },
-  muted: { margin: "6px 0 0 0", color: "var(--muted)" },
-
-  tabs: {
-    display: "flex",
-    gap: 10,
-    borderBottom: "1px solid var(--border)",
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  tabBtn: {
-    padding: "10px 12px",
-    border: "none",
-    background: "transparent",
-    cursor: "pointer",
-    fontWeight: 700,
-    color: "var(--muted)",
-    borderBottom: "2px solid transparent",
-  },
-  tabBtnActive: { color: "var(--blue)", borderBottom: "2px solid var(--blue)" },
-
-  sectionTitle: {
-    margin: 0,
-    fontSize: 16,
-    fontWeight: 800,
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    color: "var(--text)",
-  },
-
-  formGrid2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 12,
-  },
-  formGrid3: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 12,
-  },
-  field: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 13, fontWeight: 700, color: "var(--text)" },
-
-  input: {
-    border: "1px solid var(--border)",
-    borderRadius: 10,
-    padding: "10px 12px",
-    outline: "none",
-    fontSize: 14,
-    background: "var(--card)",
-    color: "var(--text)",
-  },
-  textarea: {
-    border: "1px solid var(--border)",
-    borderRadius: 10,
-    padding: "10px 12px",
-    outline: "none",
-    fontSize: 14,
-    minHeight: 110,
-    resize: "vertical",
-    background: "var(--card)",
-    color: "var(--text)",
-  },
-
-  row: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
-
-  pill: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "rgba(37, 99, 235, 0.12)",
-    color: "var(--blue)",
-    fontSize: 13,
-    fontWeight: 700,
-    border: "1px solid rgba(37, 99, 235, 0.25)",
-  },
-  pillAlt: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "rgba(139, 92, 246, 0.12)",
-    color: "#7c3aed",
-    fontSize: 13,
-    fontWeight: 700,
-    border: "1px solid rgba(139, 92, 246, 0.22)",
-  },
-  pillX: {
-    width: 18,
-    height: 18,
-    borderRadius: 999,
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 900,
-    display: "grid",
-    placeItems: "center",
-    lineHeight: "18px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: 10,
-    marginTop: 14,
-    paddingTop: 14,
-    borderTop: "1px solid var(--border)",
-    flexWrap: "wrap",
-  },
-  primaryBtn: {
-    border: "none",
-    background: "var(--blue)",
-    color: "white",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  outlineBtn: {
-    border: "1px solid var(--border)",
-    background: "var(--card)",
-    color: "var(--text)",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  dangerBtn: {
-    border: "1px solid rgba(239, 68, 68, 0.28)",
-    background: "rgba(239, 68, 68, 0.10)",
-    color: "#dc2626",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-  successBtn: {
-    border: "1px solid rgba(16, 185, 129, 0.28)",
-    background: "rgba(16, 185, 129, 0.10)",
-    color: "#059669",
-    borderRadius: 10,
-    padding: "10px 14px",
-    fontWeight: 900,
-    cursor: "pointer",
-  },
-
-  listingCard: {
-    background: "var(--card)",
-    border: "1px solid var(--border)",
-    borderRadius: 12,
-    padding: 16,
-  },
-  listingTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-    alignItems: "flex-start",
-  },
-  small: { color: "var(--muted)", fontSize: 13 },
-
-  badge: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontWeight: 900,
-    fontSize: 12,
-    border: "1px solid transparent",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-  },
-  badgeActive: { background: "rgba(16, 185, 129, 0.10)", color: "#059669", borderColor: "rgba(16, 185, 129, 0.28)" },
-  badgeDraft: { background: "var(--surface-2)", color: "var(--text)", borderColor: "var(--border)" },
-  badgeClosed: { background: "rgba(239, 68, 68, 0.10)", color: "#dc2626", borderColor: "rgba(239, 68, 68, 0.28)" },
-
-  divider: { height: 12 },
+    assessmentMcqCount: number;
+    assessmentChallengeCount: number;
+    assessmentTimeLimitSeconds: number;
 };
 
 function fmtDate(dateStr: string) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString();
+    if (!dateStr) return "—";
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString();
 }
 
 function mapEmployment(v: string) {
-  if (v === "fulltime") return "Full-time";
-  if (v === "parttime") return "Part-time";
-  if (v === "contract") return "Contract";
-  if (v === "internship") return "Internship";
-  return "—";
+    if (v === "fulltime") return "Full-time";
+    if (v === "parttime") return "Part-time";
+    if (v === "contract") return "Contract";
+    if (v === "internship") return "Internship";
+    return "—";
 }
 
 function mapWorkType(v: string) {
-  if (v === "remote") return "Remote";
-  if (v === "onsite") return "On-site";
-  if (v === "hybrid") return "Hybrid";
-  return "—";
+    if (v === "remote") return "Remote";
+    if (v === "onsite") return "On-site";
+    if (v === "hybrid") return "Hybrid";
+    return "—";
+}
+
+function mapLevel(v: string) {
+    if (v === "intern") return "Intern";
+    if (v === "entry") return "Entry";
+    if (v === "junior") return "Junior";
+    if (v === "mid") return "Mid";
+    if (v === "senior") return "Senior";
+    return "—";
+}
+
+function mapToOpportunityType(v: string) {
+    if (v === "internship") return "Internship";
+    return "Job";
+}
+
+function mapToWorkMode(v: string) {
+    if (v === "remote") return "Remote";
+    if (v === "onsite") return "OnSite";
+    if (v === "hybrid") return "Hybrid";
+    return "";
+}
+
+function mapToExperienceLevel(v: string, employmentType: string) {
+    if (employmentType === "internship") return "Intern";
+    if (v === "intern") return "Intern";
+    if (v === "entry") return "Entry";
+    if (v === "junior") return "Junior";
+    if (v === "mid") return "Mid";
+    if (v === "senior") return "Senior";
+    return "Entry";
+}
+
+function parseLines(value: string) {
+    return value
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean);
 }
 
 export default function OrganizationDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>("post");
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loadingListings, setLoadingListings] = useState(false);
-  const [listingsError, setListingsError] = useState("");
+    const navigate = useNavigate();
 
-  const [applications, setApplications] = useState<any[]>([]);
-  const [loadingApplications, setLoadingApplications] = useState(false);
-  const [applicationsError, setApplicationsError] = useState("");
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<Tab>("post");
 
-  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
-  const [loadingApplicationDetails, setLoadingApplicationDetails] = useState(false);
-  const [applicationDetailsError, setApplicationDetailsError] = useState("");
+    const [companyName, setCompanyName] = useState("");
+    const [userRole, setUserRole] = useState("");
+    const [loadingProfile, setLoadingProfile] = useState(true);
+    const [profileError, setProfileError] = useState("");
 
-  const [applicationNotes, setApplicationNotes] = useState<Record<number, string>>({});
-  const [applicationStatuses, setApplicationStatuses] = useState<Record<number, string>>({});
+    const [listings, setListings] = useState<Listing[]>([]);
+    const [loadingListings, setLoadingListings] = useState(false);
+    const [listingsError, setListingsError] = useState("");
 
-  const [skillsRequired, setSkillsRequired] = useState<string[]>(["React", "JavaScript"]);
-  const [requiredInput, setRequiredInput] = useState("");
+    const [skillsRequired, setSkillsRequired] = useState<string[]>([]);
+    const [requiredInput, setRequiredInput] = useState("");
 
-  const [skillsPreferred, setSkillsPreferred] = useState<string[]>(["TypeScript"]);
-  const [preferredInput, setPreferredInput] = useState("");
+    const [skillsPreferred, setSkillsPreferred] = useState<string[]>([]);
+    const [preferredInput, setPreferredInput] = useState("");
 
-  const [formData, setFormData] = useState({
-    title: "",
-    location: "",
-    workType: "",
-    employmentType: "",
-    description: "",
-    benefitsPerks: "",
-    deadline: "",
-    latitude: "",
-    longitude: "",
-  });
-
-  const user = JSON.parse(String(localStorage.getItem("jobify_signup")));
-  const companyName = user?.companyName;
-  const navigate = useNavigate();
-
-  async function fetchListings() {
-    try {
-      setLoadingListings(true);
-      setListingsError("");
-
-      const token = localStorage.getItem("jobify_token");
-
-      const res = await fetch(`${API_BASE}/opportunities/company/${companyName}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch recruiter listings.");
-      }
-
-      const data = await res.json();
-
-      const mapped: Listing[] = data.map((o: any) => ({
-        id: o.id,
-        title: o.title,
-        status: o.isClosed ? "closed" : "active",
-        postedDate: o.createdAtUtc ? o.createdAtUtc.slice(0, 10) : "",
-        deadline: o.deadlineUtc ? o.deadlineUtc.slice(0, 10) : "",
-        applicants: o.applicantCount ?? 0,
-        location: o.locationName || o.location || "—",
-        type: String(o.type ?? ""),
-        workMode: String(o.workMode ?? ""),
-        description: o.description || "",
-        benefitsPerks: o.benefitsJson || "",
-        skillsRequired: [],
-        skillsPreferred: [],
-        latitude: o.latitude?.toString() || "",
-        longitude: o.longitude?.toString() || "",
-      }));
-
-      setListings(mapped);
-    } catch (err: any) {
-      setListingsError(err.message || "Something went wrong.");
-    } finally {
-      setLoadingListings(false);
-    }
-  }
-
-  async function fetchApplicationsForOpportunity(opportunityId: number) {
-    try {
-      setLoadingApplications(true);
-      setApplicationsError("");
-      setSelectedOpportunityId(opportunityId);
-      setSelectedApplication(null);
-
-      const token = localStorage.getItem("jobify_token");
-
-      const res = await fetch(`${API_BASE}/application/recruiter/opportunity/${opportunityId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch applications.");
-      }
-
-      const data = await res.json();
-      setApplications(data);
-
-      const initialNotes: Record<number, string> = {};
-      const initialStatuses: Record<number, string> = {};
-
-      data.forEach((application: any) => {
-        initialNotes[application.applicationId] = application.note || "";
-        initialStatuses[application.applicationId] = application.status || "";
-      });
-
-      setApplicationNotes(initialNotes);
-      setApplicationStatuses(initialStatuses);
-
-      setActiveTab("applications");
-    } catch (err: any) {
-      setApplicationsError(err.message || "Something went wrong.");
-    } finally {
-      setLoadingApplications(false);
-    }
-  }
-
-  async function fetchApplicationDetails(applicationId: number) {
-    try {
-      setSelectedApplication(null);
-      setLoadingApplicationDetails(true);
-      setApplicationDetailsError("");
-
-      const token = localStorage.getItem("jobify_token");
-
-      const res = await fetch(`${API_BASE}/application/recruiter/${applicationId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch application details.");
-      }
-
-      const data = await res.json();
-      setSelectedApplication(data);
-    } catch (err: any) {
-      setApplicationDetailsError(err.message || "Something went wrong.");
-    } finally {
-      setLoadingApplicationDetails(false);
-    }
-  }
-
-  async function updateApplication(applicationId: number) {
-    try {
-      const token = localStorage.getItem("jobify_token");
-
-      const res = await fetch(`${API_BASE}/application/${applicationId}/recruiter`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status: applicationStatuses[applicationId] || "Pending",
-          note: applicationNotes[applicationId] || ""
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update application.");
-      }
-
-      await fetchApplicationDetails(applicationId);
-
-      if (selectedOpportunityId !== null) {
-        await fetchApplicationsForOpportunity(selectedOpportunityId);
-      }
-
-      alert(`Application of ID: ${applicationId} was updated successfully.`);
-    } catch (error: any) {
-      alert(error.message || "Updating the application went wrong.");
-    }
-  }
-
-  const count = useMemo(() => listings.length, [listings]);
-
-  useEffect(() => {
-    fetchListings();
-  }, []);
-
-  function setField<K extends keyof typeof formData>(k: K, v: string) {
-    setFormData((p) => ({ ...p, [k]: v }));
-  }
-
-  function addTag(
-    inputValue: string,
-    setInput: (v: string) => void,
-    list: string[],
-    setList: React.Dispatch<React.SetStateAction<string[]>>
-  ) {
-    const s = inputValue.trim();
-    if (!s) return;
-
-    const exists = list.some((x) => x.toLowerCase() === s.toLowerCase());
-    if (exists) {
-      setInput("");
-      return;
-    }
-
-    setList((p) => [...p, s]);
-    setInput("");
-  }
-
-  function removeTag(tag: string, setList: React.Dispatch<React.SetStateAction<string[]>>) {
-    setList((p) => p.filter((x) => x !== tag));
-  }
-
-  function resetForm() {
-    setFormData({
-      title: "",
-      location: "",
-      workType: "",
-      employmentType: "",
-      description: "",
-      benefitsPerks: "",
-      deadline: "",
-      latitude: "",
-      longitude: "",
+    const [formData, setFormData] = useState({
+        title: "",
+        location: "",
+        locationName: "",
+        fullAddress: "",
+        workType: "",
+        employmentType: "",
+        level: "",
+        description: "",
+        responsibilitiesText: "",
+        benefitsPerks: "",
+        deadline: "",
+        latitude: "",
+        longitude: "",
+        minPay: "",
+        maxPay: "",
     });
-    setSkillsRequired([]);
-    setSkillsPreferred([]);
-    setRequiredInput("");
-    setPreferredInput("");
-  }
 
-  function validateStrict(): string | null {
-    if (!formData.title.trim()) return "Please enter a job title.";
-    if (!formData.location.trim()) return "Please enter a location.";
-    if (!formData.workType) return "Please select work type.";
-    if (!formData.employmentType) return "Please select employment type.";
-    if (!formData.description.trim()) return "Please enter a description.";
-    if (!formData.deadline) return "Please pick a deadline.";
-    if (skillsRequired.length === 0) return "Please add at least 1 required skill.";
-    return null;
-  }
+    const count = useMemo(() => listings.length, [listings]);
 
-  async function publish() {
-    const err = validateStrict();
-    if (err) {
-      alert(err);
-      return;
+    async function fetchProfile() {
+        try {
+            setLoadingProfile(true);
+            setProfileError("");
+
+            const res = await api.get("/profile");
+            const data = res.data;
+
+            setUserRole(data.role || "");
+
+            if (data.role !== "Recruiter") {
+                navigate("/dashboard", { replace: true });
+                return;
+            }
+
+            setCompanyName(data.profile?.companyName || "");
+        } catch (err: any) {
+            console.error("Profile fetch failed", err);
+            setProfileError(err?.response?.data || err?.message || "Failed to load profile.");
+        } finally {
+            setLoadingProfile(false);
+        }
     }
 
-    try {
-      const token = localStorage.getItem("jobify_token");
+    async function fetchListings() {
+        if (!companyName) return;
 
-      const res = await fetch(`${API_BASE}/opportunities`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          companyName: companyName,
-          location: formData.location || null,
-          type: formData.employmentType,
-          level: "Entry",
-          workMode: formData.workType,
-          description: formData.description || null,
-          deadlineUtc: formData.deadline || null,
-          responsibilities: [],
-          preferredSkills: skillsPreferred || [],
-          benefits: formData.benefitsPerks ? [formData.benefitsPerks] : [],
-          latitude: formData.latitude ? Number(formData.latitude) : null,
-          longitude: formData.longitude ? Number(formData.longitude) : null,
-          minPay: null,
-          maxPay: null
-        })
-      });
+        try {
+            setLoadingListings(true);
+            setListingsError("");
 
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg);
-      }
+            const res = await api.get("/opportunities/my");
+            const data = res.data;
 
-      const data = await res.json();
+            const mapped: Listing[] = data.map((o: any) => ({
+                id: o.id,
+                title: o.title,
+                status: o.isClosed ? "closed" : "active",
+                postedDate: o.createdAtUtc ? o.createdAtUtc.slice(0, 10) : "",
+                deadline: o.deadlineUtc ? o.deadlineUtc.slice(0, 10) : "",
+                applicants: o.applicantCount ?? 0,
+                location: o.locationName || o.fullAddress || o.location || "—",
+                type: String(o.type ?? ""),
+                workMode: String(o.workMode ?? ""),
+                level: String(o.level ?? ""),
+                description: o.description || "",
+                benefitsPerks: Array.isArray(o.benefits) ? o.benefits.join(", ") : "",
+                responsibilities: Array.isArray(o.responsibilities) ? o.responsibilities : [],
+                skillsRequired: Array.isArray(o.skills) ? o.skills : [],
+                skillsPreferred: Array.isArray(o.preferredSkills) ? o.preferredSkills : [],
+                latitude: o.latitude != null ? o.latitude.toString() : "",
+                longitude: o.longitude != null ? o.longitude.toString() : "",
+                minPay: o.minPay != null ? o.minPay.toString() : "",
+                maxPay: o.maxPay != null ? o.maxPay.toString() : "",
 
-      alert("Opportunity published successfully!");
-      console.log("Created opportunity:", data);
+                assessmentMcqCount: o.assessmentMcqCount ?? 0,
+                assessmentChallengeCount: o.assessmentChallengeCount ?? 0,
+                assessmentTimeLimitSeconds: o.assessmentTimeLimitSeconds ?? 0,
+            }));
 
-      await fetchListings();
-      resetForm();
-      setActiveTab("listings");
-    } catch (err) {
-      console.error(err);
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("Failed to publish opportunity");
-      }
-    }
-  }
-
-  function saveDraft() {
-    if (!formData.title.trim()) {
-      alert("Draft needs at least a title.");
-      return;
+            setListings(mapped);
+        } catch (err: any) {
+            setListingsError(err?.response?.data || err?.message || "Failed to fetch recruiter listings.");
+        } finally {
+            setLoadingListings(false);
+        }
     }
 
-    const newJob: Listing = {
-      id: Date.now(),
-      title: formData.title.trim(),
-      status: "draft",
-      postedDate: new Date().toISOString().slice(0, 10),
-      deadline: formData.deadline || new Date().toISOString().slice(0, 10),
-      applicants: 0,
-      location: formData.location.trim() || "—",
-      type: mapEmployment(formData.employmentType),
-      workMode: mapWorkType(formData.workType),
-      description: formData.description.trim(),
-      benefitsPerks: formData.benefitsPerks.trim(),
-      skillsRequired: [...skillsRequired],
-      skillsPreferred: [...skillsPreferred],
-      latitude: formData.latitude.trim(),
-      longitude: formData.longitude.trim(),
-    };
+    useEffect(() => {
+        fetchProfile();
+    }, []);
 
-    setListings((p) => [newJob, ...p]);
-    resetForm();
-    setActiveTab("listings");
-  }
+    useEffect(() => {
+        if (companyName) fetchListings();
+    }, [companyName]);
 
-  function badgeStyle(s: JobStatus): React.CSSProperties {
-    if (s === "active") return { ...styles.badge, ...styles.badgeActive };
-    if (s === "draft") return { ...styles.badge, ...styles.badgeDraft };
-    return { ...styles.badge, ...styles.badgeClosed };
-  }
+    function setField<K extends keyof typeof formData>(k: K, v: string) {
+        setFormData((p) => ({ ...p, [k]: v }));
+    }
 
-  function closeJob(id: number) {
-    setListings((p) => p.map((j) => (j.id === id ? { ...j, status: "closed" } : j)));
-  }
+    function addTag(
+        inputValue: string,
+        setInput: (v: string) => void,
+        list: string[],
+        setList: React.Dispatch<React.SetStateAction<string[]>>
+    ) {
+        const s = inputValue.trim();
+        if (!s) return;
 
-  function reopenJob(id: number) {
-    setListings((p) => p.map((j) => (j.id === id ? { ...j, status: "active" } : j)));
-  }
+        const exists = list.some((x) => x.toLowerCase() === s.toLowerCase());
+        if (exists) {
+            setInput("");
+            return;
+        }
 
-  return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.headerRow}>
-          <div style={styles.orgLeft}>
-            <div style={styles.orgAvatar}>TC</div>
-            <div>
-              <h1 style={styles.h1}>{companyName}</h1>
-              <p style={styles.muted}>Post jobs • manage listings • close/reopen roles</p>
+        setList((p) => [...p, s]);
+        setInput("");
+    }
+
+    function removeTag(tag: string, setList: React.Dispatch<React.SetStateAction<string[]>>) {
+        setList((p) => p.filter((x) => x !== tag));
+    }
+
+    function resetForm() {
+        setFormData({
+            title: "",
+            location: "",
+            locationName: "",
+            fullAddress: "",
+            workType: "",
+            employmentType: "",
+            level: "",
+            description: "",
+            responsibilitiesText: "",
+            benefitsPerks: "",
+            deadline: "",
+            latitude: "",
+            longitude: "",
+            minPay: "",
+            maxPay: "",
+        });
+        setSkillsRequired([]);
+        setSkillsPreferred([]);
+        setRequiredInput("");
+        setPreferredInput("");
+    }
+
+    function validateStrict(): string | null {
+        if (!formData.title.trim()) return "Please enter a job title.";
+        if (!formData.location.trim()) return "Please enter a location.";
+        if (!formData.workType) return "Please select work type.";
+        if (!formData.employmentType) return "Please select employment type.";
+        if (!formData.level && formData.employmentType !== "internship") return "Please select experience level.";
+        if (!formData.description.trim()) return "Please enter a description.";
+        if (!formData.deadline) return "Please pick a deadline.";
+        if (skillsRequired.length === 0) return "Please add at least 1 required skill.";
+
+        const hasLat = formData.latitude.trim() !== "";
+        const hasLng = formData.longitude.trim() !== "";
+
+        if (hasLat !== hasLng) return "Please enter both latitude and longitude, or leave both empty.";
+
+        if (hasLat && Number.isNaN(Number(formData.latitude))) return "Latitude must be a valid number.";
+        if (hasLng && Number.isNaN(Number(formData.longitude))) return "Longitude must be a valid number.";
+
+        if (formData.minPay && Number.isNaN(Number(formData.minPay))) return "Minimum pay must be a valid number.";
+        if (formData.maxPay && Number.isNaN(Number(formData.maxPay))) return "Maximum pay must be a valid number.";
+
+        if (
+            formData.minPay &&
+            formData.maxPay &&
+            Number(formData.minPay) > Number(formData.maxPay)
+        ) {
+            return "Minimum pay cannot be greater than maximum pay.";
+        }
+
+        return null;
+    }
+
+    async function publish() {
+        const err = validateStrict();
+        if (err) {
+            alert(err);
+            return;
+        }
+
+        const payload = {
+            title: formData.title.trim(),
+            companyName,
+            location: formData.location.trim() || null,
+            locationName: formData.locationName.trim() || null,
+            fullAddress: formData.fullAddress.trim() || null,
+            type: mapToOpportunityType(formData.employmentType),
+            level: mapToExperienceLevel(formData.level, formData.employmentType),
+            workMode: mapToWorkMode(formData.workType),
+            isRemote: formData.workType === "remote",
+            description: formData.description.trim() || null,
+            deadlineUtc: formData.deadline ? new Date(formData.deadline).toISOString() : null,
+            responsibilities: parseLines(formData.responsibilitiesText),
+            skills: skillsRequired,
+            preferredSkills: skillsPreferred,
+            benefits: parseLines(formData.benefitsPerks),
+            latitude: formData.latitude ? Number(formData.latitude) : null,
+            longitude: formData.longitude ? Number(formData.longitude) : null,
+            minPay: formData.minPay ? Number(formData.minPay) : null,
+            maxPay: formData.maxPay ? Number(formData.maxPay) : null,
+        };
+
+        try {
+            await api.post("/opportunities", payload);
+            alert("Opportunity published successfully!");
+            await fetchListings();
+            resetForm();
+            setActiveTab("listings");
+        } catch (err: any) {
+            console.error(err);
+            alert(err?.response?.data || err?.message || "Failed to publish opportunity");
+        }
+    }
+
+    function saveDraft() {
+        if (!formData.title.trim()) {
+            alert("Draft needs at least a title.");
+            return;
+        }
+
+        const newJob: Listing = {
+            id: Date.now(),
+            title: formData.title.trim(),
+            status: "draft",
+            postedDate: new Date().toISOString().slice(0, 10),
+            deadline: formData.deadline || new Date().toISOString().slice(0, 10),
+            applicants: 0,
+            location: formData.locationName.trim() || formData.fullAddress.trim() || formData.location.trim() || "—",
+            type: mapEmployment(formData.employmentType),
+            workMode: mapWorkType(formData.workType),
+            level: mapLevel(formData.level),
+            description: formData.description.trim(),
+            benefitsPerks: formData.benefitsPerks.trim(),
+            responsibilities: parseLines(formData.responsibilitiesText),
+            skillsRequired: [...skillsRequired],
+            skillsPreferred: [...skillsPreferred],
+            latitude: formData.latitude.trim(),
+            longitude: formData.longitude.trim(),
+            minPay: formData.minPay.trim(),
+            maxPay: formData.maxPay.trim(),
+
+            // 🔥 ADD THIS
+            assessmentMcqCount: 0,
+            assessmentChallengeCount: 0,
+            assessmentTimeLimitSeconds: 0,
+        };
+
+        setListings((p) => [newJob, ...p]);
+        resetForm();
+        setActiveTab("listings");
+    }
+
+    async function closeJob(id: number, e?: React.MouseEvent) {
+        e?.stopPropagation();
+        try {
+            await api.patch(`/opportunities/${id}/close`);
+            await fetchListings();
+        } catch (err: any) {
+            alert(err?.response?.data || err?.message || "Failed to close job.");
+        }
+    }
+    async function deleteJob(id, e) {
+        e?.stopPropagation();
+
+        const confirmDelete = window.confirm("Are you sure you want to delete this opportunity?");
+        if (!confirmDelete) return;
+
+        try {
+            await api.delete(`/opportunities/${id}`); 
+            await fetchListings(); 
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete opportunity");
+        }
+    }
+
+    async function reopenJob(id: number, e?: React.MouseEvent) {
+        e?.stopPropagation();
+        try {
+            await api.patch(`/opportunities/${id}/reopen`);
+            await fetchListings();
+        } catch (err: any) {
+            alert(err?.response?.data || err?.message || "Failed to reopen job.");
+        }
+    }
+
+    function getBadgeClass(status: JobStatus) {
+        if (status === "active") return "orgdash-badge orgdash-badge-active";
+        if (status === "draft") return "orgdash-badge orgdash-badge-draft";
+        return "orgdash-badge orgdash-badge-closed";
+    }
+
+    if (loadingProfile) {
+        return (
+            <div className="orgdash-page">
+                <div className="orgdash-card">Loading organization profile...</div>
             </div>
-          </div>
+        );
+    }
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button style={styles.outlineBtn} type="button" onClick={() => setActiveTab("post")}>
-              Post a job
-            </button>
-            <button style={styles.outlineBtn} type="button" onClick={() => setActiveTab("listings")}>
-              View listings
-            </button>
-          </div>
-        </div>
-
-        <div style={styles.tabs}>
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === "post" ? styles.tabBtnActive : null) }}
-            onClick={() => setActiveTab("post")}
-          >
-            Post a Job
-          </button>
-
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === "listings" ? styles.tabBtnActive : null) }}
-            onClick={() => setActiveTab("listings")}
-          >
-            My Listings ({count})
-          </button>
-
-          <button
-            type="button"
-            style={{ ...styles.tabBtn, ...(activeTab === "applications" ? styles.tabBtnActive : null) }}
-            onClick={() => setActiveTab("applications")}
-          >
-            Applications
-          </button>
-        </div>
-      </div>
-
-      <div style={styles.divider} />
-
-      {activeTab === "post" && (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>
-              <Briefcase size={18} />
-              Create New Job Posting
-            </h2>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>Job Title</label>
-              <input
-                style={styles.input}
-                placeholder="e.g., Frontend Developer"
-                value={formData.title}
-                onChange={(e) => setField("title", e.target.value)}
-              />
+    if (profileError) {
+        return (
+            <div className="orgdash-page">
+                <div className="orgdash-card">
+                    <p className="orgdash-error">{profileError}</p>
+                </div>
             </div>
+        );
+    }
 
-            <div style={styles.divider} />
+    if (userRole !== "Recruiter") return null;
 
-            <div style={styles.formGrid3}>
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  <MapPin size={14} /> Location
-                </label>
-                <input
-                  style={styles.input}
-                  placeholder="e.g., Beirut / Remote"
-                  value={formData.location}
-                  onChange={(e) => setField("location", e.target.value)}
-                />
-              </div>
+    return (
+        <div className="orgdash-page">
+            <div className="orgdash-card">
+                <div className="orgdash-header">
+                    <div className="orgdash-org">
+                        <div className="orgdash-avatar">
+                            {(companyName || "R").slice(0, 2).toUpperCase()}
+                        </div>
 
-              <div style={styles.field}>
-                <label style={styles.label}>Work Type</label>
-                <select style={styles.input} value={formData.workType} onChange={(e) => setField("workType", e.target.value)}>
-                  <option value="">Select</option>
-                  <option value="remote">Remote</option>
-                  <option value="onsite">On-site</option>
-                  <option value="hybrid">Hybrid</option>
-                </select>
-              </div>
+                        <div>
+                            <h1 className="orgdash-title">{companyName || "Recruiter Dashboard"}</h1>
+                            <p className="orgdash-subtitle">
+                                Post jobs • manage listings • close/reopen roles
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
-              <div style={styles.field}>
-                <label style={styles.label}>Employment Type</label>
-                <select
-                  style={styles.input}
-                  value={formData.employmentType}
-                  onChange={(e) => setField("employmentType", e.target.value)}
-                >
-                  <option value="">Select</option>
-                  <option value="fulltime">Full-time</option>
-                  <option value="parttime">Part-time</option>
-                  <option value="contract">Contract</option>
-                  <option value="internship">Internship</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>Description</label>
-              <textarea
-                style={styles.textarea}
-                placeholder="Describe responsibilities, requirements, and what the role does..."
-                value={formData.description}
-                onChange={(e) => setField("description", e.target.value)}
-              />
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                <Gift size={14} /> Benefits & Perks
-              </label>
-              <textarea
-                style={styles.textarea}
-                placeholder="e.g., health insurance, flexible hours, learning budget..."
-                value={formData.benefitsPerks}
-                onChange={(e) => setField("benefitsPerks", e.target.value)}
-              />
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>Required Skills</label>
-
-              <div style={styles.row}>
-                {skillsRequired.map((s) => (
-                  <span key={s} style={styles.pill}>
-                    {s}
+                <div className="orgdash-tabs">
                     <button
-                      type="button"
-                      style={{ ...styles.pillX, background: "rgba(37, 99, 235, 0.18)", color: "var(--blue)" }}
-                      onClick={() => removeTag(s, setSkillsRequired)}
-                      aria-label={`Remove ${s}`}
+                        className={`orgdash-tab ${activeTab === "post" ? "active" : ""}`}
+                        onClick={() => setActiveTab("post")}
                     >
-                      <X size={14} />
+                        Post a Job
                     </button>
-                  </span>
-                ))}
-              </div>
 
-              <div style={styles.divider} />
-
-              <div style={styles.row}>
-                <input
-                  style={{ ...styles.input, flex: 1, minWidth: 240 }}
-                  placeholder="Add required skill (press Enter)"
-                  value={requiredInput}
-                  onChange={(e) => setRequiredInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addTag(requiredInput, setRequiredInput, skillsRequired, setSkillsRequired);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  style={styles.outlineBtn}
-                  onClick={() => addTag(requiredInput, setRequiredInput, skillsRequired, setSkillsRequired)}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>Preferred Skills (nice-to-have)</label>
-
-              <div style={styles.row}>
-                {skillsPreferred.map((s) => (
-                  <span key={s} style={styles.pillAlt}>
-                    {s}
                     <button
-                      type="button"
-                      style={{ ...styles.pillX, background: "rgba(139, 92, 246, 0.18)", color: "#7c3aed" }}
-                      onClick={() => removeTag(s, setSkillsPreferred)}
-                      aria-label={`Remove ${s}`}
+                        className={`orgdash-tab ${activeTab === "listings" ? "active" : ""}`}
+                        onClick={() => setActiveTab("listings")}
                     >
-                      <X size={14} />
+                        My Listings ({count})
                     </button>
-                  </span>
-                ))}
-              </div>
-
-              <div style={styles.divider} />
-
-              <div style={styles.row}>
-                <input
-                  style={{ ...styles.input, flex: 1, minWidth: 240 }}
-                  placeholder="Add preferred skill (press Enter)"
-                  value={preferredInput}
-                  onChange={(e) => setPreferredInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addTag(preferredInput, setPreferredInput, skillsPreferred, setSkillsPreferred);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  style={styles.outlineBtn}
-                  onClick={() => addTag(preferredInput, setPreferredInput, skillsPreferred, setSkillsPreferred)}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.formGrid2}>
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  <Compass size={14} /> Latitude
-                </label>
-                <input
-                  style={styles.input}
-                  placeholder="e.g., 33.8938"
-                  value={formData.latitude}
-                  onChange={(e) => setField("latitude", e.target.value)}
-                />
-              </div>
-
-              <div style={styles.field}>
-                <label style={styles.label}>
-                  <Compass size={14} /> Longitude
-                </label>
-                <input
-                  style={styles.input}
-                  placeholder="e.g., 35.5018"
-                  value={formData.longitude}
-                  onChange={(e) => setField("longitude", e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div style={styles.divider} />
-
-            <div style={styles.field}>
-              <label style={styles.label}>
-                <Calendar size={14} /> Application Deadline
-              </label>
-              <input
-                style={styles.input}
-                type="date"
-                value={formData.deadline}
-                onChange={(e) => setField("deadline", e.target.value)}
-              />
-            </div>
-
-            <div style={styles.actions}>
-              <button type="button" style={styles.primaryBtn} onClick={publish}>
-                Publish Job
-              </button>
-              <button type="button" style={styles.outlineBtn} onClick={saveDraft}>
-                Save Draft
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {activeTab === "listings" && (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={{ display: "grid", gap: 12 }}>
-            {loadingListings && <p style={styles.small}>Loading listings...</p>}
-            {listingsError && <p style={{ ...styles.small, color: "#dc2626" }}>{listingsError}</p>}
-
-            {!loadingListings && listings.length === 0 && !listingsError && (
-              <div style={styles.card}>
-                <p style={styles.muted}>No listings yet.</p>
-              </div>
-            )}
-
-            {listings.map((job) => (
-              <div key={job.id} style={styles.listingCard}>
-                <div style={styles.listingTop}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, display: "flex", gap: 8, alignItems: "center", color: "var(--text)" }}>
-                      <Briefcase size={16} />
-                      {job.title}
-                    </div>
-
-                    <div style={styles.small}>
-                      {job.location} • {job.type} • {job.workMode}
-                    </div>
-
-                    <div style={{ height: 8 }} />
-
-                    <div style={styles.small}>
-                      Posted: {fmtDate(job.postedDate)} • Deadline: {fmtDate(job.deadline)} •{" "}
-                      <Users size={14} style={{ verticalAlign: "middle" }} /> Applicants:{" "}
-                      <b style={{ color: "var(--text)" }}>{job.applicants}</b>
-                    </div>
-
-                    <div style={{ height: 10 }} />
-
-                    <div style={styles.small}>
-                      <b>Description:</b> {job.description || "—"}
-                    </div>
-
-                    <div style={{ height: 6 }} />
-
-                    <div style={styles.small}>
-                      <b>Benefits & Perks:</b> {job.benefitsPerks || "—"}
-                    </div>
-
-                    <div style={{ height: 10 }} />
-
-                    <div style={styles.row}>
-                      {job.skillsRequired.map((s) => (
-                        <span key={"r-" + s} style={styles.pill}>
-                          {s}
-                        </span>
-                      ))}
-                      {job.skillsPreferred.map((s) => (
-                        <span key={"p-" + s} style={styles.pillAlt}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div style={{ height: 8 }} />
-                    <div style={styles.small}>
-                      <b>Lat/Long:</b> {job.latitude || "—"}, {job.longitude || "—"}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={badgeStyle(job.status)}>
-                      {job.status === "active" ? "Active" : job.status === "draft" ? "Draft" : "Closed"}
-                    </span>
-
-                    {job.status === "active" && (
-                      <button type="button" style={styles.dangerBtn} onClick={() => closeJob(job.id)}>
-                        <XCircle size={16} /> Close
-                      </button>
-                    )}
-
-                    {job.status === "closed" && (
-                      <button type="button" style={styles.successBtn} onClick={() => reopenJob(job.id)}>
-                        <RotateCcw size={16} /> Reopen
-                      </button>
-                    )}
-                  </div>
                 </div>
-
-                <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
-                  <span style={{ fontWeight: 700, color: "var(--text)" }}>
-                    Applicants: {job.applicants}
-                  </span>
-
-                  <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationsForOpportunity(job.id)}>
-                    View Applicants
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {activeTab === "applications" && (
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>
-              <Users size={18} />
-              Applications
-            </h2>
-
-            <div style={styles.divider} />
-
-            {selectedOpportunityId === null && (
-              <p style={styles.muted}>Choose a Listing and Click on "View Applicants".</p>
-            )}
-
-            {loadingApplications && (
-              <p style={styles.small}>Loading applications...</p>
-            )}
-
-            {applicationsError && (
-              <p style={{ ...styles.small, color: "#dc2626" }}>{applicationsError}</p>
-            )}
-
-            <div style={{ display: "grid", gap: 12 }}>
-              {applications.map((application) => (
-                <div key={application.applicationId} style={styles.listingCard}>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <strong style={{ fontSize: 16, color: "var(--text)" }}>
-                      Application: {application.applicationId}
-                    </strong>
-
-                    <p style={styles.small}>
-                      <b>Student:</b> {application.candidateName}
-                    </p>
-
-                    <p style={styles.small}>
-                      <b>Status:</b> {application.status}
-                    </p>
-
-                    <p style={styles.small}>
-                      <b>Created At:</b> {fmtDate(application.createdAtUtc)}
-                    </p>
-
-                    <div style={styles.field}>
-                      <label style={styles.label}>Recruiter Note</label>
-                      <textarea
-                        style={styles.textarea}
-                        placeholder="Add recruiter note"
-                        value={applicationNotes[application.applicationId] || ""}
-                        onChange={(e) =>
-                          setApplicationNotes({ ...applicationNotes, [application.applicationId]: e.target.value })}
-                      />
-                    </div>
-
-                    <div style={styles.field}>
-                      <label style={styles.label}>Update Status</label>
-                      <select
-                        style={styles.input}
-                        value={applicationStatuses[application.applicationId] || "Pending"}
-                        onChange={(e) =>
-                          setApplicationStatuses({ ...applicationStatuses, [application.applicationId]: e.target.value })}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="InReview">In Review</option>
-                        <option value="Accepted">Accepted</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-
-                    <div style={styles.actions}>
-                      <button type="button" style={styles.primaryBtn} onClick={() => updateApplication(application.applicationId)}>
-                        Update Application
-                      </button>
-
-                      <button type="button" style={styles.outlineBtn} onClick={() => fetchApplicationDetails(application.applicationId)}>
-                        View Details
-                      </button>
-
-                      <button type="button" style={styles.outlineBtn} onClick={() => navigate(`/student-profile/${application.studentUserId}`)}>
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {applications.length === 0 && !loadingApplications && (
-                <p style={styles.small}>No applications for this opportunity yet.</p>
-              )}
             </div>
-          </div>
 
-          <div style={styles.divider} />
+            <div className="orgdash-spacer" />
 
-          {loadingApplicationDetails && (
-            <p style={styles.small}>Loading application details...</p>
-          )}
+            {activeTab === "post" && (
+                <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="orgdash-card">
+                        <h2 className="orgdash-section-title">
+                            <Briefcase size={18} />
+                            Create New Job Posting
+                        </h2>
 
-          {applicationDetailsError && (
-            <p style={{ ...styles.small, color: "#dc2626" }}>
-              {applicationDetailsError}
-            </p>
-          )}
+                        <div className="orgdash-form-field">
+                            <label>Job Title</label>
+                            <input
+                                className="orgdash-input"
+                                placeholder="e.g., Frontend Developer"
+                                value={formData.title}
+                                onChange={(e) => setField("title", e.target.value)}
+                            />
+                        </div>
 
-          {selectedApplication && (
-            <div style={styles.card}>
-              <h3 style={{ marginTop: 0, marginBottom: 10, color: "var(--text)" }}>
-                Selected Application Details
-              </h3>
+                        <div className="orgdash-grid-3">
+                            <div className="orgdash-form-field">
+                                <label><MapPin size={14} /> Location</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., Beirut / Remote"
+                                    value={formData.location}
+                                    onChange={(e) => setField("location", e.target.value)}
+                                />
+                            </div>
 
-              <div style={styles.small}>
-                <b>Application ID:</b> {selectedApplication.applicationId}
-              </div>
-              <div style={styles.small}>
-                <b>Opportunity:</b> {selectedApplication.opportunityTitle}
-              </div>
-              <div style={styles.small}>
-                <b>Student:</b> {selectedApplication.studentUserId}
-              </div>
-              <div style={styles.small}>
-                <b>Status:</b> {selectedApplication.status}
-              </div>
-              <div style={styles.small}>
-                <b>Score:</b> {selectedApplication.assessment?.score ?? "—"}
-              </div>
-              <div style={styles.small}>
-                <b>Flagged:</b> {selectedApplication.assessment?.flagged ? "Yes" : "No"}
-              </div>
-              <div style={styles.small}>
-                <b>Flag Reason:</b> {selectedApplication.assessment?.flagReason || "—"}
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
-    </div>
-  );
+                            <div className="orgdash-form-field">
+                                <label><Building2 size={14} /> Location Name</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., Beirut Digital District"
+                                    value={formData.locationName}
+                                    onChange={(e) => setField("locationName", e.target.value)}
+                                />
+                            </div>
+
+                            <div className="orgdash-form-field">
+                                <label>Work Type</label>
+                                <select
+                                    className="orgdash-input"
+                                    value={formData.workType}
+                                    onChange={(e) => setField("workType", e.target.value)}
+                                >
+                                    <option value="">Select</option>
+                                    <option value="remote">Remote</option>
+                                    <option value="onsite">On-site</option>
+                                    <option value="hybrid">Hybrid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="orgdash-grid-3">
+                            <div className="orgdash-form-field">
+                                <label>Employment Type</label>
+                                <select
+                                    className="orgdash-input"
+                                    value={formData.employmentType}
+                                    onChange={(e) => setField("employmentType", e.target.value)}
+                                >
+                                    <option value="">Select</option>
+                                    <option value="fulltime">Full-time</option>
+                                    <option value="parttime">Part-time</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="internship">Internship</option>
+                                </select>
+                            </div>
+
+                            <div className="orgdash-form-field">
+                                <label>Experience Level</label>
+                                <select
+                                    className="orgdash-input"
+                                    value={formData.level}
+                                    onChange={(e) => setField("level", e.target.value)}
+                                    disabled={formData.employmentType === "internship"}
+                                >
+                                    <option value="">Select</option>
+                                    <option value="intern">Intern</option>
+                                    <option value="entry">Entry</option>
+                                    <option value="junior">Junior</option>
+                                    <option value="mid">Mid</option>
+                                    <option value="senior">Senior</option>
+                                </select>
+                            </div>
+
+                            <div className="orgdash-form-field">
+                                <label><Calendar size={14} /> Application Deadline</label>
+                                <input
+                                    className="orgdash-input"
+                                    type="date"
+                                    value={formData.deadline}
+                                    onChange={(e) => setField("deadline", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label>Full Address</label>
+                            <input
+                                className="orgdash-input"
+                                placeholder="e.g., BDD 1280, Bashoura, Beirut, Lebanon"
+                                value={formData.fullAddress}
+                                onChange={(e) => setField("fullAddress", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label>Description</label>
+                            <textarea
+                                className="orgdash-textarea"
+                                placeholder="Describe responsibilities, requirements, and what the role does..."
+                                value={formData.description}
+                                onChange={(e) => setField("description", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label><ListChecks size={14} /> Responsibilities</label>
+                            <textarea
+                                className="orgdash-textarea"
+                                placeholder={`One item per line
+Build frontend screens
+Collaborate with backend team
+Write reusable components`}
+                                value={formData.responsibilitiesText}
+                                onChange={(e) => setField("responsibilitiesText", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label><Gift size={14} /> Benefits & Perks</label>
+                            <textarea
+                                className="orgdash-textarea"
+                                placeholder={`One item per line
+Health insurance
+Flexible hours
+Learning budget`}
+                                value={formData.benefitsPerks}
+                                onChange={(e) => setField("benefitsPerks", e.target.value)}
+                            />
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label>Required Skills</label>
+
+                            <div className="orgdash-tags">
+                                {skillsRequired.map((s) => (
+                                    <span key={s} className="orgdash-pill">
+                                        {s}
+                                        <button
+                                            type="button"
+                                            className="orgdash-pill-x"
+                                            onClick={() => removeTag(s, setSkillsRequired)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+
+                            <div className="orgdash-tag-input-row">
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="Add required skill (press Enter)"
+                                    value={requiredInput}
+                                    onChange={(e) => setRequiredInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            addTag(requiredInput, setRequiredInput, skillsRequired, setSkillsRequired);
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    className="orgdash-btn orgdash-btn-outline"
+                                    onClick={() => addTag(requiredInput, setRequiredInput, skillsRequired, setSkillsRequired)}
+                                >
+                                    <Plus size={16} /> Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="orgdash-form-field">
+                            <label>Preferred Skills (nice-to-have)</label>
+
+                            <div className="orgdash-tags">
+                                {skillsPreferred.map((s) => (
+                                    <span key={s} className="orgdash-pill-alt">
+                                        {s}
+                                        <button
+                                            type="button"
+                                            className="orgdash-pill-x orgdash-pill-x-alt"
+                                            onClick={() => removeTag(s, setSkillsPreferred)}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+
+                            <div className="orgdash-tag-input-row">
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="Add preferred skill (press Enter)"
+                                    value={preferredInput}
+                                    onChange={(e) => setPreferredInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            addTag(preferredInput, setPreferredInput, skillsPreferred, setSkillsPreferred);
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    className="orgdash-btn orgdash-btn-outline"
+                                    onClick={() => addTag(preferredInput, setPreferredInput, skillsPreferred, setSkillsPreferred)}
+                                >
+                                    <Plus size={16} /> Add
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="orgdash-grid-2">
+                            <div className="orgdash-form-field">
+                                <label><Compass size={14} /> Latitude</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., 33.8938"
+                                    value={formData.latitude}
+                                    onChange={(e) => setField("latitude", e.target.value)}
+                                />
+                            </div>
+
+                            <div className="orgdash-form-field">
+                                <label><Compass size={14} /> Longitude</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., 35.5018"
+                                    value={formData.longitude}
+                                    onChange={(e) => setField("longitude", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="orgdash-grid-2">
+                            <div className="orgdash-form-field">
+                                <label><DollarSign size={14} /> Minimum Pay</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., 800"
+                                    value={formData.minPay}
+                                    onChange={(e) => setField("minPay", e.target.value)}
+                                />
+                            </div>
+
+                            <div className="orgdash-form-field">
+                                <label><DollarSign size={14} /> Maximum Pay</label>
+                                <input
+                                    className="orgdash-input"
+                                    placeholder="e.g., 1500"
+                                    value={formData.maxPay}
+                                    onChange={(e) => setField("maxPay", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="orgdash-actions">
+                            <button className="orgdash-btn orgdash-btn-primary" onClick={publish}>
+                                Publish Job
+                            </button>
+                            <button className="orgdash-btn orgdash-btn-outline" onClick={saveDraft}>
+                                Save Draft
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {activeTab === "listings" && (
+                <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="orgdash-spacer" />
+
+                    {loadingListings && <div className="orgdash-card">Loading listings...</div>}
+                    {listingsError && <div className="orgdash-card orgdash-error">{listingsError}</div>}
+
+                    <div className="orgdash-listings">
+                        {listings.map((job) => (
+                            <div
+                                key={job.id}
+                                className="orgdash-listing-card"
+                                onClick={() => navigate(`/applicants?jobId=${job.id}`)}
+                            >
+                                <div className="orgdash-listing-top">
+                                    <div className="orgdash-listing-main">
+                                        <div className="orgdash-listing-title">
+                                            <Briefcase size={16} />
+                                            {job.title}
+                                        </div>
+
+                                        <div className="orgdash-listing-meta">
+                                            {job.location} • {job.type} • {job.workMode} • {job.level || "—"}
+                                        </div>
+
+                                        <div className="orgdash-listing-submeta">
+                                            Posted: {fmtDate(job.postedDate)} • Deadline: {fmtDate(job.deadline)} • Applicants:{" "}
+                                            <b>{job.applicants}</b>
+                                        </div>
+
+                                        <div className="orgdash-listing-desc">
+                                            <b>Description:</b> {job.description || "—"}
+                                        </div>
+
+                                        <div className="orgdash-listing-desc">
+                                            <b>Benefits & Perks:</b> {job.benefitsPerks || "—"}
+                                        </div>
+
+                                        <div className="orgdash-listing-desc">
+                                            <b>Responsibilities:</b>{" "}
+                                            {job.responsibilities.length > 0 ? job.responsibilities.join(" • ") : "—"}
+                                        </div>
+
+                                        {/* REQUIRED SKILLS */}
+                                        <div className="orgdash-skill-section">
+                                            <div className="orgdash-skill-label">Required Skills:</div>
+
+                                            <div className="orgdash-tags">
+                                                {job.skillsRequired.length > 0 ? (
+                                                    job.skillsRequired.map((s) => (
+                                                        <span key={`r-${job.id}-${s}`} className="orgdash-pill">
+                                                            {s}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="orgdash-empty">—</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* PREFERRED SKILLS */}
+                                        <div className="orgdash-skill-section">
+                                            <div className="orgdash-skill-label">Preferred Skills:</div>
+
+                                            <div className="orgdash-tags">
+                                                {job.skillsPreferred.length > 0 ? (
+                                                    job.skillsPreferred.map((s) => (
+                                                        <span key={`p-${job.id}-${s}`} className="orgdash-pill-alt">
+                                                            {s}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span className="orgdash-empty">—</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="orgdash-listing-submeta">
+                                            <b>Lat/Long:</b> {job.latitude || "—"}, {job.longitude || "—"}
+                                        </div>
+
+                                        <div className="orgdash-listing-submeta">
+                                            <b>Pay Range:</b> {job.minPay || "—"} - {job.maxPay || "—"}
+                                        </div>
+                                        <div className="orgdash-listing-submeta">
+                                            <b>Assessment:</b>{" "}
+                                            {job.assessmentMcqCount > 0 || job.assessmentChallengeCount > 0
+                                                ? `${job.assessmentMcqCount} MCQs • ${job.assessmentChallengeCount} Coding • ${Math.floor((job.assessmentTimeLimitSeconds || 0) / 60)} min`
+                                                : "No assessment"}
+                                        </div>
+
+                                        <div className="orgdash-applicants-chip">
+                                            {job.applicants} Applicants
+                                        </div>
+                                    </div>
+
+                                    <div className="orgdash-listing-side" onClick={(e) => e.stopPropagation()}>
+                                        <span className={getBadgeClass(job.status)}>
+                                            {job.status === "active"
+                                                ? "Active"
+                                                : job.status === "draft"
+                                                    ? "Draft"
+                                                    : "Closed"}
+                                        </span>
+
+                                        <div className="orgdash-listing-side-actions">
+                                            <button
+                                                type="button"
+                                                className="orgdash-action-btn"
+                                                onClick={() => navigate(`/edit-job/${job.id}`)}
+                                            >
+                                                <Pencil size={15} />
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="orgdash-action-btn"
+                                                onClick={() => navigate(`/opportunities/${job.id}/assessment`)}
+                                            >
+                                                <ListChecks size={15} />
+                                                {job.assessmentMcqCount > 0 || job.assessmentChallengeCount > 0
+                                                    ? "Edit Assessment"
+                                                    : "Add Assessment"}
+                                            </button>
+
+                                            {job.status === "active" && (
+                                                <button
+                                                    type="button"
+                                                    className="orgdash-action-btn orgdash-action-btn-danger"
+                                                    onClick={(e) => closeJob(job.id, e)}
+                                                >
+                                                    <XCircle size={15} />
+                                                    Close Role
+                                                </button>
+                                            )}
+
+                                            {job.status === "closed" && (
+                                                <button
+                                                    type="button"
+                                                    className="orgdash-action-btn orgdash-action-btn-success"
+                                                    onClick={(e) => reopenJob(job.id, e)}
+                                                >
+                                                    <RotateCcw size={15} />
+                                                    Reopen Role
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="orgdash-action-btn orgdash-action-btn-danger"
+                                                onClick={(e) => deleteJob(job.id, e)}
+                                            >
+                                                <Trash2 size={15} />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+        </div>
+    );
 }

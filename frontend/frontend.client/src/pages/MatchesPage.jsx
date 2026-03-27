@@ -7,29 +7,64 @@ import "./styles/matches.css";
 import { api } from "../api/api";
 import CvReviewPage from "./components/matches/CvReviewPage";
 
-// Normalize Backend Application Statuses (Expected by components)
+// Normalize backend status into student-facing pipeline status
 function normalizeApplicationStatus(status) {
     switch (status) {
-        case "InReview":
-            return "Under Review";
+        case "Draft":
+            return "Draft";
 
+        case "Pending":
+        case "Submitted":
+            return "Pending";
+
+        case "InReview":
         case "AssessmentSent":
         case "InAssessment":
         case "AssessmentSubmitted":
-            return "Assessment";
+        case "InterviewScheduled":
+            return "In Review";
+
+        case "Shortlisted":
+            return "Shortlisted";
 
         case "Accepted":
-            return "Offer";
+            return "Accepted";
 
         case "Rejected":
             return "Rejected";
 
+        case "Withdrawn":
+            return "Withdrawn";
+
         default:
-            return "Applied";
+            return "Pending";
     }
 }
 
-// Format Applied Date
+function getApplicationStep(status) {
+    switch (status) {
+        case "Draft":
+            return 1;
+        case "Pending":
+            return 2;
+        case "In Review":
+            return 3;
+        case "Shortlisted":
+            return 4;
+        case "Accepted":
+        case "Rejected":
+            return 5;
+        default:
+            return 2;
+    }
+}
+
+function getFinalDecisionLabel(status) {
+    if (status === "Accepted") return "Accepted";
+    if (status === "Rejected") return "Rejected";
+    return null;
+}
+
 function formatAppliedDate(createdAtUtc) {
     if (!createdAtUtc) return "Applied Recently";
 
@@ -47,7 +82,6 @@ function formatAppliedDate(createdAtUtc) {
     return `Applied ${weeks} Weeks ago`;
 }
 
-// Format Deadline
 function formatDeadline(deadlineUtc) {
     if (!deadlineUtc) return "No Deadline";
 
@@ -62,7 +96,6 @@ function formatDeadline(deadlineUtc) {
     return `${days} Left`;
 }
 
-// Format Location
 function formatLocation(opportunity) {
     if (opportunity.isRemote) return "Remote";
     if (opportunity.workMode === "Hybrid") return "Hybrid";
@@ -76,9 +109,17 @@ function formatLocation(opportunity) {
     return location;
 }
 
-// Logo Color
 function getLogoColor(name) {
-    const colors = ["blue", "green", "purple", "pink", "indigo", "magenta", "navy", "black"];
+    const colors = [
+        "blue",
+        "green",
+        "purple",
+        "pink",
+        "indigo",
+        "magenta",
+        "navy",
+        "black",
+    ];
 
     name = String(name || "").trim();
     if (!name) return "blue";
@@ -99,12 +140,10 @@ export default function MatchesPage() {
 
     const [activeTab, setActiveTab] = useState("opportunities");
 
-    // Opportunities
     const [opportunities, setOpportunities] = useState([]);
     const [opportunitiesLoading, setOpportunitiesLoading] = useState(false);
     const [opportunitiesError, setOpportunitiesError] = useState("");
 
-    // Applications
     const [applications, setApplications] = useState([]);
     const [applicationsLoading, setApplicationsLoading] = useState(false);
     const [applicationsError, setApplicationsError] = useState("");
@@ -127,7 +166,9 @@ export default function MatchesPage() {
         } catch (error) {
             console.error("Failed to fetch opportunities.", error);
             setOpportunities([]);
-            setOpportunitiesError(error?.message || "Failed to fetch opportunities.");
+            setOpportunitiesError(
+                error?.message || "Failed to fetch opportunities."
+            );
         } finally {
             setOpportunitiesLoading(false);
         }
@@ -139,13 +180,14 @@ export default function MatchesPage() {
             setApplicationsError("");
 
             const res = await api.get("/application/me");
-
             const data = Array.isArray(res.data) ? res.data : [];
             setApplications(data);
         } catch (error) {
-            console.error("Failed to Load Applications.", error);
-            setApplicationsError(error?.message || "Failed to Load Applications.");
+            console.error("Failed to load applications.", error);
             setApplications([]);
+            setApplicationsError(
+                error?.message || "Failed to load applications."
+            );
         } finally {
             setApplicationsLoading(false);
         }
@@ -157,33 +199,83 @@ export default function MatchesPage() {
     }, []);
 
     const mappedApplications = useMemo(() => {
-        return applications.map((application) => ({
-            id: application.applicationId,
-            company: application.companyName,
-            jobTitle: application.opportunityTitle,
-            status: normalizeApplicationStatus(application.status),
-            logoColor: getLogoColor(application.companyName),
-            deadline: application.hasAssessment
-                ? "Assessment Available"
-                : formatAppliedDate(application.createdAtUtc),
-        }));
+        const mapped = applications.map((application) => {
+            const normalizedStatus = normalizeApplicationStatus(application.status);
+
+            return {
+                id: application.applicationId,
+                type: "application",
+                opportunityId: application.opportunityId,
+                company: application.companyName,
+                jobTitle: application.opportunityTitle,
+                status: normalizedStatus,
+                step: getApplicationStep(normalizedStatus),
+                finalDecision: getFinalDecisionLabel(normalizedStatus),
+                logoColor: getLogoColor(application.companyName),
+                deadline: application.hasAssessment
+                    ? "Assessment Available"
+                    : formatAppliedDate(application.createdAtUtc),
+                rawStatus: application.status,
+                hasAssessment: application.hasAssessment,
+                createdAtUtc: application.createdAtUtc,
+            };
+        });
+
+        const dedupedMap = new Map();
+
+        for (const app of mapped) {
+            const key =
+                app.opportunityId ??
+                `${app.company}-${app.jobTitle}`.toLowerCase();
+
+            const existing = dedupedMap.get(key);
+
+            if (!existing) {
+                dedupedMap.set(key, app);
+                continue;
+            }
+
+            // keep the one with the higher step
+            // always keep the MOST RECENT application
+            if (
+                new Date(app.createdAtUtc || 0) >
+                new Date(existing.createdAtUtc || 0)
+            ) {
+                dedupedMap.set(key, app);
+            }
+
+            // if same step, keep the most recent one
+            if (
+                (app.step ?? 0) === (existing.step ?? 0) &&
+                new Date(app.createdAtUtc || 0) > new Date(existing.createdAtUtc || 0)
+            ) {
+                dedupedMap.set(key, app);
+            }
+        }
+
+        return Array.from(dedupedMap.values());
     }, [applications]);
 
     const mappedOpportunities = useMemo(() => {
         return opportunities.map((opportunity) => {
             const matchedSkills = Array.isArray(opportunity.matchedSkills)
-                ? opportunity.matchedSkills.map((skill) => String(skill).toLowerCase())
+                ? opportunity.matchedSkills.map((skill) =>
+                    String(skill).toLowerCase()
+                )
                 : [];
 
             const skills = Array.isArray(opportunity.skills)
                 ? opportunity.skills.map((skill) => ({
                     name: skill,
-                    matched: matchedSkills.includes(String(skill).toLowerCase()),
+                    matched: matchedSkills.includes(
+                        String(skill).toLowerCase()
+                    ),
                 }))
                 : [];
 
             return {
                 id: opportunity.id,
+                type: "opportunity",
                 company: opportunity.companyName,
                 jobTitle: opportunity.title,
                 location: formatLocation(opportunity),
@@ -201,19 +293,25 @@ export default function MatchesPage() {
             .filter((item) => item.status === "Interview")
             .map((item) => ({
                 ...item,
+                type: "interview",
                 onPrepare: () => navigate(`/interviews/${item.id}/prepare`),
             }));
     }, [navigate]);
 
     const mappedMatches = useMemo(() => {
         return [...mappedOpportunities, ...mappedApplications, ...mappedInterviews];
-    }, [mappedApplications, mappedOpportunities, mappedInterviews]);
+    }, [mappedOpportunities, mappedApplications, mappedInterviews]);
+
+    console.log("RAW APPLICATIONS:", applications);
+    console.log("MAPPED APPLICATIONS:", mappedApplications);
 
     return (
         <div className="matches-page">
             <div className="matches-header">
                 <h1 className="matches-title">Matches</h1>
-                <p className="matches-subtitle">Manage your job search pipeline.</p>
+                <p className="matches-subtitle">
+                    Manage your job search pipeline.
+                </p>
             </div>
 
             <div className="matches-tabs">
@@ -238,6 +336,12 @@ export default function MatchesPage() {
             <div className="matches-content">
                 {activeTab === "cv-review" ? (
                     <CvReviewPage />
+                ) : opportunitiesLoading || applicationsLoading ? (
+                    <div className="matches-empty">Loading...</div>
+                ) : opportunitiesError || applicationsError ? (
+                    <div className="matches-empty">
+                        {opportunitiesError || applicationsError}
+                    </div>
                 ) : (
                     <MatchesTabs
                         activeTab={activeTab}

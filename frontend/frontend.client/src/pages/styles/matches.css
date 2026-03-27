@@ -1198,3 +1198,149 @@
         min-width: unset;
     }
 }
+
+@media (max-width: 768px) {
+    .matches-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .matches-tab {
+        width: 100%;
+        justify-content: center;
+        min-width: 0;
+        padding: 10px 12px;
+    }
+
+        .matches-tab span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+}
+
+@media (max-width: 480px) {
+    .matches-tabs {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    .match-card {
+        padding: 16px;
+    }
+
+    .match-card-left {
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .match-job-title {
+        font-size: 17px;
+        line-height: 1.2;
+    }
+
+    .match-meta {
+        gap: 6px;
+    }
+
+    .match-card-right {
+        align-items: flex-end;
+    }
+
+    .match-score-wrap {
+        flex: 0 0 auto;
+    }
+
+    .match-actions {
+        flex: 1 1 auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .match-card-right {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .match-actions {
+        flex: 1 1 auto;
+        justify-content: flex-end;
+    }
+
+    .match-btn {
+        padding: 10px 14px;
+    }
+}
+
+@media (max-width: 768px) {
+    .match-score-wrap {
+        transform: scale(1.2);
+        transform-origin: left center;
+    }
+}
+
+.status-pill.draft {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.status-pill.shortlisted {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.status-pill.rejected {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.app-steps {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    height: 32px; 
+}
+
+.app-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #cbd5e1;
+}
+
+    .app-dot.filled {
+        background: #2563eb;
+    }
+
+.app-step-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.app-extra-left {
+    display: flex;
+    align-items: center; 
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.assessment-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    height: 32px; 
+}

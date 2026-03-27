@@ -17,11 +17,12 @@ public class NotificationService
     // =========================
     // GET USER NOTIFICATIONS
     // =========================
+
     public async Task<List<NotificationDto>> GetUserNotificationsAsync(string userId)
     {
         return await _db.Notifications
             .Where(n => n.UserId == userId && !n.IsArchived)
-            .OrderByDescending(n => n.CreatedAtUtc)
+            .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
@@ -30,7 +31,7 @@ public class NotificationService
                 Type = n.Type,
                 OpportunityId = n.OpportunityId,
                 IsRead = n.IsRead,
-                CreatedAtUtc = n.CreatedAtUtc
+                CreatedAt = n.CreatedAt
             })
             .ToListAsync();
     }
@@ -42,7 +43,7 @@ public class NotificationService
     {
         return await _db.Notifications
             .Where(n => n.UserId == userId && n.IsArchived)
-            .OrderByDescending(n => n.CreatedAtUtc)
+            .OrderByDescending(n => n.CreatedAt)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
@@ -51,7 +52,7 @@ public class NotificationService
                 Type = n.Type,
                 OpportunityId = n.OpportunityId,
                 IsRead = n.IsRead,
-                CreatedAtUtc = n.CreatedAtUtc
+                CreatedAt = n.CreatedAt
             })
             .ToListAsync();
     }
@@ -194,11 +195,27 @@ public class NotificationService
                     OpportunityId = opportunity.Id,
                     IsRead = false,
                     IsArchived = false,
-                    CreatedAtUtc = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow
                 });
             }
         }
 
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task CreateNotificationAsync(string userId, string title, string message)
+    {
+        var notification = new Notification
+        {
+            UserId = userId,
+            Title = title,
+            Message = message,
+            IsRead = false,
+            IsArchived = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Notifications.Add(notification);
         await _db.SaveChangesAsync();
     }
 }

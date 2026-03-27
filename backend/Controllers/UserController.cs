@@ -1,4 +1,4 @@
-﻿using Jobify.Api.Data;
+using Jobify.Api.Data;
 using Jobify.Api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +15,7 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _context;
 
     public UsersController(AppDbContext context, UserManager<IdentityUser> userManager)
-    {   
+    {
         _context = context;
         _userManager = userManager;
     }
@@ -59,42 +59,44 @@ public class UsersController : ControllerBase
         // use AppDbContext instead of IdentityUser
         var context = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
 
-        if(role.ToLower() == "student") {
+        if (role.ToLower() == "student")
+        {
             var students = await (
-                from u in context.Users
-                join ur in context.UserRoles on u.Id equals ur.UserId
-                join r in context.Roles on ur.RoleId equals r.Id
-                join p in context.StudentProfiles on u.Email equals p.Email
-                where r.Name == role
-                select new StudentAdminDto
-                {
-                    Id = p.UserId,
-                    Email = u.Email,
-                    FullName = p.FullName,
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAtUtc = p.UpdatedAtUtc
-                }
-            ).ToListAsync();
+    from u in context.Users
+    join ur in context.UserRoles on u.Id equals ur.UserId
+    join r in context.Roles on ur.RoleId equals r.Id
+    join p in context.StudentProfiles on u.Id equals p.UserId
+    where r.Name.ToLower() == role.ToLower()
+    select new StudentAdminDto
+    {
+        Id = p.UserId,
+        Email = u.Email,
+        FullName = p.FullName,
+        CreatedAt = p.CreatedAt,
+        UpdatedAtUtc = p.UpdatedAtUtc
+    }
+).ToListAsync();
 
             return Ok(students);
         }
-        else if (role.ToLower() == "recruiter") {
+        else if (role.ToLower() == "recruiter")
+        {
             var recruiters = await (
-                from u in context.Users
-                join ur in context.UserRoles on u.Id equals ur.UserId
-                join r in context.Roles on ur.RoleId equals r.Id
-                join p in context.RecruiterProfiles on u.Email equals p.Email
-                where r.Name == role
-                select new RecruiterAdminDto
-                {
-                    Id = p.UserId,
-                    Email = u.Email,
-                    CompanyName = p.CompanyName,
-                    CreatedAt = p.CreatedAtUtc,
-                    UpdatedAtUtc = p.VerifiedAtUtc ?? p.CreatedAtUtc,
-                    VerificationStatus = p.VerificationStatus.ToString()
-                }
-            ).ToListAsync();
+    from u in context.Users
+    join ur in context.UserRoles on u.Id equals ur.UserId
+    join r in context.Roles on ur.RoleId equals r.Id
+    join p in context.RecruiterProfiles on u.Id equals p.UserId
+    where r.Name.ToLower() == role.ToLower()
+    select new RecruiterAdminDto
+    {
+        Id = p.UserId,
+        Email = u.Email,
+        CompanyName = p.CompanyName,
+        CreatedAt = p.CreatedAtUtc,
+        UpdatedAtUtc = p.VerifiedAtUtc ?? p.CreatedAtUtc,
+        VerificationStatus = p.VerificationStatus.ToString()
+    }
+).ToListAsync();
 
             return Ok(recruiters);
         }
@@ -216,10 +218,11 @@ public class UsersController : ControllerBase
         var notification = new Notification
         {
             UserId = id,
+            Title = string.IsNullOrWhiteSpace(request.Title) ? "Notification" : request.Title,
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow
         };
 
         // Save to DB
@@ -249,10 +252,11 @@ public class UsersController : ControllerBase
         var notification = new Notification
         {
             UserId = id,
+            Title = request.Title,
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow
         };
 
         // Save to DB
@@ -397,10 +401,9 @@ public class UsersController : ControllerBase
 
             recentActivity
         });
+
     }
 
-
-    // Get Companies
     [Authorize(Roles = "Admin")]
     [HttpGet("companies")]
     public async Task<IActionResult> GetCompanies()
@@ -412,33 +415,41 @@ public class UsersController : ControllerBase
             .GroupBy(p => p.CompanyName.Trim().ToLower())
             .Select(group =>
             {
-                // first recruiter from the company recruiters grouped
                 var first = group.First();
 
                 return new
                 {
                     Id = group.Key,
                     Name = first.CompanyName,
-                    Email = first.Email,
+
+                    // ✅ FIX: get email from Users table
+                    Email = _context.Users
+                        .Where(u => u.Id == first.UserId)
+                        .Select(u => u.Email)
+                        .FirstOrDefault() ?? first.Email,
+
                     Website = first.WebsiteUrl,
                     Linkedin = first.LinkedinUrl,
                     Instagram = first.InstagramUrl,
 
-                    // number of recruiters grouped
                     RecruiterCount = group.Count(),
 
-                    // a company is verified if at least one of its recruiters is verified
                     Status = group.Any(p => p.VerificationStatus == RecruiterVerificationStatus.Verified)
                         ? "Verified"
                         : group.Any(p => p.VerificationStatus == RecruiterVerificationStatus.Pending)
                             ? "Pending"
                             : "Unverified",
 
-                    // the list of recruiters of the company
+                    // ✅ FIX: recruiter emails from Users table
                     Recruiters = group.Select(p => new
                     {
                         Id = p.UserId,
-                        Email = p.Email,
+
+                        Email = _context.Users
+                            .Where(u => u.Id == p.UserId)
+                            .Select(u => u.Email)
+                            .FirstOrDefault() ?? p.Email,
+
                         JoinedAt = p.CreatedAtUtc,
                         Status = p.VerificationStatus.ToString()
                     })
@@ -453,7 +464,7 @@ public class UsersController : ControllerBase
     // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
 
-    
+
     public class StudentAdminDto
     {
         public string? Id { get; set; }

@@ -53,89 +53,197 @@ public class ApplicationController : ControllerBase
 
     private static object? MakePublicAssessment(string? assessmentJson, List<string>? questionOrder = null)
     {
-        if (string.IsNullOrWhiteSpace(assessmentJson)) return null;
+        if (string.IsNullOrWhiteSpace(assessmentJson))
+            return null;
 
-        using var doc = JsonDocument.Parse(assessmentJson);
-        var root = doc.RootElement;
-
-        int timeLimitSeconds = root.TryGetProperty("timeLimitSeconds", out var tl) && tl.ValueKind == JsonValueKind.Number
-            ? tl.GetInt32()
-            : 1800;
-
-        bool randomize = root.TryGetProperty("randomize", out var r) && r.ValueKind == JsonValueKind.True;
-
-        if (!root.TryGetProperty("questions", out var qs) || qs.ValueKind != JsonValueKind.Array)
+        try
         {
-            return new { timeLimitSeconds, randomize, questions = new List<object>() };
-        }
+            using var doc = JsonDocument.Parse(assessmentJson);
+            var root = doc.RootElement;
 
-        var map = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var q in qs.EnumerateArray())
-        {
-            var id = q.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String ? idEl.GetString() : null;
-            if (string.IsNullOrWhiteSpace(id)) continue;
-
-            var type = q.TryGetProperty("type", out var tEl) && tEl.ValueKind == JsonValueKind.String ? tEl.GetString() : "mcq";
-
-            if (string.Equals(type, "mcq", StringComparison.OrdinalIgnoreCase))
+            // ✅ OLD FORMAT (already has questions)
+            if ((root.TryGetProperty("questions", out var oldQs) && oldQs.ValueKind == JsonValueKind.Array) ||
+                (root.TryGetProperty("Questions", out oldQs) && oldQs.ValueKind == JsonValueKind.Array))
             {
-                var prompt = q.TryGetProperty("prompt", out var pEl) && pEl.ValueKind == JsonValueKind.String ? pEl.GetString() : "";
-                var options = new List<string?>();
-
-                if (q.TryGetProperty("options", out var optEl) && optEl.ValueKind == JsonValueKind.Array)
-                    foreach (var o in optEl.EnumerateArray())
-                        options.Add(o.ValueKind == JsonValueKind.String ? o.GetString() : null);
-
-                map[id] = new { id, type = "mcq", prompt, options };
+                return JsonSerializer.Deserialize<object>(
+                    assessmentJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
-            else if (string.Equals(type, "code", StringComparison.OrdinalIgnoreCase))
+
+            // ✅ NEW FORMAT → convert to student format
+            int timeLimitSeconds = 1800;
+
+            if (root.TryGetProperty("timeLimitMinutes", out var tlm) && tlm.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlm.GetInt32() * 60;
+            else if (root.TryGetProperty("TimeLimitMinutes", out var tlmPascal) && tlmPascal.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlmPascal.GetInt32() * 60;
+            else if (root.TryGetProperty("timeLimitSeconds", out var tls) && tls.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tls.GetInt32();
+            else if (root.TryGetProperty("TimeLimitSeconds", out var tlsPascal) && tlsPascal.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlsPascal.GetInt32();
+
+            var questions = new List<Dictionary<string, object?>>();
+
+            // 🔹 MCQs
+            if (root.TryGetProperty("mcqs", out var mcqs) && mcqs.ValueKind == JsonValueKind.Array)
             {
-                var title = q.TryGetProperty("title", out var ti) && ti.ValueKind == JsonValueKind.String ? ti.GetString() : "";
-                var prompt = q.TryGetProperty("prompt", out var pEl) && pEl.ValueKind == JsonValueKind.String ? pEl.GetString() : "";
-                var starterCode = q.TryGetProperty("starterCode", out var sc) && sc.ValueKind == JsonValueKind.String ? sc.GetString() : "";
-
-                var allowed = new List<int>();
-                if (q.TryGetProperty("languageIdsAllowed", out var langs) && langs.ValueKind == JsonValueKind.Array)
-                    foreach (var l in langs.EnumerateArray())
-                        if (l.ValueKind == JsonValueKind.Number) allowed.Add(l.GetInt32());
-
-                var publicTests = new List<object>();
-                if (q.TryGetProperty("publicTests", out var pts) && pts.ValueKind == JsonValueKind.Array)
+                int i = 0;
+                foreach (var q in mcqs.EnumerateArray())
                 {
-                    foreach (var pt in pts.EnumerateArray())
+                    var prompt =
+                        q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" :
+                        q.TryGetProperty("Prompt", out var p2) ? p2.GetString() ?? "" :
+                        "";
+
+                    var options = new List<string>();
+
+                    if (q.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
                     {
-                        var stdin = pt.TryGetProperty("stdin", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : "";
-                        var expected = pt.TryGetProperty("expected", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : "";
-                        publicTests.Add(new { stdin, expected });
+                        foreach (var opt in opts.EnumerateArray())
+                            if (opt.ValueKind == JsonValueKind.String)
+                                options.Add(opt.GetString() ?? "");
                     }
+                    else if (q.TryGetProperty("Options", out var opts2) && opts2.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var opt in opts2.EnumerateArray())
+                            if (opt.ValueKind == JsonValueKind.String)
+                                options.Add(opt.GetString() ?? "");
+                    }
+
+                    questions.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = $"mcq-{i++}",
+                        ["type"] = "mcq",
+                        ["prompt"] = prompt,
+                        ["options"] = options
+                    });
                 }
-
-                map[id] = new
-                {
-                    id,
-                    type = "code",
-                    title,
-                    prompt,
-                    starterCode,
-                    languageIdsAllowed = allowed,
-                    publicTests
-                };
             }
-        }
+            else if (root.TryGetProperty("Mcqs", out var mcqsPascal) && mcqsPascal.ValueKind == JsonValueKind.Array)
+            {
+                int i = 0;
+                foreach (var q in mcqsPascal.EnumerateArray())
+                {
+                    var prompt =
+                        q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" :
+                        q.TryGetProperty("Prompt", out var p2) ? p2.GetString() ?? "" :
+                        "";
 
-        var ordered = new List<object>();
-        if (questionOrder != null && questionOrder.Count > 0)
-        {
-            foreach (var qid in questionOrder)
-                if (map.TryGetValue(qid, out var pq)) ordered.Add(pq);
-        }
-        else
-        {
-            ordered = map.Values.ToList();
-        }
+                    var options = new List<string>();
 
-        return new { timeLimitSeconds, randomize, questions = ordered };
+                    if (q.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var opt in opts.EnumerateArray())
+                            if (opt.ValueKind == JsonValueKind.String)
+                                options.Add(opt.GetString() ?? "");
+                    }
+                    else if (q.TryGetProperty("Options", out var opts2) && opts2.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var opt in opts2.EnumerateArray())
+                            if (opt.ValueKind == JsonValueKind.String)
+                                options.Add(opt.GetString() ?? "");
+                    }
+
+                    questions.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = $"mcq-{i++}",
+                        ["type"] = "mcq",
+                        ["prompt"] = prompt,
+                        ["options"] = options
+                    });
+                }
+            }
+
+            // 🔹 Coding
+            if (root.TryGetProperty("codingChallenges", out var coding) && coding.ValueKind == JsonValueKind.Array)
+            {
+                int i = 0;
+                foreach (var q in coding.EnumerateArray())
+                {
+                    var title =
+                        q.TryGetProperty("title", out var t) ? t.GetString() ?? "" :
+                        q.TryGetProperty("Title", out var t2) ? t2.GetString() ?? "" :
+                        "Coding Question";
+
+                    var prompt =
+                        q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" :
+                        q.TryGetProperty("Prompt", out var p2) ? p2.GetString() ?? "" :
+                        "";
+
+                    var starterCode =
+                        q.TryGetProperty("starterCode", out var s) ? s.GetString() ?? "" :
+                        q.TryGetProperty("StarterCode", out var s2) ? s2.GetString() ?? "" :
+                        "";
+
+                    questions.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = $"code-{i++}",
+                        ["type"] = "code",
+                        ["title"] = title,
+                        ["prompt"] = prompt,
+                        ["starterCode"] = starterCode,
+                        ["languageIdsAllowed"] = new List<int> { 71, 63, 62, 51, 54 },
+                        ["publicTests"] = new List<object>()
+                    });
+                }
+            }
+            else if (root.TryGetProperty("CodingChallenges", out var codingPascal) && codingPascal.ValueKind == JsonValueKind.Array)
+            {
+                int i = 0;
+                foreach (var q in codingPascal.EnumerateArray())
+                {
+                    var title =
+                        q.TryGetProperty("title", out var t) ? t.GetString() ?? "" :
+                        q.TryGetProperty("Title", out var t2) ? t2.GetString() ?? "" :
+                        "Coding Question";
+
+                    var prompt =
+                        q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" :
+                        q.TryGetProperty("Prompt", out var p2) ? p2.GetString() ?? "" :
+                        "";
+
+                    var starterCode =
+                        q.TryGetProperty("starterCode", out var s) ? s.GetString() ?? "" :
+                        q.TryGetProperty("StarterCode", out var s2) ? s2.GetString() ?? "" :
+                        "";
+
+                    questions.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = $"code-{i++}",
+                        ["type"] = "code",
+                        ["title"] = title,
+                        ["prompt"] = prompt,
+                        ["starterCode"] = starterCode,
+                        ["languageIdsAllowed"] = new List<int> { 71, 63, 62, 51, 54 },
+                        ["publicTests"] = new List<object>()
+                    });
+                }
+            }
+
+            // 🔹 Apply order if exists
+            if (questionOrder != null && questionOrder.Count > 0)
+            {
+                questions = questions
+                    .OrderBy(q =>
+                    {
+                        var id = q.TryGetValue("id", out var val) ? val?.ToString() : "";
+                        var idx = questionOrder.IndexOf(id ?? "");
+                        return idx >= 0 ? idx : int.MaxValue;
+                    })
+                    .ToList();
+            }
+
+            return new
+            {
+                timeLimitSeconds,
+                randomize = true,
+                questions
+            };
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static decimal ComputeMcqScore(string assessmentJson, string answersJson)
@@ -216,7 +324,42 @@ public class ApplicationController : ControllerBase
         public string Base64Jpeg { get; set; } = "";
     }
 
-    // GET my applications
+    public class RecruiterApplicantProfileDto
+    {
+        public int ApplicationId { get; set; }
+        public int OpportunityId { get; set; }
+        public string OpportunityTitle { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string? Note { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
+        public DateTime UpdatedAtUtc { get; set; }
+
+        public string StudentUserId { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string? PhoneNumber { get; set; }
+        public string? Location { get; set; }
+        public string? Bio { get; set; }
+        public string? University { get; set; }
+        public string? Major { get; set; }
+        public string? GraduationYear { get; set; }
+
+        public bool HasResume { get; set; }
+        public string? ResumeFileName { get; set; }
+        public bool HasUniversityProof { get; set; }
+        public string? UniversityProofFileName { get; set; }
+
+        public List<string> Skills { get; set; } = new();
+        public List<object> Education { get; set; } = new();
+        public List<object> Experience { get; set; } = new();
+        public List<object> Projects { get; set; } = new();
+        public List<string> Interests { get; set; } = new();
+
+        public decimal? AssessmentScore { get; set; }
+        public bool? Flagged { get; set; }
+        public string? FlagReason { get; set; }
+    }
+
     [Authorize(Roles = "Student")]
     [HttpGet("me")]
     public async Task<ActionResult<List<MyApplicationDto>>> GetMyApplications()
@@ -227,7 +370,9 @@ public class ApplicationController : ControllerBase
         var apps = await _db.Applications
             .AsNoTracking()
             .Include(a => a.Opportunity)
-            .Where(a => a.UserId == userId && a.Status != ApplicationStatus.Withdrawn)
+            .Where(a =>
+                (a.UserId == userId || a.StudentUserId == userId) &&
+                a.Status != ApplicationStatus.Withdrawn)
             .OrderByDescending(a => a.CreatedAtUtc)
             .Select(a => new MyApplicationDto
             {
@@ -244,7 +389,6 @@ public class ApplicationController : ControllerBase
         return Ok(apps);
     }
 
-    // GET application details incl. public assessment + expiry
     [Authorize(Roles = "Student")]
     [HttpGet("{applicationId:int}")]
     public async Task<IActionResult> GetMyApplication(int applicationId)
@@ -255,7 +399,9 @@ public class ApplicationController : ControllerBase
         var app = await _db.Applications
             .AsNoTracking()
             .Include(a => a.Opportunity)
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId);
+            .FirstOrDefaultAsync(a =>
+                a.Id == applicationId &&
+                (a.UserId == userId || a.StudentUserId == userId));
 
         if (app == null) return NotFound();
 
@@ -295,17 +441,14 @@ public class ApplicationController : ControllerBase
                 attempt.WebcamConsent,
                 attempt.Flagged,
                 attempt.FlagReason,
-
                 mcqCount = attempt.McqCountSnapshot,
                 challengeCount = attempt.ChallengeCountSnapshot,
                 timeLimitSeconds = attempt.TimeLimitSeconds,
-
                 savedAnswers
             }
         });
     }
 
-    // Start assessment
     [Authorize(Roles = "Student")]
     [HttpPost("{applicationId:int}/assessment/start")]
     public async Task<IActionResult> StartAssessment(int applicationId, [FromBody] StartAssessmentDto dto)
@@ -315,7 +458,9 @@ public class ApplicationController : ControllerBase
 
         var app = await _db.Applications
             .Include(a => a.Opportunity)
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId);
+            .FirstOrDefaultAsync(a =>
+                a.Id == applicationId &&
+                (a.UserId == userId || a.StudentUserId == userId));
 
         if (app == null) return NotFound();
         if (app.Status == ApplicationStatus.Withdrawn) return BadRequest("Application is withdrawn.");
@@ -329,7 +474,15 @@ public class ApplicationController : ControllerBase
         if (existing != null)
         {
             if (existing.SubmittedAtUtc != null)
-                return Ok(new { attemptId = existing.Id, alreadySubmitted = true, expiresAtUtc = existing.ExpiresAtUtc });
+            {
+                return Ok(new
+                {
+                    attemptId = existing.Id,
+                    alreadySubmitted = true,
+                    expiresAtUtc = existing.ExpiresAtUtc
+                });
+            }
+
             if (IsExpired(existing))
             {
                 _db.ApplicationAssessments.Remove(existing);
@@ -341,7 +494,11 @@ public class ApplicationController : ControllerBase
                 existing.WebcamConsent = dto.WebcamConsent;
                 await _db.SaveChangesAsync();
 
-                return Ok(new { attemptId = existing.Id, expiresAtUtc = existing.ExpiresAtUtc });
+                return Ok(new
+                {
+                    attemptId = existing.Id,
+                    expiresAtUtc = existing.ExpiresAtUtc
+                });
             }
         }
 
@@ -349,20 +506,32 @@ public class ApplicationController : ControllerBase
         bool randomize = true;
         var questionIds = new List<string>();
 
-        int mcqCount = 0;
-        int challengeCount = 0;
-
         using (var doc = JsonDocument.Parse(app.Opportunity.AssessmentJson))
         {
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("timeLimitSeconds", out var tl) && tl.ValueKind == JsonValueKind.Number)
-                timeLimitSeconds = tl.GetInt32();
+            // time limit: support camelCase + PascalCase + old format
+            if (root.TryGetProperty("timeLimitMinutes", out var tlm) && tlm.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlm.GetInt32() * 60;
+            else if (root.TryGetProperty("TimeLimitMinutes", out var tlmPascal) && tlmPascal.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlmPascal.GetInt32() * 60;
+            else if (root.TryGetProperty("timeLimitSeconds", out var tls) && tls.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tls.GetInt32();
+            else if (root.TryGetProperty("TimeLimitSeconds", out var tlsPascal) && tlsPascal.ValueKind == JsonValueKind.Number)
+                timeLimitSeconds = tlsPascal.GetInt32();
 
             if (root.TryGetProperty("randomize", out var r) &&
                 (r.ValueKind == JsonValueKind.True || r.ValueKind == JsonValueKind.False))
-                randomize = r.ValueKind == JsonValueKind.True;
+            {
+                randomize = r.GetBoolean();
+            }
+            else if (root.TryGetProperty("Randomize", out var rPascal) &&
+                     (rPascal.ValueKind == JsonValueKind.True || rPascal.ValueKind == JsonValueKind.False))
+            {
+                randomize = rPascal.GetBoolean();
+            }
 
+            // OLD FORMAT
             if (root.TryGetProperty("questions", out var qs) && qs.ValueKind == JsonValueKind.Array)
             {
                 foreach (var q in qs.EnumerateArray())
@@ -370,50 +539,95 @@ public class ApplicationController : ControllerBase
                     if (q.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
                     {
                         var id = idEl.GetString();
-                        if (!string.IsNullOrWhiteSpace(id)) questionIds.Add(id!);
+                        if (!string.IsNullOrWhiteSpace(id))
+                            questionIds.Add(id!);
                     }
+                    else if (q.TryGetProperty("Id", out var idPascal) && idPascal.ValueKind == JsonValueKind.String)
+                    {
+                        var id = idPascal.GetString();
+                        if (!string.IsNullOrWhiteSpace(id))
+                            questionIds.Add(id!);
+                    }
+                }
+            }
+            else if (root.TryGetProperty("Questions", out var qsPascal) && qsPascal.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var q in qsPascal.EnumerateArray())
+                {
+                    if (q.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String)
+                    {
+                        var id = idEl.GetString();
+                        if (!string.IsNullOrWhiteSpace(id))
+                            questionIds.Add(id!);
+                    }
+                    else if (q.TryGetProperty("Id", out var idPascal) && idPascal.ValueKind == JsonValueKind.String)
+                    {
+                        var id = idPascal.GetString();
+                        if (!string.IsNullOrWhiteSpace(id))
+                            questionIds.Add(id!);
+                    }
+                }
+            }
+            // NEW FORMAT
+            else
+            {
+                if (root.TryGetProperty("mcqs", out var mcqs) && mcqs.ValueKind == JsonValueKind.Array)
+                {
+                    int i = 0;
+                    foreach (var _ in mcqs.EnumerateArray())
+                        questionIds.Add($"mcq-{i++}");
+                }
+                else if (root.TryGetProperty("Mcqs", out var mcqsPascal) && mcqsPascal.ValueKind == JsonValueKind.Array)
+                {
+                    int i = 0;
+                    foreach (var _ in mcqsPascal.EnumerateArray())
+                        questionIds.Add($"mcq-{i++}");
+                }
 
-                    var type = q.TryGetProperty("type", out var tEl) && tEl.ValueKind == JsonValueKind.String
-                        ? tEl.GetString()
-                        : "mcq";
-
-                    if (string.Equals(type, "mcq", StringComparison.OrdinalIgnoreCase)) mcqCount++;
-                    else if (string.Equals(type, "code", StringComparison.OrdinalIgnoreCase)) challengeCount++;
+                if (root.TryGetProperty("codingChallenges", out var coding) && coding.ValueKind == JsonValueKind.Array)
+                {
+                    int i = 0;
+                    foreach (var _ in coding.EnumerateArray())
+                        questionIds.Add($"code-{i++}");
+                }
+                else if (root.TryGetProperty("CodingChallenges", out var codingPascal) && codingPascal.ValueKind == JsonValueKind.Array)
+                {
+                    int i = 0;
+                    foreach (var _ in codingPascal.EnumerateArray())
+                        questionIds.Add($"code-{i++}");
                 }
             }
         }
 
-        if (questionIds.Count == 0) return BadRequest("Assessment has no questions.");
+        if (questionIds.Count == 0)
+            return BadRequest("Assessment has no questions.");
 
-        var seed = SecureSeed();
-        var order = randomize ? Shuffle(questionIds, seed) : questionIds;
+        if (randomize)
+            questionIds = questionIds.OrderBy(_ => Guid.NewGuid()).ToList();
 
-        app.Status = ApplicationStatus.InAssessment;
+        var startedAt = DateTime.UtcNow;
 
         var attempt = new ApplicationAssessment
         {
             ApplicationId = app.Id,
+            StartedAtUtc = startedAt,
+            ExpiresAtUtc = startedAt.AddSeconds(timeLimitSeconds),
+            QuestionOrderJson = JsonSerializer.Serialize(questionIds),
             AnswersJson = "{}",
-            StartedAtUtc = DateTime.UtcNow,
-            TimeLimitSeconds = timeLimitSeconds,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(timeLimitSeconds),
-
-            McqCountSnapshot = mcqCount,
-            ChallengeCountSnapshot = challengeCount,
-
-            RandomSeed = seed,
-            QuestionOrderJson = JsonSerializer.Serialize(order),
-            WebcamConsent = dto.WebcamConsent,
-            CopyPasteCount = 0,
-            TabSwitchCount = 0,
-            SuspiciousCount = 0,
-            Flagged = false
+            WebcamConsent = dto.WebcamConsent
         };
 
         _db.ApplicationAssessments.Add(attempt);
+
+        app.Status = ApplicationStatus.InAssessment;
+
         await _db.SaveChangesAsync();
 
-        return Ok(new { attemptId = attempt.Id, expiresAtUtc = attempt.ExpiresAtUtc });
+        return Ok(new
+        {
+            attemptId = attempt.Id,
+            expiresAtUtc = attempt.ExpiresAtUtc
+        });
     }
 
 
@@ -427,7 +641,9 @@ public class ApplicationController : ControllerBase
 
         var attempt = await _db.ApplicationAssessments
             .Include(x => x.Application)
-            .FirstOrDefaultAsync(x => x.ApplicationId == applicationId && x.Application.UserId == userId);
+            .FirstOrDefaultAsync(x =>
+                x.ApplicationId == applicationId &&
+                (x.Application.UserId == userId || x.Application.StudentUserId == userId));
 
         if (attempt == null) return NotFound("Assessment not started.");
         if (attempt.SubmittedAtUtc != null) return BadRequest("Already submitted.");
@@ -450,7 +666,9 @@ public class ApplicationController : ControllerBase
 
         var attempt = await _db.ApplicationAssessments
             .Include(x => x.Application)
-            .FirstOrDefaultAsync(x => x.ApplicationId == applicationId && x.Application.UserId == userId);
+            .FirstOrDefaultAsync(x =>
+                x.ApplicationId == applicationId &&
+                (x.Application.UserId == userId || x.Application.StudentUserId == userId));
 
         if (attempt == null) return NotFound("Assessment not started.");
         if (attempt.SubmittedAtUtc != null) return NoContent();
@@ -473,9 +691,8 @@ public class ApplicationController : ControllerBase
         if (isTabEvent) attempt.TabSwitchCount++;
         if (isSuspicious) attempt.SuspiciousCount++;
 
-        // Soft warning thresholds
-        var warnTabAt = 1;   // first tab switch -> warn
-        var flagTabAt = 3;   // your current flag threshold
+        var warnTabAt = 1;
+        var flagTabAt = 3;
 
         string? message = null;
 
@@ -511,7 +728,6 @@ public class ApplicationController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        // If you want it to feel like an "error" once flagged:
         if (attempt.Flagged)
         {
             return StatusCode(StatusCodes.Status429TooManyRequests, new
@@ -544,7 +760,9 @@ public class ApplicationController : ControllerBase
 
         var attempt = await _db.ApplicationAssessments
             .Include(x => x.Application)
-            .FirstOrDefaultAsync(x => x.ApplicationId == applicationId && x.Application.UserId == userId);
+            .FirstOrDefaultAsync(x =>
+                x.ApplicationId == applicationId &&
+                (x.Application.UserId == userId || x.Application.StudentUserId == userId));
 
         if (attempt == null) return NotFound("Assessment not started.");
         if (!attempt.WebcamConsent) return BadRequest("No webcam consent.");
@@ -592,7 +810,9 @@ public class ApplicationController : ControllerBase
         var attempt = await _db.ApplicationAssessments
             .Include(x => x.Application)
                 .ThenInclude(a => a.Opportunity)
-            .FirstOrDefaultAsync(x => x.ApplicationId == applicationId && x.Application.UserId == userId);
+            .FirstOrDefaultAsync(x =>
+                x.ApplicationId == applicationId &&
+                (x.Application.UserId == userId || x.Application.StudentUserId == userId));
 
         if (attempt == null) return NotFound("Assessment not started.");
         if (attempt.SubmittedAtUtc != null) return BadRequest("Already submitted.");
@@ -646,18 +866,19 @@ public class ApplicationController : ControllerBase
                 mode = "custom",
                 results = new[]
                 {
-            new {
-                stdin = dto.StdinOverride,
-                expected = (string?)null,
-                stdout = res["stdout"],
-                stderr = res["stderr"],
-                compile_output = res["compile_output"],
-                message = res["message"],
-                status = res["status"]
+                new {
+                    stdin = dto.StdinOverride,
+                    expected = (string?)null,
+                    stdout = res["stdout"],
+                    stderr = res["stderr"],
+                    compile_output = res["compile_output"],
+                    message = res["message"],
+                    status = res["status"]
+                }
             }
-        }
             });
         }
+
         var results = new List<object>();
 
         if (qEl.TryGetProperty("publicTests", out var pts) && pts.ValueKind == JsonValueKind.Array)
@@ -687,7 +908,6 @@ public class ApplicationController : ControllerBase
             mode = "public",
             results
         });
-
     }
 
 
@@ -705,7 +925,9 @@ public class ApplicationController : ControllerBase
         var attempt = await _db.ApplicationAssessments
             .Include(x => x.Application)
                 .ThenInclude(a => a.Opportunity)
-            .FirstOrDefaultAsync(x => x.ApplicationId == applicationId && x.Application.UserId == userId);
+            .FirstOrDefaultAsync(x =>
+                x.ApplicationId == applicationId &&
+                (x.Application.UserId == userId || x.Application.StudentUserId == userId));
 
         if (attempt == null) return NotFound("Assessment not started.");
         if (attempt.SubmittedAtUtc != null) return BadRequest("Already submitted.");
@@ -726,6 +948,7 @@ public class ApplicationController : ControllerBase
         {
             answersRoot = JsonDocument.Parse("{}").RootElement.Clone();
         }
+
         var mcqScore = ComputeMcqScore(assessmentJson, attempt.AnswersJson);
         var (codeScore, codeDetails) = await GradeCodeQuestions(assessmentJson, answersRoot);
         var hasMcq = HasQuestionType(assessmentJson, "mcq");
@@ -958,6 +1181,13 @@ public class ApplicationController : ControllerBase
         public bool HasAssessment { get; set; }
         public decimal? AssessmentScore { get; set; }
         public string? Note { get; set; }
+        public int MatchPercentage { get; set; }
+        public DateTime? InterviewScheduledAtUtc { get; set; }
+        public bool HasActiveInterview { get; set; }
+        public string UserId { get; set; } = "";
+        public int? InterviewId { get; set; }
+        public string? MeetingLink { get; set; }
+        public string? Location { get; set; }
     }
 
     public class ResendRejectionDto
@@ -965,23 +1195,31 @@ public class ApplicationController : ControllerBase
         public string? RejectionReason { get; set; }
     }
 
-    // ── GET /api/applications/recruiter/{opportunityId} ───────────────────────
-    // PB_19: see all applicants + their current status for a given opportunity
     [Authorize(Roles = "Recruiter")]
     [HttpGet("recruiter/opportunity/{opportunityId:int}")]
     public async Task<ActionResult<List<RecruiterAppListDto>>> GetApplicationsForOpportunity(int opportunityId)
     {
         var recruiterId = CurrentUserId();
-        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
+        if (string.IsNullOrEmpty(recruiterId))
+            return Unauthorized();
 
         var opp = await _db.Opportunities
             .AsNoTracking()
+            .Include(o => o.OpportunitySkills)
+                .ThenInclude(os => os.Skill)
             .FirstOrDefaultAsync(o => o.Id == opportunityId);
 
-        if (opp == null) return NotFound("Opportunity not found.");
+        if (opp == null)
+            return NotFound("Opportunity not found.");
 
         if (opp.RecruiterUserId != recruiterId)
             return Forbid();
+
+        var opportunitySkills = opp.OpportunitySkills
+            .Where(os => os.Skill != null && !string.IsNullOrWhiteSpace(os.Skill.Name))
+            .Select(os => os.Skill!.Name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var apps = await _db.Applications
             .AsNoTracking()
@@ -994,27 +1232,82 @@ public class ApplicationController : ControllerBase
 
         foreach (var app in apps)
         {
-            var user = await _db.Users.AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == app.UserId);
+            var candidateUserId = !string.IsNullOrWhiteSpace(app.StudentUserId)
+                ? app.StudentUserId
+                : app.UserId;
 
-            var student = await _db.StudentProfiles.AsNoTracking()
-                .FirstOrDefaultAsync(s => s.UserId == app.UserId);
+            var user = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == candidateUserId);
+
+            var student = string.IsNullOrWhiteSpace(candidateUserId)
+                ? null
+                : await _db.StudentProfiles.AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.UserId == candidateUserId);
 
             var assessment = await _db.ApplicationAssessments
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ApplicationId == app.Id);
 
+            var studentSkills = string.IsNullOrWhiteSpace(candidateUserId)
+                ? new List<string>()
+                : await _db.StudentSkills
+                    .AsNoTracking()
+                    .Where(ss => ss.StudentUserId == candidateUserId && ss.SkillId != null)
+                    .Join(
+                        _db.Skills,
+                        ss => ss.SkillId,
+                        s => s.Id,
+                        (ss, s) => s.Name
+                    )
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Select(name => name.Trim())
+                    .Distinct()
+                    .ToListAsync();
+
+            var latestInterview = await _db.Interviews
+                .AsNoTracking()
+                .Where(i => i.ApplicationId == app.Id && !i.IsCancelled)
+                .OrderByDescending(i => i.ScheduledAtUtc)
+                .FirstOrDefaultAsync();
+
+            var hasActiveInterview =
+                latestInterview != null &&
+                latestInterview.ScheduledAtUtc.AddHours(1) > DateTime.UtcNow;
+
+            var matchPercentage = CalculateMatchPercentage(studentSkills, opportunitySkills);
+
             result.Add(new RecruiterAppListDto
             {
                 ApplicationId = app.Id,
-                CandidateName = student?.FullName ?? user?.UserName ?? "Unknown",
-                CandidateEmail = user?.Email ?? "",
+                UserId = candidateUserId,
+
+                CandidateName =
+                    !string.IsNullOrWhiteSpace(student?.FullName) ? student.FullName! :
+                    !string.IsNullOrWhiteSpace(student?.Email) ? student.Email.Split('@')[0] :
+                    !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName! :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email!.Split('@')[0] :
+                    "Unknown",
+
+                CandidateEmail =
+                    !string.IsNullOrWhiteSpace(student?.Email) ? student.Email :
+                    !string.IsNullOrWhiteSpace(user?.Email) ? user.Email! :
+                    "No email",
+
                 Status = app.Status.ToString(),
                 CreatedAtUtc = app.CreatedAtUtc,
                 UpdatedAtUtc = app.UpdatedAtUtc,
                 HasAssessment = !string.IsNullOrWhiteSpace(app.Opportunity?.AssessmentJson),
                 AssessmentScore = assessment?.Score,
-                Note = app.Note
+                Note = app.Note,
+                MatchPercentage = matchPercentage,
+
+                InterviewId = latestInterview?.Id,
+                InterviewScheduledAtUtc = latestInterview?.ScheduledAtUtc,
+                MeetingLink = latestInterview?.MeetingLink,
+                Location = latestInterview?.Location,
+                HasActiveInterview = hasActiveInterview
             });
         }
 
@@ -1033,7 +1326,9 @@ public class ApplicationController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.Status))
             return BadRequest("Status is required.");
 
-        if (!Enum.TryParse<ApplicationStatus>(dto.Status, ignoreCase: true, out var newStatus))
+        var normalizedStatus = dto.Status?.Trim().Replace(" ", "");
+
+        if (!Enum.TryParse<ApplicationStatus>(normalizedStatus, ignoreCase: true, out var newStatus))
         {
             var valid = string.Join(", ", Enum.GetNames<ApplicationStatus>());
             return BadRequest($"Invalid status. Valid values: {valid}");
@@ -1197,7 +1492,9 @@ public class ApplicationController : ControllerBase
         var app = await _db.Applications
             .AsNoTracking()
             .Include(a => a.Opportunity)
-            .FirstOrDefaultAsync(a => a.Id == applicationId && a.UserId == userId);
+            .FirstOrDefaultAsync(a =>
+                a.Id == applicationId &&
+                (a.UserId == userId || a.StudentUserId == userId));
 
         if (app == null) return NotFound();
 
@@ -1238,7 +1535,7 @@ public class ApplicationController : ControllerBase
                 applicationId = a.Id,
                 opportunityId = a.OpportunityId,
                 opportunityTitle = a.Opportunity!.Title,
-                studentUserId = a.UserId,
+                studentUserId = a.StudentUserId ?? a.UserId,
                 status = a.Status.ToString(),
                 note = a.Note,
                 UpdatedAtUtc = a.UpdatedAtUtc
@@ -1247,54 +1544,6 @@ public class ApplicationController : ControllerBase
 
         return Ok(apps);
     }
-
-
-    // GET application details (for recruiter)
-    [Authorize(Roles = "Recruiter")]
-    [HttpGet("recruiter/{applicationId:int}")]
-    public async Task<IActionResult> GetApplicationDetailsForRecruiter(int applicationId)
-    {
-        var recruiterId = CurrentUserId();
-        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
-
-        var recruiter = await _db.RecruiterProfiles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.UserId == recruiterId);
-
-        if (recruiter == null) return Forbid();
-
-        var app = await _db.Applications
-            .Include(a => a.Opportunity)
-            .Include(a => a.Assessment)
-            .FirstOrDefaultAsync(a => a.Id == applicationId);
-
-        if (app == null) return NotFound();
-
-        if (app.Opportunity.RecruiterUserId != recruiterId)
-            return Forbid();
-
-        return Ok(new
-        {
-            applicationId = app.Id,
-            opportunityId = app.OpportunityId,
-            opportunityTitle = app.Opportunity.Title,
-            studentUserId = app.UserId,
-            status = app.Status.ToString(),
-            note = app.Note,
-            createdAtUtc = app.CreatedAtUtc,
-            UpdatedAtUtc = app.UpdatedAtUtc,
-
-            assessment = app.Assessment == null ? null : new
-            {
-                score = app.Assessment.Score,
-                startedAtUtc = app.Assessment.StartedAtUtc,
-                submittedAtUtc = app.Assessment.SubmittedAtUtc,
-                flagged = app.Assessment.Flagged,
-                flagReason = app.Assessment.FlagReason
-            }
-        });
-    }
-
 
     // Withdraw application (student)
     [Authorize(Roles = "Student")]
@@ -1326,15 +1575,24 @@ public class ApplicationController : ControllerBase
         });
     }
 
-
-    // Get all Applications per Student
-    [Authorize(Roles= "Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpGet("by-student/{userId}")]
-    public async Task<IActionResult> GetApplicationsByStudent (string userId)
+    public async Task<IActionResult> GetApplicationsByStudent(string userId)
     {
-        var applications = await _db.Applications.AsNoTracking()
+        var applications = await _db.Applications
+            .AsNoTracking()
             .Include(a => a.Opportunity)
-            .Where(a => a.UserId == userId && a.Status != ApplicationStatus.Withdrawn)
+            .Where(a =>
+                (a.UserId == userId || a.StudentUserId == userId) &&
+                a.Status != ApplicationStatus.Withdrawn)
+            .OrderByDescending(a => a.CreatedAtUtc)
+            .ToListAsync();
+
+        var latestApplications = applications
+            .GroupBy(a => a.OpportunityId)
+            .Select(g => g
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .First())
             .OrderByDescending(a => a.CreatedAtUtc)
             .Select(a => new
             {
@@ -1343,12 +1601,163 @@ public class ApplicationController : ControllerBase
                 date = a.CreatedAtUtc,
                 status = a.Status.ToString()
             })
-            .ToListAsync();
+            .ToList();
 
-        return Ok(applications);
+        return Ok(latestApplications);
     }
 
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("recruiter/{applicationId:int}")]
+    public async Task<IActionResult> GetApplicationWithProfile(int applicationId)
+    {
+        var recruiterId = CurrentUserId();
+        if (string.IsNullOrEmpty(recruiterId)) return Unauthorized();
 
+        var app = await _db.Applications
+            .Include(a => a.Opportunity)
+            .Include(a => a.Assessment)
+            .FirstOrDefaultAsync(a => a.Id == applicationId);
+
+        if (app == null) return NotFound();
+
+        if (app.Opportunity == null || app.Opportunity.RecruiterUserId != recruiterId)
+            return Forbid();
+
+        var possibleUserIds = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(app.StudentUserId))
+            possibleUserIds.Add(app.StudentUserId);
+
+        if (!string.IsNullOrWhiteSpace(app.UserId) &&
+            !possibleUserIds.Contains(app.UserId))
+            possibleUserIds.Add(app.UserId);
+
+        if (possibleUserIds.Count == 0)
+            return Ok(new { applicationId = app.Id });
+
+        var profile = await _db.StudentProfiles
+            .FirstOrDefaultAsync(p => possibleUserIds.Contains(p.UserId));
+
+        // this is the real id under which the profile data exists
+        var profileUserId = profile?.UserId
+            ?? possibleUserIds.First();
+
+        var education = await _db.StudentEducations
+            .Where(e => e.StudentUserId == profileUserId)
+            .OrderByDescending(e => e.GraduationYear)
+            .ToListAsync();
+
+        var experience = await _db.StudentExperiences
+            .Where(e => e.StudentUserId == profileUserId)
+            .OrderByDescending(e => e.Id)
+            .ToListAsync();
+
+        var projects = await _db.StudentProjects
+            .Where(p => p.StudentUserId == profileUserId)
+            .OrderByDescending(p => p.Id)
+            .ToListAsync();
+
+        var interests = await _db.StudentInterests
+            .Where(i => i.StudentUserId == profileUserId)
+            .Select(i => i.Interest)
+            .Where(i => !string.IsNullOrWhiteSpace(i))
+            .Distinct()
+            .ToListAsync();
+
+        var dbSkills = await _db.StudentSkills
+            .Where(ss => ss.StudentUserId == profileUserId)
+            .Join(
+                _db.Skills,
+                ss => ss.SkillId,
+                s => s.Id,
+                (ss, s) => s.Name
+            )
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct()
+            .ToListAsync();
+
+        var projectTechSkills = projects
+            .SelectMany(p => SplitSkills(p.TechStack))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var skills = dbSkills
+            .Concat(projectTechSkills)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+
+        var user = await _db.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => possibleUserIds.Contains(u.Id));
+
+        var dto = new
+        {
+            applicationId = app.Id,
+
+            // send both ids
+            userId = profileUserId,
+            studentUserId = app.StudentUserId,
+            applicationUserId = app.UserId,
+
+            opportunityTitle = app.Opportunity.Title,
+            status = app.Status.ToString(),
+            createdAtUtc = app.CreatedAtUtc,
+
+            fullName =
+                !string.IsNullOrWhiteSpace(profile?.FullName) ? profile.FullName :
+                !string.IsNullOrWhiteSpace(user?.UserName) ? user.UserName :
+                !string.IsNullOrWhiteSpace(user?.Email) ? user.Email.Split('@')[0] :
+                "Applicant",
+
+            email =
+                !string.IsNullOrWhiteSpace(profile?.Email) ? profile.Email :
+                user?.Email,
+
+            phoneNumber = profile?.PhoneNumber,
+            location = profile?.Location,
+            bio = profile?.Bio,
+            university = profile?.University,
+            major = profile?.Major,
+            portfolioUrl = profile?.PortfolioUrl,
+
+            educationText = profile?.EducationText,
+            experienceText = profile?.ExperienceText,
+            projectsText = profile?.ProjectsText,
+            interestsText = profile?.InterestsText,
+            certificationsText = profile?.CertificationsText,
+            awardsText = profile?.AwardsText,
+
+            resumeFileName = profile?.ResumeFileName,
+            universityProofFileName = profile?.UniversityProofFileName,
+
+            education,
+            experience,
+            projects,
+            interests,
+            skills,
+
+            assessmentScore = app.Assessment?.Score,
+            flagged = app.Assessment?.Flagged,
+            flagReason = app.Assessment?.FlagReason
+        };
+
+        return Ok(dto);
+    }
+
+    private static List<string> SplitSkills(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return new List<string>();
+
+        return value
+            .Split(new[] { ',', '\n', ';', '|', '/' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
@@ -1376,6 +1785,60 @@ public class ApplicationController : ControllerBase
         mail.To.Add(to);
 
         await client.SendMailAsync(mail);
+    }
+
+    private static int CalculateMatchPercentage(
+    List<string> studentSkills,
+    List<string> opportunitySkills)
+    {
+        if (opportunitySkills == null || opportunitySkills.Count == 0)
+            return 0;
+
+        if (studentSkills == null || studentSkills.Count == 0)
+            return 0;
+
+        var studentSet = new HashSet<string>(
+            studentSkills.Select(s => s.Trim().ToLower())
+        );
+
+        var opportunitySet = new HashSet<string>(
+            opportunitySkills.Select(s => s.Trim().ToLower())
+        );
+
+        var matched = opportunitySet.Count(skill => studentSet.Contains(skill));
+
+        var percentage = (int)Math.Round(
+            (double)matched / opportunitySet.Count * 100
+        );
+
+        return percentage;
+    }
+
+    [Authorize(Roles = "Recruiter")]
+    [HttpGet("student-file")]
+    public async Task<IActionResult> GetStudentFile([FromQuery] string userId, [FromQuery] string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(fileName))
+            return BadRequest();
+
+        var fullPath = Path.Combine(_env.ContentRootPath, "Uploads", "Students", userId, fileName);
+
+        if (!System.IO.File.Exists(fullPath))
+            return NotFound();
+
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        var contentType = ext switch
+        {
+            ".pdf" => "application/pdf",
+            ".png" => "image/png",
+            ".jpg" => "image/jpeg",
+            ".jpeg" => "image/jpeg",
+            _ => "application/octet-stream"
+        };
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+        return File(bytes, contentType, fileName);
     }
 
     private static string BuildRejectionEmail(

@@ -23,7 +23,8 @@ const emptyCode = () => ({
     prompt: "",
     language: "javascript",
     starterCode: "",
-    expectedOutput: "",
+    publicTests: [{ stdin: "", expected: "" }],
+    hiddenTests: [],
 });
 
 function normalizeMcq(mcq = {}) {
@@ -38,13 +39,28 @@ function normalizeMcq(mcq = {}) {
     };
 }
 
+function normalizeTests(tests, fallback = []) {
+    if (!Array.isArray(tests)) return fallback;
+
+    return tests.map((t) => ({
+        stdin: t?.stdin ?? t?.input ?? "",
+        expected: t?.expected ?? t?.expectedOutput ?? "",
+    }));
+}
+
 function normalizeCode(code = {}) {
+    const publicTests = normalizeTests(code.publicTests, [
+        { stdin: "", expected: "" },
+    ]);
+    const hiddenTests = normalizeTests(code.hiddenTests, []);
+
     return {
         title: code.title || "",
         prompt: code.prompt || "",
         language: code.language || "javascript",
         starterCode: code.starterCode || "",
-        expectedOutput: code.expectedOutput || "",
+        publicTests,
+        hiddenTests,
     };
 }
 
@@ -65,41 +81,50 @@ function mapLanguageToJudge0Id(language) {
     }
 }
 
-function buildPublicTestsFromExpectedOutput(expectedOutput) {
-    const trimmed = String(expectedOutput || "").trim();
-    if (!trimmed) return [];
-
-    return [
-        {
-            stdin: "",
-            expected: trimmed,
-        },
-    ];
-}
-
 function toLegacyAssessmentFormat(timeLimitMinutes, mcqs, codingChallenges) {
     const questions = [
         ...mcqs.map((q, index) => ({
             id: `mcq-${index}`,
             type: "mcq",
             prompt: String(q.prompt || "").trim(),
-            options: Array.isArray(q.options) ? q.options.map((x) => String(x || "").trim()) : [],
+            options: Array.isArray(q.options)
+                ? q.options.map((x) => String(x || "").trim())
+                : [],
             correctIndex:
                 typeof q.correctIndex === "number" ? q.correctIndex : 0,
         })),
-        ...codingChallenges.map((q, index) => ({
-            id: `code-${index}`,
-            type: "code",
-            title: String(q.title || "").trim() || `Coding Question ${index + 1}`,
-            prompt: String(q.prompt || "").trim(),
-            starterCode: q.starterCode || "",
-            language: q.language || "python",
-            languageId: mapLanguageToJudge0Id(q.language),
-            languageIdsAllowed: [71, 63, 62, 51, 54],
-            publicTests: buildPublicTestsFromExpectedOutput(q.expectedOutput),
-            hiddenTests: [],
-            expectedOutput: String(q.expectedOutput || "").trim(),
-        })),
+
+        ...codingChallenges.map((q, index) => {
+            const publicTests = normalizeTests(q.publicTests, []).filter(
+                (t) =>
+                    String(t.stdin || "").trim() !== "" ||
+                    String(t.expected || "").trim() !== ""
+            );
+
+            const hiddenTestsRaw = normalizeTests(q.hiddenTests, []).filter(
+                (t) =>
+                    String(t.stdin || "").trim() !== "" ||
+                    String(t.expected || "").trim() !== ""
+            );
+
+            const hiddenTests =
+                hiddenTestsRaw.length > 0 ? hiddenTestsRaw : publicTests;
+
+            return {
+                id: `code-${index}`,
+                type: "code",
+                title:
+                    String(q.title || "").trim() ||
+                    `Coding Question ${index + 1}`,
+                prompt: String(q.prompt || "").trim(),
+                starterCode: q.starterCode || "",
+                language: q.language || "python",
+                languageId: mapLanguageToJudge0Id(q.language),
+                languageIdsAllowed: [71, 63, 62, 51, 54],
+                publicTests,
+                hiddenTests,
+            };
+        }),
     ];
 
     return {
@@ -121,11 +146,17 @@ function fromOpportunityAssessment(assessment, assessmentTimeLimitSeconds) {
         };
     }
 
-    if (Array.isArray(assessment.mcqs) || Array.isArray(assessment.codingChallenges)) {
+    if (
+        Array.isArray(assessment.mcqs) ||
+        Array.isArray(assessment.codingChallenges)
+    ) {
         return {
             timeLimitMinutes:
                 assessment.timeLimitMinutes ||
-                Math.max(1, Math.floor((assessmentTimeLimitSeconds || 1800) / 60)),
+                Math.max(
+                    1,
+                    Math.floor((assessmentTimeLimitSeconds || 1800) / 60)
+                ),
             mcqs: Array.isArray(assessment.mcqs)
                 ? assessment.mcqs.map(normalizeMcq)
                 : [],
@@ -143,9 +174,13 @@ function fromOpportunityAssessment(assessment, assessmentTimeLimitSeconds) {
             .map((q) =>
                 normalizeMcq({
                     prompt: q.prompt || "",
-                    options: Array.isArray(q.options) ? q.options : ["", "", "", ""],
+                    options: Array.isArray(q.options)
+                        ? q.options
+                        : ["", "", "", ""],
                     correctIndex:
-                        typeof q.correctIndex === "number" ? q.correctIndex : 0,
+                        typeof q.correctIndex === "number"
+                            ? q.correctIndex
+                            : 0,
                 })
             );
 
@@ -160,20 +195,22 @@ function fromOpportunityAssessment(assessment, assessmentTimeLimitSeconds) {
                     prompt: q.prompt || "",
                     language: q.language || "javascript",
                     starterCode: q.starterCode || "",
-                    expectedOutput:
-                        q.expectedOutput ||
-                        (Array.isArray(q.publicTests) &&
-                            q.publicTests.length > 0 &&
-                            q.publicTests[0]?.expectedOutput
-                            ? q.publicTests[0].expectedOutput
-                            : ""),
+                    publicTests: Array.isArray(q.publicTests)
+                        ? q.publicTests
+                        : [],
+                    hiddenTests: Array.isArray(q.hiddenTests)
+                        ? q.hiddenTests
+                        : [],
                 })
             );
 
         return {
             timeLimitMinutes: assessment.timeLimitSeconds
                 ? Math.max(1, Math.floor(assessment.timeLimitSeconds / 60))
-                : Math.max(1, Math.floor((assessmentTimeLimitSeconds || 1800) / 60)),
+                : Math.max(
+                    1,
+                    Math.floor((assessmentTimeLimitSeconds || 1800) / 60)
+                ),
             mcqs,
             codingChallenges,
         };
@@ -279,6 +316,56 @@ export default function AssessmentBuilderPage() {
         );
     }
 
+    function updateCodePublicTest(index, testIndex, field, value) {
+        const q = codingChallenges[index];
+        const updated = [...q.publicTests];
+        updated[testIndex] = {
+            ...updated[testIndex],
+            [field]: value,
+        };
+        updateCode(index, { publicTests: updated });
+    }
+
+    function addCodePublicTest(index) {
+        const q = codingChallenges[index];
+        updateCode(index, {
+            publicTests: [...q.publicTests, { stdin: "", expected: "" }],
+        });
+    }
+
+    function removeCodePublicTest(index, testIndex) {
+        const q = codingChallenges[index];
+        const updated = q.publicTests.filter((_, i) => i !== testIndex);
+        updateCode(index, {
+            publicTests:
+                updated.length > 0 ? updated : [{ stdin: "", expected: "" }],
+        });
+    }
+
+    function updateCodeHiddenTest(index, testIndex, field, value) {
+        const q = codingChallenges[index];
+        const updated = [...q.hiddenTests];
+        updated[testIndex] = {
+            ...updated[testIndex],
+            [field]: value,
+        };
+        updateCode(index, { hiddenTests: updated });
+    }
+
+    function addCodeHiddenTest(index) {
+        const q = codingChallenges[index];
+        updateCode(index, {
+            hiddenTests: [...q.hiddenTests, { stdin: "", expected: "" }],
+        });
+    }
+
+    function removeCodeHiddenTest(index, testIndex) {
+        const q = codingChallenges[index];
+        updateCode(index, {
+            hiddenTests: q.hiddenTests.filter((_, i) => i !== testIndex),
+        });
+    }
+
     function validateAssessment() {
         for (let i = 0; i < mcqs.length; i++) {
             const q = mcqs[i];
@@ -315,8 +402,30 @@ export default function AssessmentBuilderPage() {
                 return `Coding question ${i + 1}: prompt is required.`;
             }
 
-            if (!String(q.expectedOutput || "").trim()) {
-                return `Coding question ${i + 1}: expected output is required.`;
+            const hasValidPublicTest = Array.isArray(q.publicTests)
+                ? q.publicTests.some(
+                    (t) =>
+                        String(t.stdin || "").trim() !== "" ||
+                        String(t.expected || "").trim() !== ""
+                )
+                : false;
+
+            if (!hasValidPublicTest) {
+                return `Coding question ${i + 1}: add at least one public test.`;
+            }
+
+            for (let j = 0; j < q.publicTests.length; j++) {
+                const t = q.publicTests[j];
+                if (!String(t.expected || "").trim()) {
+                    return `Coding question ${i + 1}, public test ${j + 1}: expected output is required.`;
+                }
+            }
+
+            for (let j = 0; j < q.hiddenTests.length; j++) {
+                const t = q.hiddenTests[j];
+                if (!String(t.expected || "").trim()) {
+                    return `Coding question ${i + 1}, hidden test ${j + 1}: expected output is required.`;
+                }
             }
         }
 
@@ -363,8 +472,6 @@ export default function AssessmentBuilderPage() {
                 skills: opp.skills || [],
                 latitude: opp.latitude,
                 longitude: opp.longitude,
-
-                // IMPORTANT: save in backend-compatible legacy format
                 assessment: toLegacyAssessmentFormat(
                     timeLimitMinutes,
                     mcqs,
@@ -531,7 +638,9 @@ export default function AssessmentBuilderPage() {
                                     className="assessment-textarea"
                                     value={q.prompt}
                                     onChange={(e) =>
-                                        updateMcq(index, { prompt: e.target.value })
+                                        updateMcq(index, {
+                                            prompt: e.target.value,
+                                        })
                                     }
                                 />
                             </div>
@@ -564,12 +673,17 @@ export default function AssessmentBuilderPage() {
                                     value={q.correctIndex}
                                     onChange={(e) =>
                                         updateMcq(index, {
-                                            correctIndex: Number(e.target.value),
+                                            correctIndex: Number(
+                                                e.target.value
+                                            ),
                                         })
                                     }
                                 >
                                     {q.options.map((_, optIndex) => (
-                                        <option key={optIndex} value={optIndex}>
+                                        <option
+                                            key={optIndex}
+                                            value={optIndex}
+                                        >
                                             Option {optIndex + 1}
                                         </option>
                                     ))}
@@ -617,7 +731,9 @@ export default function AssessmentBuilderPage() {
                                     className="assessment-input"
                                     value={q.title}
                                     onChange={(e) =>
-                                        updateCode(index, { title: e.target.value })
+                                        updateCode(index, {
+                                            title: e.target.value,
+                                        })
                                     }
                                 />
                             </div>
@@ -628,7 +744,9 @@ export default function AssessmentBuilderPage() {
                                     className="assessment-textarea"
                                     value={q.prompt}
                                     onChange={(e) =>
-                                        updateCode(index, { prompt: e.target.value })
+                                        updateCode(index, {
+                                            prompt: e.target.value,
+                                        })
                                     }
                                 />
                             </div>
@@ -639,10 +757,14 @@ export default function AssessmentBuilderPage() {
                                     className="assessment-input"
                                     value={q.language}
                                     onChange={(e) =>
-                                        updateCode(index, { language: e.target.value })
+                                        updateCode(index, {
+                                            language: e.target.value,
+                                        })
                                     }
                                 >
-                                    <option value="javascript">JavaScript</option>
+                                    <option value="javascript">
+                                        JavaScript
+                                    </option>
                                     <option value="python">Python</option>
                                     <option value="csharp">C#</option>
                                     <option value="java">Java</option>
@@ -664,16 +786,137 @@ export default function AssessmentBuilderPage() {
                             </div>
 
                             <div className="assessment-field">
-                                <label>Expected Output / Notes</label>
-                                <textarea
-                                    className="assessment-textarea"
-                                    value={q.expectedOutput}
-                                    onChange={(e) =>
-                                        updateCode(index, {
-                                            expectedOutput: e.target.value,
-                                        })
-                                    }
-                                />
+                                <label>Public Tests</label>
+
+                                {q.publicTests.map((t, testIndex) => (
+                                    <div
+                                        key={testIndex}
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns:
+                                                "1fr 1fr auto",
+                                            gap: "10px",
+                                            marginBottom: "10px",
+                                        }}
+                                    >
+                                        <input
+                                            className="assessment-input"
+                                            placeholder="stdin"
+                                            value={t.stdin}
+                                            onChange={(e) =>
+                                                updateCodePublicTest(
+                                                    index,
+                                                    testIndex,
+                                                    "stdin",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+
+                                        <input
+                                            className="assessment-input"
+                                            placeholder="expected output"
+                                            value={t.expected}
+                                            onChange={(e) =>
+                                                updateCodePublicTest(
+                                                    index,
+                                                    testIndex,
+                                                    "expected",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+
+                                        <button
+                                            type="button"
+                                            className="assessment-icon-btn"
+                                            onClick={() =>
+                                                removeCodePublicTest(
+                                                    index,
+                                                    testIndex
+                                                )
+                                            }
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="assessment-btn assessment-btn-outline"
+                                    onClick={() => addCodePublicTest(index)}
+                                >
+                                    <Plus size={15} />
+                                    Add Public Test
+                                </button>
+                            </div>
+
+                            <div className="assessment-field">
+                                <label>Hidden Tests (optional)</label>
+
+                                {q.hiddenTests.map((t, testIndex) => (
+                                    <div
+                                        key={testIndex}
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateColumns:
+                                                "1fr 1fr auto",
+                                            gap: "10px",
+                                            marginBottom: "10px",
+                                        }}
+                                    >
+                                        <input
+                                            className="assessment-input"
+                                            placeholder="stdin"
+                                            value={t.stdin}
+                                            onChange={(e) =>
+                                                updateCodeHiddenTest(
+                                                    index,
+                                                    testIndex,
+                                                    "stdin",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+
+                                        <input
+                                            className="assessment-input"
+                                            placeholder="expected output"
+                                            value={t.expected}
+                                            onChange={(e) =>
+                                                updateCodeHiddenTest(
+                                                    index,
+                                                    testIndex,
+                                                    "expected",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+
+                                        <button
+                                            type="button"
+                                            className="assessment-icon-btn"
+                                            onClick={() =>
+                                                removeCodeHiddenTest(
+                                                    index,
+                                                    testIndex
+                                                )
+                                            }
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    className="assessment-btn assessment-btn-outline"
+                                    onClick={() => addCodeHiddenTest(index)}
+                                >
+                                    <Plus size={15} />
+                                    Add Hidden Test
+                                </button>
                             </div>
                         </div>
                     ))}

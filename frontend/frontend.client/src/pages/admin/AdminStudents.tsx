@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { Eye, FileText, Search } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 
 // Student Interface
-
 const API_URL = import.meta.env.VITE_API_URL;
+
 interface Student {
     id: string;
     email: string;
-    fullName: string,
+    fullName: string;
     createdAt: string;
     updatedAtUtc?: string;
 }
@@ -36,38 +36,28 @@ const formatDateTime = (date?: string) => {
 
 const statusStyles: { [key: string]: { backgroundColor: string; color: string } } = {
     Applied: { backgroundColor: "#dbeafe", color: "#1e40af" },
-
-    Pending: { backgroundColor: "#dbeafe", color: "#1e40af" }, // 🔵 blue
-    Draft: { backgroundColor: "#f3f4f6", color: "#374151" },   // ⚪ grey
-
-    Shortlisted: { backgroundColor: "#f3e8ff", color: "#6b21a8" }, // 🟣 purple
-
+    Pending: { backgroundColor: "#dbeafe", color: "#1e40af" },
+    Draft: { backgroundColor: "#f3f4f6", color: "#374151" },
+    Shortlisted: { backgroundColor: "#f3e8ff", color: "#6b21a8" },
     Interview: { backgroundColor: "#ffedd5", color: "#c2410c" },
-
     Accepted: { backgroundColor: "#dcfce7", color: "#166534" },
     Rejected: { backgroundColor: "#fee2e2", color: "#991b1b" },
 };
 
 export default function AdminStudents() {
     const [searchQuery, setSearchQuery] = useState("");
-    const [hoveredRow, setHoveredRow] = useState < string | null > (null);
-
-    // Students
-    const [students, setStudents] = useState < Student[] > ([]);
+    const [students, setStudents] = useState<Student[]>([]);
     const [loadingStudents, setLoadingStudents] = useState(false);
-    const [selectedStudent, setSelectedStudent] = useState < (Student & { applications?: Application[] }) | null > (null);
+    const [selectedStudent, setSelectedStudent] = useState<(Student & { applications?: Application[] }) | null>(null);
 
-    // Applications
     const [loadingApplications, setLoadingApplications] = useState(false);
     const [showApplications, setShowApplications] = useState(false);
 
-    // Notification
     const [showNotifyModal, setShowNotifyModal] = useState(false);
-    const [selectedStudentId, setSelectedStudentId] = useState < string | null > (null);
+    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [notifyTitle, setNotifyTitle] = useState("");
     const [notifyMessage, setNotifyMessage] = useState("");
 
-    // Fetching Students
     useEffect(() => {
         const fetchStudents = async () => {
             try {
@@ -78,18 +68,15 @@ export default function AdminStudents() {
                 const res = await fetch(`${API_URL}/users/by-role/Student`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    }
+                        "Content-Type": "application/json",
+                    },
                 });
 
                 const data = await res.json();
-
-                setStudents(data);
-            }
-            catch (err) {
+                setStudents(Array.isArray(data) ? data : []);
+            } catch (err) {
                 console.log("Error in Fetching Students: ", err);
-            }
-            finally {
+            } finally {
                 setLoadingStudents(false);
             }
         };
@@ -97,8 +84,6 @@ export default function AdminStudents() {
         fetchStudents();
     }, []);
 
-
-    // Filtering Students
     const filteredStudents = students.filter((student) => {
         const fullName = student.fullName ?? "";
         const email = student.email ?? "";
@@ -117,23 +102,19 @@ export default function AdminStudents() {
             .split(" ")
             .filter(Boolean)
             .map((n) => n[0])
-            .join("");
+            .join("")
+            .slice(0, 2);
     };
+
     const formatDate = (date?: string) => {
         if (!date) return "-";
-        return new Date(date).toLocaleDateString();
+        return new Date(date).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "numeric",
+            day: "numeric",
+        });
     };
 
-    // Loading Students
-    if (loadingStudents) {
-        return (
-            <div style={{ padding: "24px" }}>
-                <p>Loading Students...</p>
-            </div>
-        );
-    }
-
-    // Fetching Applications
     async function fetchStudentApplications(student: Student) {
         try {
             setLoadingApplications(true);
@@ -142,27 +123,25 @@ export default function AdminStudents() {
 
             const res = await fetch(`${API_URL}/application/by-student/${student.id}`, {
                 headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
             const applications = await res.json();
 
-            console.log("Fetched apps:", applications);
-
-            setSelectedStudent({ ...student, applications });
+            setSelectedStudent({
+                ...student,
+                applications: Array.isArray(applications) ? applications : [],
+            });
 
             setShowApplications(true);
-        }
-        catch (err) {
+        } catch (err) {
             console.log("Error in fetching applications:", err);
-        }
-        finally {
+        } finally {
             setLoadingApplications(false);
         }
     }
 
-    // Notification Handler
     const handleSendNotification = async () => {
         if (!selectedStudentId) return;
 
@@ -178,59 +157,49 @@ export default function AdminStudents() {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     title: notifyTitle,
-                    message: notifyMessage
-                })
-            }
-            );
+                    message: notifyMessage,
+                }),
+            });
 
-            if (!res.ok)
-                throw new Error("Failed");
+            if (!res.ok) throw new Error("Failed");
 
             alert("Notification sent ✅");
-
             setShowNotifyModal(false);
             setNotifyTitle("");
             setNotifyMessage("");
-        }
-        catch (err) {
+        } catch (err) {
             console.error(err);
             alert("Failed to send ❌");
         }
     };
 
+    if (loadingStudents) {
+        return (
+            <div className="admin-page">
+                <div className="admin-students-card">
+                    <p>Loading Students...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ padding: "24px", backgroundColor: "#f9fafb", minHeight: "100vh" }}>
-            {/* Blue Gradient Header */}
-            <div
-                style={{
-                    background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)",
-                    borderRadius: "12px",
-                    padding: "32px",
-                    marginBottom: "24px",
-                    color: "white",
-                }}
-            >
-                <h1 style={{ fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>Students</h1>
-                <p style={{ fontSize: "16px", opacity: 0.9 }}>Manage student accounts and view their applications</p>
+        <div className="admin-page">
+            <div className="admin-header">
+                <h1>Students</h1>
+                <p>Manage student accounts and view their applications</p>
             </div>
 
-            {/* Student Management Card */}
-            <div
-                style={{
-                    backgroundColor: "white",
-                    borderRadius: "12px",
-                    padding: "24px",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                }}
-            >
-                <h2 style={{ fontSize: "20px", fontWeight: "700", marginBottom: "20px" }}>Student Management</h2>
+            <div className="admin-students-card">
+                <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "20px" }}>
+                    Student Management
+                </h2>
 
-                {/* Search Bar */}
-                <div style={{ position: "relative", marginBottom: "24px" }}>
+                <div className="admin-search-wrap">
                     <Search
                         style={{
                             position: "absolute",
@@ -244,255 +213,128 @@ export default function AdminStudents() {
                     />
                     <input
                         type="text"
+                        className="admin-search-input"
                         placeholder="Search by name, email, or student ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{
-                            width: "100%",
-                            padding: "10px 12px 10px 40px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            outline: "none",
-                        }}
-                        onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-                        onBlur={(e) => (e.currentTarget.style.borderColor = "#d1d5db")}
                     />
                 </div>
 
-                {/* Students Table */}
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: "12px", overflow: "hidden" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr style={{ backgroundColor: "#f9fafb" }}>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Student
-                                </th>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Student ID
-                                </th>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Email
-                                </th>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Created At
-                                </th>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Last Updated
-                                </th>
-                                <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "13px", fontWeight: "600", color: "#6b7280" }}>
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredStudents.length === 0 ? (
+                <div className="admin-students-table-wrap">
+                    <div className="admin-students-table-scroll">
+                        <table className="admin-students-table">
+                            <thead>
                                 <tr>
-                                    <td
-                                        colSpan={6}
-                                        style={{
-                                            padding: "48px",
-                                            textAlign: "center",
-                                            color: "#9ca3af",
-                                            fontSize: "14px",
-                                        }}
-                                    >
-                                        No students found
-                                    </td>
+                                    <th>Student</th>
+                                    <th>Student ID</th>
+                                    <th>Email</th>
+                                    <th>Created At</th>
+                                    <th>Last Updated</th>
+                                    <th style={{ textAlign: "right" }}>Actions</th>
                                 </tr>
-                            ) : (
-                                filteredStudents.map((student) => (
-                                    <tr
-                                        key={student.id}
-                                        onMouseEnter={() => setHoveredRow(student.id)}
-                                        onMouseLeave={() => setHoveredRow(null)}
-                                        style={{
-                                            backgroundColor: hoveredRow === student.id ? "#f9fafb" : "white",
-                                            transition: "background-color 0.2s",
-                                        }}
-                                    >
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                                <div
-                                                    style={{
-                                                        width: "40px",
-                                                        height: "40px",
-                                                        borderRadius: "50%",
-                                                        backgroundColor: "#3b82f6",
-                                                        color: "white",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        fontWeight: "600",
-                                                        fontSize: "14px",
-                                                    }}
-                                                >
-                                                    {getInitials(student.fullName)}
-                                                </div>
-                                                <span style={{ fontWeight: "600", fontSize: "14px" }}>{student.fullName}</span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6" }}>
-                                            <code
-                                                style={{
-                                                    backgroundColor: "#f3f4f6",
-                                                    padding: "4px 8px",
-                                                    borderRadius: "6px",
-                                                    fontSize: "13px",
-                                                    fontFamily: "monospace",
-                                                }}
-                                            >
-                                                {student.id}
-                                            </code>
-                                        </td>
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", color: "#6b7280", fontSize: "14px" }}>
-                                            {student.email}
-                                        </td>
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", color: "#6b7280", fontSize: "14px", whiteSpace: "nowrap" }}>
-                                            {formatDate(student.createdAt)}
-                                        </td>
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", color: "#6b7280", fontSize: "14px", whiteSpace: "nowrap" }}>
-                                            {formatDate(student.updatedAtUtc)}
-                                        </td>
-                                        <td style={{ padding: "16px", borderTop: "1px solid #f3f4f6", textAlign: "right" }}>
-                                            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
-                                                <button
-                                                    onClick={() => {
-                                                        fetchStudentApplications(student)
-                                                    }}
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        backgroundColor: "#3b82f6",
-                                                        color: "white",
-                                                        border: "none",
-                                                        borderRadius: "6px",
-                                                        fontSize: "13px",
-                                                        fontWeight: "600",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "4px",
-                                                        transition: "all 0.2s",
-                                                    }}
-                                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#2563eb")}
-                                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#3b82f6")}
-                                                >
-                                                    <FileText style={{ width: "14px", height: "14px" }} />
-                                                    Applications
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedStudentId(student.id);
-                                                        setNotifyTitle("Warning ⚠️"); // optional default
-                                                        setNotifyMessage("");
-                                                        setShowNotifyModal(true);
-                                                    }}
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        backgroundColor: "orange",
-                                                        color: "#958f83",
-                                                        border: "1px solid #d1d5db",
-                                                        borderRadius: "6px",
-                                                        fontSize: "13px",
-                                                        fontWeight: "600",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "4px",
-                                                        transition: "all 0.2s",
-                                                    }}
-                                                >
-                                                    Notify
-                                                </button>
-                                                <button
-                                                    style={{
-                                                        padding: "6px 12px",
-                                                        backgroundColor: "white",
-                                                        color: "#374151",
-                                                        border: "1px solid #d1d5db",
-                                                        borderRadius: "6px",
-                                                        fontSize: "13px",
-                                                        fontWeight: "600",
-                                                        cursor: "pointer",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "4px",
-                                                        transition: "all 0.2s",
-                                                    }}
-                                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f9fafb")}
-                                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody>
+                                {filteredStudents.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6}>
+                                            <div className="admin-empty-state">No students found</div>
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    filteredStudents.map((student) => (
+                                        <tr key={student.id} className="admin-students-row">
+                                            <td>
+                                                <div className="admin-student-cell">
+                                                    <div className="admin-student-avatar">
+                                                        {getInitials(student.fullName)}
+                                                    </div>
+                                                    <div className="admin-student-name">
+                                                        {student.fullName || "Unnamed Student"}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                <span className="admin-student-id">{student.id}</span>
+                                            </td>
+
+                                            <td className="admin-student-email">{student.email}</td>
+
+                                            <td className="admin-student-date">
+                                                {formatDate(student.createdAt)}
+                                            </td>
+
+                                            <td className="admin-student-date">
+                                                {formatDate(student.updatedAtUtc)}
+                                            </td>
+
+                                            <td>
+                                                <div className="admin-student-actions">
+                                                    <button
+                                                        className="admin-btn admin-btn-primary"
+                                                        onClick={() => fetchStudentApplications(student)}
+                                                    >
+                                                        <FileText style={{ width: "14px", height: "14px" }} />
+                                                        Applications
+                                                    </button>
+
+                                                    <button
+                                                        className="admin-btn admin-btn-warning"
+                                                        onClick={() => {
+                                                            setSelectedStudentId(student.id);
+                                                            setNotifyTitle("Warning ⚠️");
+                                                            setNotifyMessage("");
+                                                            setShowNotifyModal(true);
+                                                        }}
+                                                    >
+                                                        Notify
+                                                    </button>
+
+                                                    <button className="admin-btn admin-btn-secondary">
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            {/* Applications Modal/Overlay */}
             {showApplications && selectedStudent && (
                 <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: "rgba(0, 0, 0, 0.5)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1000,
-                    }}
+                    className="admin-modal-overlay"
                     onClick={() => setShowApplications(false)}
                 >
                     <div
-                        style={{
-                            backgroundColor: "white",
-                            borderRadius: "12px",
-                            padding: "32px",
-                            maxWidth: "800px",
-                            width: "90%",
-                            maxHeight: "80vh",
-                            overflow: "auto",
-                            boxShadow: "0 20px 50px rgba(0, 0, 0, 0.3)",
-                        }}
+                        className="admin-students-modal"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+                        <div className="admin-students-modal-header">
                             <div>
-                                <h2 style={{ fontSize: "24px", fontWeight: "700", marginBottom: "4px" }}>
+                                <h2 className="admin-students-modal-title">
                                     Applications - {selectedStudent.fullName}
                                 </h2>
-                                <p style={{ fontSize: "14px", color: "#6b7280" }}>{selectedStudent.email}</p>
+                                <p className="admin-students-modal-subtitle">
+                                    {selectedStudent.email}
+                                </p>
                             </div>
+
                             <button
+                                className="admin-btn admin-btn-secondary"
                                 onClick={() => setShowApplications(false)}
-                                style={{
-                                    padding: "8px 16px",
-                                    backgroundColor: "#f3f4f6",
-                                    color: "#374151",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    fontSize: "14px",
-                                    fontWeight: "600",
-                                    cursor: "pointer",
-                                    transition: "all 0.2s",
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#e5e7eb")}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
                             >
                                 Close
                             </button>
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                            {!selectedStudent.applications || selectedStudent.applications.length === 0 ? (
+                        <div className="admin-students-app-list">
+                            {loadingApplications ? (
+                                <div className="admin-empty-state">Loading applications...</div>
+                            ) : !selectedStudent.applications || selectedStudent.applications.length === 0 ? (
                                 <div
                                     style={{
                                         padding: "48px",
@@ -506,34 +348,21 @@ export default function AdminStudents() {
                                 </div>
                             ) : (
                                 selectedStudent.applications.map((app, index) => (
-                                    <div
-                                        key={index}
-                                        style={{
-                                            backgroundColor: "white",
-                                            border: "1px solid #e5e7eb",
-                                            borderRadius: "8px",
-                                            padding: "20px",
-                                        }}
-                                    >
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                    <div key={index} className="admin-students-app-card">
+                                        <div className="admin-students-app-top">
                                             <div>
-                                                <h3 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>
-                                                    {app.job}
-                                                </h3>
-                                                <p style={{ fontSize: "14px", color: "#6b7280", marginBottom: "4px" }}>
-                                                    {app.company}
-                                                </p>
-                                                <p style={{ fontSize: "12px", color: "#9ca3af" }}>
+                                                <h3 className="admin-students-app-job">{app.job}</h3>
+                                                <p className="admin-students-app-company">{app.company}</p>
+                                                <p className="admin-students-app-date">
                                                     Submitted on {formatDateTime(app.date)}
                                                 </p>
                                             </div>
+
                                             <span
-                                                style={{
-                                                    padding: "6px 12px",
-                                                    borderRadius: "6px",
-                                                    fontSize: "12px",
-                                                    fontWeight: "600",
-                                                    ...statusStyles[app.status],
+                                                className="admin-students-status"
+                                                style={statusStyles[app.status] || {
+                                                    backgroundColor: "#f3f4f6",
+                                                    color: "#374151",
                                                 }}
                                             >
                                                 {app.status}
@@ -546,87 +375,38 @@ export default function AdminStudents() {
                     </div>
                 </div>
             )}
+
             {showNotifyModal && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: "rgba(0,0,0,0.4)",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        zIndex: 1000
-                    }}
-                >
-                    <div
-                        style={{
-                            backgroundColor: "white",
-                            padding: "24px",
-                            borderRadius: "12px",
-                            width: "420px",
-                            boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-                        }}
-                    >
-                        <h3 style={{ marginBottom: "16px", fontSize: "18px", fontWeight: "700" }}>
-                            Send Notification
-                        </h3>
+                <div className="admin-modal-overlay">
+                    <div className="admin-notify-modal">
+                        <h3 className="admin-notify-title">Send Notification</h3>
 
                         <input
                             type="text"
                             placeholder="Title"
                             value={notifyTitle}
                             onChange={(e) => setNotifyTitle(e.target.value)}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                marginBottom: "12px",
-                                borderRadius: "6px",
-                                border: "1px solid #d1d5db"
-                            }}
+                            className="admin-notify-input"
                         />
 
                         <textarea
                             placeholder="Message"
                             value={notifyMessage}
                             onChange={(e) => setNotifyMessage(e.target.value)}
-                            style={{
-                                width: "100%",
-                                padding: "10px",
-                                height: "100px",
-                                borderRadius: "6px",
-                                border: "1px solid #d1d5db",
-                                marginBottom: "16px"
-                            }}
+                            className="admin-notify-textarea"
                         />
 
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                        <div className="admin-notify-actions">
                             <button
+                                className="admin-btn admin-btn-secondary"
                                 onClick={() => setShowNotifyModal(false)}
-                                style={{
-                                    padding: "8px 16px",
-                                    backgroundColor: "#e5e7eb",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer"
-                                }}
                             >
                                 Cancel
                             </button>
 
                             <button
+                                className="admin-btn admin-btn-primary"
                                 onClick={handleSendNotification}
-                                style={{
-                                    padding: "8px 16px",
-                                    backgroundColor: "#ef4444",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontWeight: "600"
-                                }}
                             >
                                 Send
                             </button>

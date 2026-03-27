@@ -17,6 +17,8 @@ using Jobify.Api.Data;
 using Jobify.Api.Models;
 
 using Microsoft.AspNetCore.Authorization;
+using System.Linq;
+using System.ComponentModel.DataAnnotations;
 
 namespace Jobify.Api.Controllers;
 
@@ -262,6 +264,49 @@ public class AuthController : ControllerBase
             email = user.Email,
             roles
         });
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (request == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
+            string.IsNullOrWhiteSpace(request.NewPassword) ||
+            string.IsNullOrWhiteSpace(request.ConfirmNewPassword))
+        {
+            return BadRequest(new { message = "Current password, new password, and confirm password are required." });
+        }
+
+        if (request.NewPassword != request.ConfirmNewPassword)
+            return BadRequest(new { message = "New password and confirmation do not match." });
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "User not authenticated." });
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return NotFound(new { message = "User not found." });
+
+        var result = await _userManager.ChangePasswordAsync(
+            user,
+            request.CurrentPassword,
+            request.NewPassword
+        );
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                message = "Password change failed.",
+                errors = result.Errors.Select(e => e.Description)
+            });
+        }
+
+        return Ok(new { message = "Password changed successfully." });
     }
 
     [Authorize(Roles = "Admin")]
@@ -867,6 +912,7 @@ public class AuthController : ControllerBase
 
     public record ForgotPasswordRequest(string Email);
     public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+    public record ChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmNewPassword);
 
     public record ResendConfirmationRequest(string Email);
     public record RejectRecruiterRequest(string? Reason);

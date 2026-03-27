@@ -117,9 +117,9 @@ export default function AppLayout() {
     navigate("/login");
   }
 
-  function handleGoToProfile() {
+  function handleGoToChangePassword() {
     setShowProfileMenu(false);
-    navigate("/profile");
+    navigate("/change-password");
   }
 
   return (
@@ -183,10 +183,10 @@ export default function AppLayout() {
                 <div className="al-profileMenu">
                   <button
                     type="button"
-                    onClick={handleGoToProfile}
+                    onClick={handleGoToChangePassword}
                     className="al-profileMenuItem"
                   >
-                    Profile
+                    Reset Password
                   </button>
 
                   <button

@@ -13,6 +13,9 @@ import ResetPasswordPage from "./pages/LoginPage/ResetPasswordPage";
 import OAuthCallbackPage from "./pages/LoginPage/OAuthCallbackPage";
 import EmailConfirmed from "./pages/LoginPage/EmailConfirmed";
 
+// logged-in account password change page
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+
 // job details pages
 import ProfileReviewPage from "./pages/JobDetails/ProfileReviewPage";
 import ApplicationReviewPage from "./pages/JobDetails/ApplicationReviewPage";
@@ -26,6 +29,7 @@ import MatchesPage from "./pages/MatchesPage";
 
 // organization page
 import OrganizationDashboard from "./pages/OrganizationDashboard";
+
 
 // Admin panel
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -64,8 +68,10 @@ function AdminGuard() {
     const user = getUser();
     const isAdmin = user?.roles?.[0] === "Admin";
 
+
     if (!user) return <Navigate to="/login" replace />;
     if (!isAdmin) return <Navigate to="/dashboard" replace />;
+
 
     return <AdminLayout />;
 }
@@ -74,8 +80,10 @@ function AppGuard() {
     const user = getUser();
     const isAdmin = user?.roles?.[0] === "Admin";
 
+
     if (!user) return <Navigate to="/login" replace />;
     if (isAdmin) return <Navigate to="/admin" replace />;
+
 
     return <AppLayout />;
 }
@@ -128,6 +136,8 @@ export default function App() {
                 {/* JOB FLOW */}
                 <Route path="/opportunities/:id" element={<JobDetailsPage />} />
                 <Route path="/apply/:applicationId/review" element={<ProfileReviewPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/application/:applicationId/review" element={<ApplicationReviewPage />} />
                 <Route path="/application/:applicationId/assessment/rules" element={<AssessmentRulesPage />} />
                 <Route path="/application/:applicationId/assessment/start" element={<AssessmentPage />} />

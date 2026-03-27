@@ -1579,9 +1579,20 @@ public class ApplicationController : ControllerBase
     [HttpGet("by-student/{userId}")]
     public async Task<IActionResult> GetApplicationsByStudent(string userId)
     {
-        var applications = await _db.Applications.AsNoTracking()
+        var applications = await _db.Applications
+            .AsNoTracking()
             .Include(a => a.Opportunity)
-            .Where(a => a.UserId == userId && a.Status != ApplicationStatus.Withdrawn)
+            .Where(a =>
+                (a.UserId == userId || a.StudentUserId == userId) &&
+                a.Status != ApplicationStatus.Withdrawn)
+            .OrderByDescending(a => a.CreatedAtUtc)
+            .ToListAsync();
+
+        var latestApplications = applications
+            .GroupBy(a => a.OpportunityId)
+            .Select(g => g
+                .OrderByDescending(a => a.CreatedAtUtc)
+                .First())
             .OrderByDescending(a => a.CreatedAtUtc)
             .Select(a => new
             {
@@ -1590,9 +1601,9 @@ public class ApplicationController : ControllerBase
                 date = a.CreatedAtUtc,
                 status = a.Status.ToString()
             })
-            .ToListAsync();
+            .ToList();
 
-        return Ok(applications);
+        return Ok(latestApplications);
     }
 
     [Authorize(Roles = "Recruiter")]

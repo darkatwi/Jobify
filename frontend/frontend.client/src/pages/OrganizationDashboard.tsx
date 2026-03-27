@@ -15,6 +15,7 @@ import {
     ListChecks,
     DollarSign,
     Building2,
+    Trash2
 } from "lucide-react";
 import { api } from "../api/api";
 import "./styles/organizationdashboard.css";
@@ -393,6 +394,20 @@ export default function OrganizationDashboard() {
             await fetchListings();
         } catch (err: any) {
             alert(err?.response?.data || err?.message || "Failed to close job.");
+        }
+    }
+    async function deleteJob(id, e) {
+        e?.stopPropagation();
+
+        const confirmDelete = window.confirm("Are you sure you want to delete this opportunity?");
+        if (!confirmDelete) return;
+
+        try {
+            await api.delete(`/opportunities/${id}`); 
+            await fetchListings(); 
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete opportunity");
         }
     }
 
@@ -897,6 +912,14 @@ Learning budget`}
                                                     Reopen Role
                                                 </button>
                                             )}
+                                            <button
+                                                type="button"
+                                                className="orgdash-action-btn orgdash-action-btn-danger"
+                                                onClick={(e) => deleteJob(job.id, e)}
+                                            >
+                                                <Trash2 size={15} />
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

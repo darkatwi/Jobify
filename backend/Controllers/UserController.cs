@@ -21,22 +21,18 @@ public class UsersController : ControllerBase
     }
 
     // GET: /api/users
-    // Returns a list of users with basic identity info + roles.
     [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<IActionResult> GetUsers()
     {
-        // Fetch users from Identity store (ordered by email for consistent output)
         var users = await _userManager.Users
             .OrderBy(u => u.Email)
             .ToListAsync();
 
-        // Map IdentityUser -> UserDto to avoid exposing sensitive/internal Identity fields
         var result = new List<UserDto>();
 
         foreach (var u in users)
         {
-            // Retrieve roles for each user (Identity stores roles separately)
             var roles = await _userManager.GetRolesAsync(u);
 
             result.Add(new UserDto(
@@ -51,52 +47,50 @@ public class UsersController : ControllerBase
     }
 
     // GET : /api/users/by-role/{role}
-    // Retures users based on their role (student/recruiter)
     [Authorize(Roles = "Admin")]
     [HttpGet("by-role/{role}")]
     public async Task<IActionResult> GetUsersByRole(string role)
     {
-        // use AppDbContext instead of IdentityUser
         var context = HttpContext.RequestServices.GetRequiredService<AppDbContext>();
 
         if (role.ToLower() == "student")
         {
             var students = await (
-    from u in context.Users
-    join ur in context.UserRoles on u.Id equals ur.UserId
-    join r in context.Roles on ur.RoleId equals r.Id
-    join p in context.StudentProfiles on u.Id equals p.UserId
-    where r.Name.ToLower() == role.ToLower()
-    select new StudentAdminDto
-    {
-        Id = p.UserId,
-        Email = u.Email,
-        FullName = p.FullName,
-        CreatedAt = p.CreatedAt,
-        UpdatedAtUtc = p.UpdatedAtUtc
-    }
-).ToListAsync();
+                from u in context.Users
+                join ur in context.UserRoles on u.Id equals ur.UserId
+                join r in context.Roles on ur.RoleId equals r.Id
+                join p in context.StudentProfiles on u.Id equals p.UserId
+                where r.Name != null && r.Name.ToLower() == role.ToLower()
+                select new StudentAdminDto
+                {
+                    Id = p.UserId,
+                    Email = u.Email,
+                    FullName = p.FullName,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAtUtc = p.UpdatedAtUtc
+                }
+            ).ToListAsync();
 
             return Ok(students);
         }
         else if (role.ToLower() == "recruiter")
         {
             var recruiters = await (
-    from u in context.Users
-    join ur in context.UserRoles on u.Id equals ur.UserId
-    join r in context.Roles on ur.RoleId equals r.Id
-    join p in context.RecruiterProfiles on u.Id equals p.UserId
-    where r.Name.ToLower() == role.ToLower()
-    select new RecruiterAdminDto
-    {
-        Id = p.UserId,
-        Email = u.Email,
-        CompanyName = p.CompanyName,
-        CreatedAt = p.CreatedAtUtc,
-        UpdatedAtUtc = p.VerifiedAtUtc ?? p.CreatedAtUtc,
-        VerificationStatus = p.VerificationStatus.ToString()
-    }
-).ToListAsync();
+                from u in context.Users
+                join ur in context.UserRoles on u.Id equals ur.UserId
+                join r in context.Roles on ur.RoleId equals r.Id
+                join p in context.RecruiterProfiles on u.Id equals p.UserId
+                where r.Name != null && r.Name.ToLower() == role.ToLower()
+                select new RecruiterAdminDto
+                {
+                    Id = p.UserId,
+                    Email = u.Email,
+                    CompanyName = p.CompanyName,
+                    CreatedAt = p.CreatedAtUtc,
+                    UpdatedAtUtc = p.VerifiedAtUtc ?? p.CreatedAtUtc,
+                    VerificationStatus = p.VerificationStatus.ToString()
+                }
+            ).ToListAsync();
 
             return Ok(recruiters);
         }
@@ -104,24 +98,16 @@ public class UsersController : ControllerBase
         return BadRequest("Invalid Role!");
     }
 
-
     // GET: /api/users/{id}
-    // Returns one user's basic identity info + roles by userId.
-    //
-    // Notes:
-    // - Suitable for user detail pages / admin views.
     [Authorize(Roles = "Admin")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetUserById(string id)
     {
-        // Lookup user by Identity primary key
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound("User not found.");
 
-        // Fetch roles assigned to this user
         var roles = await _userManager.GetRolesAsync(user);
 
-        // Return a safe DTO (no password hashes or internal fields)
         return Ok(new UserDto(
             Id: user.Id,
             Email: user.Email ?? "",
@@ -130,21 +116,15 @@ public class UsersController : ControllerBase
         ));
     }
 
-    //DELETE: /api/users/{id}
-    // Deletes a user and related data (RecruiterProfile if exists)
-    //
-    // Security: Admin only
+    // DELETE: /api/users/{id}
     [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(string id)
     {
-        // Find user
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound("User not found.");
 
-        // If user is a recruiter, delete recruiter profile first
-        // (prevents FK issues + keeps DB clean)
         var recruiterProfile = await HttpContext.RequestServices
             .GetRequiredService<AppDbContext>()
             .RecruiterProfiles
@@ -162,7 +142,6 @@ public class UsersController : ControllerBase
                 .SaveChangesAsync();
         }
 
-        // Delete Identity user
         var result = await _userManager.DeleteAsync(user);
         if (!result.Succeeded)
             return BadRequest(result.Errors.Select(e => e.Description));
@@ -170,8 +149,6 @@ public class UsersController : ControllerBase
         return Ok(new { message = "User deleted successfully." });
     }
 
-
-    // Verify Student
     [Authorize(Roles = "Admin")]
     [HttpPut("admin/students/{id}/verify")]
     public async Task<IActionResult> VerifyStudent(string id)
@@ -185,8 +162,6 @@ public class UsersController : ControllerBase
         return Ok(new { message = "Student verified" });
     }
 
-
-    // Delete Student
     [Authorize(Roles = "Admin")]
     [HttpDelete("admin/students/{id}")]
     public async Task<IActionResult> DeleteStudent(string id)
@@ -199,22 +174,18 @@ public class UsersController : ControllerBase
         return Ok(new { message = "User deleted" });
     }
 
-
     // Notify Student
     [Authorize(Roles = "Admin")]
     [HttpPost("admin/students/{id}/notify")]
     public async Task<IActionResult> NotifyStudent(string id, [FromBody] NotifyRequest request)
     {
-        // Check if user exists
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound("User not found.");
 
-        // Validate input
         if (string.IsNullOrWhiteSpace(request.Message))
             return BadRequest("Message is required.");
 
-        // Create notification
         var notification = new Notification
         {
             UserId = id,
@@ -222,44 +193,39 @@ public class UsersController : ControllerBase
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            IsArchived = false,
+            CreatedAtUtc = DateTime.UtcNow
         };
 
-        // Save to DB
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync();
 
-        // Return response
         return Ok(new { message = "Notification sent successfully." });
     }
-
 
     // Notify Recruiter
     [Authorize(Roles = "Admin")]
     [HttpPost("admin/recruiters/{id}/notify")]
     public async Task<IActionResult> NotifyRecruiter(string id, [FromBody] NotifyRequest request)
     {
-        // Check if user exists
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound("User not found.");
 
-        // Validate input
         if (string.IsNullOrWhiteSpace(request.Message))
             return BadRequest("Message is required.");
 
-        // Create notification
         var notification = new Notification
         {
             UserId = id,
-            Title = request.Title,
+            Title = string.IsNullOrWhiteSpace(request.Title) ? "Notification" : request.Title,
             Message = request.Message,
             Type = "warning",
             IsRead = false,
-            CreatedAt = DateTime.UtcNow
+            IsArchived = false,
+            CreatedAtUtc = DateTime.UtcNow
         };
 
-        // Save to DB
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync();
 
@@ -274,8 +240,6 @@ public class UsersController : ControllerBase
         var now = DateTime.UtcNow;
         var yesterday = now.AddDays(-1);
 
-        // Stats
-
         var totalStudents = await _context.StudentProfiles.CountAsync();
         var totalRecruiters = await _context.RecruiterProfiles.CountAsync();
 
@@ -285,8 +249,6 @@ public class UsersController : ControllerBase
             .CountAsync();
 
         var totalApplications = await _context.Applications.CountAsync();
-
-        // Recruiter Status
 
         var pendingVerification = await _context.RecruiterProfiles
             .CountAsync(r => r.VerificationStatus == RecruiterVerificationStatus.EmailPending);
@@ -300,15 +262,11 @@ public class UsersController : ControllerBase
         var rejectedRecruiters = await _context.RecruiterProfiles
             .CountAsync(r => r.VerificationStatus == RecruiterVerificationStatus.Rejected);
 
-        // Platform Health
-
         var activeUsers = await _context.Users.CountAsync();
 
         var newSignups = 0;
 
         var pendingActions = pendingApproval + pendingVerification;
-
-        // Recent Activity
 
         var recentStudents = await _context.StudentProfiles
             .OrderByDescending(s => s.CreatedAt)
@@ -401,7 +359,6 @@ public class UsersController : ControllerBase
 
             recentActivity
         });
-
     }
 
     [Authorize(Roles = "Admin")]
@@ -410,7 +367,6 @@ public class UsersController : ControllerBase
     {
         var profiles = await _context.RecruiterProfiles.ToListAsync();
 
-        // group recruiters by company name (normalized)
         var companies = profiles
             .GroupBy(p => p.CompanyName.Trim().ToLower())
             .Select(group =>
@@ -422,7 +378,6 @@ public class UsersController : ControllerBase
                     Id = group.Key,
                     Name = first.CompanyName,
 
-                    // ✅ FIX: get email from Users table
                     Email = _context.Users
                         .Where(u => u.Id == first.UserId)
                         .Select(u => u.Email)
@@ -440,16 +395,13 @@ public class UsersController : ControllerBase
                             ? "Pending"
                             : "Unverified",
 
-                    // ✅ FIX: recruiter emails from Users table
                     Recruiters = group.Select(p => new
                     {
                         Id = p.UserId,
-
                         Email = _context.Users
                             .Where(u => u.Id == p.UserId)
                             .Select(u => u.Email)
                             .FirstOrDefault() ?? p.Email,
-
                         JoinedAt = p.CreatedAtUtc,
                         Status = p.VerificationStatus.ToString()
                     })
@@ -460,10 +412,7 @@ public class UsersController : ControllerBase
         return Ok(companies);
     }
 
-
-    // DTO returned to frontend to keep API response clean and safe
     public record UserDto(string Id, string Email, string UserName, List<string> Roles);
-
 
     public class StudentAdminDto
     {
@@ -472,7 +421,7 @@ public class UsersController : ControllerBase
         public string? FullName { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAtUtc { get; set; }
-    };
+    }
 
     public class RecruiterAdminDto
     {
@@ -484,10 +433,9 @@ public class UsersController : ControllerBase
         public DateTime? UpdatedAtUtc { get; set; }
     }
 
-
     public class NotifyRequest
     {
         public string? Title { get; set; }
         public string Message { get; set; } = string.Empty;
-    };
+    }
 }

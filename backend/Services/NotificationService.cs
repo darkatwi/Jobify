@@ -17,12 +17,11 @@ public class NotificationService
     // =========================
     // GET USER NOTIFICATIONS
     // =========================
-
     public async Task<List<NotificationDto>> GetUserNotificationsAsync(string userId)
     {
         return await _db.Notifications
             .Where(n => n.UserId == userId && !n.IsArchived)
-            .OrderByDescending(n => n.CreatedAt)
+            .OrderByDescending(n => n.CreatedAtUtc)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
@@ -31,7 +30,7 @@ public class NotificationService
                 Type = n.Type,
                 OpportunityId = n.OpportunityId,
                 IsRead = n.IsRead,
-                CreatedAt = n.CreatedAt
+                CreatedAtUtc = n.CreatedAtUtc
             })
             .ToListAsync();
     }
@@ -43,7 +42,7 @@ public class NotificationService
     {
         return await _db.Notifications
             .Where(n => n.UserId == userId && n.IsArchived)
-            .OrderByDescending(n => n.CreatedAt)
+            .OrderByDescending(n => n.CreatedAtUtc)
             .Select(n => new NotificationDto
             {
                 Id = n.Id,
@@ -52,7 +51,7 @@ public class NotificationService
                 Type = n.Type,
                 OpportunityId = n.OpportunityId,
                 IsRead = n.IsRead,
-                CreatedAt = n.CreatedAt
+                CreatedAtUtc = n.CreatedAtUtc
             })
             .ToListAsync();
     }
@@ -195,7 +194,7 @@ public class NotificationService
                     OpportunityId = opportunity.Id,
                     IsRead = false,
                     IsArchived = false,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAtUtc = DateTime.UtcNow
                 });
             }
         }
@@ -212,7 +211,7 @@ public class NotificationService
             Message = message,
             IsRead = false,
             IsArchived = false,
-            CreatedAt = DateTime.UtcNow
+            CreatedAtUtc = DateTime.UtcNow
         };
 
         _db.Notifications.Add(notification);

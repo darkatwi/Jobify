@@ -4,14 +4,14 @@ public class Notification
 {
     public int Id { get; set; }
 
-    public string UserId { get; set; } = string.Empty;   // student user id
+    public string UserId { get; set; } = string.Empty;
 
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 
-    public string Type { get; set; } = "OpportunityMatch"; // optional for future use
+    public string Type { get; set; } = "OpportunityMatch";
 
-    public int? OpportunityId { get; set; }   // link to the opportunity if needed
+    public int? OpportunityId { get; set; }
 
     public bool IsRead { get; set; } = false;
 

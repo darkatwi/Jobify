@@ -30,15 +30,14 @@ import MatchesPage from "./pages/MatchesPage";
 // organization page
 import OrganizationDashboard from "./pages/OrganizationDashboard";
 
-
-// Admin panel
+// admin panel
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminCompanies from "./pages/admin/AdminCompanies";
 import AdminRecruiters from "./pages/admin/AdminRecruiters";
 import AdminStudents from "./pages/admin/AdminStudents";
 import AdminSettings from "./pages/admin/AdminSettings";
 
-// Layouts
+// layouts
 import AppLayout from "./layout/AppLayout";
 import AdminLayout from "./layout/AdminLayout";
 
@@ -50,42 +49,44 @@ import Applicants from "./pages/applicants";
 import NotificationsPage from "./pages/NotificationsPage";
 import ApplicantProfilePage from "./pages/ApplicantsProfilePage";
 
+// footer pages
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
+
 // ─────────────────────────────────────────────
 // AUTH HELPERS
 // ─────────────────────────────────────────────
 
 function getUser() {
-    try {
-        const parsed = JSON.parse(localStorage.getItem("jobify_user"));
-        if (!parsed) return null;
-        return parsed;
-    } catch {
-        return null;
-    }
+  try {
+    const parsed = JSON.parse(localStorage.getItem("jobify_user"));
+    if (!parsed) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 function AdminGuard() {
-    const user = getUser();
-    const isAdmin = user?.roles?.[0] === "Admin";
+  const user = getUser();
+  const isAdmin = user?.roles?.[0] === "Admin";
 
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
-    if (!user) return <Navigate to="/login" replace />;
-    if (!isAdmin) return <Navigate to="/dashboard" replace />;
-
-
-    return <AdminLayout />;
+  return <AdminLayout />;
 }
 
 function AppGuard() {
-    const user = getUser();
-    const isAdmin = user?.roles?.[0] === "Admin";
+  const user = getUser();
+  const isAdmin = user?.roles?.[0] === "Admin";
 
+  if (!user) return <Navigate to="/login" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
 
-    if (!user) return <Navigate to="/login" replace />;
-    if (isAdmin) return <Navigate to="/admin" replace />;
-
-
-    return <AppLayout />;
+  return <AppLayout />;
 }
 
 // ─────────────────────────────────────────────
@@ -93,72 +94,96 @@ function AppGuard() {
 // ─────────────────────────────────────────────
 
 export default function App() {
-    const user = getUser();
-    const isAdmin = user?.roles?.[0] === "Admin";
+  const user = getUser();
+  const isAdmin = user?.roles?.[0] === "Admin";
 
-    return (
-        <Routes>
-            {/* PUBLIC ROUTES */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/oauth-confirm" element={<OAuthCallbackPage />} />
-            <Route path="/email-confirmed" element={<EmailConfirmed />} />
+  return (
+    <Routes>
+      {/* PUBLIC ROUTES */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/oauth-confirm" element={<OAuthCallbackPage />} />
+      <Route path="/email-confirmed" element={<EmailConfirmed />} />
 
-            {/* ADMIN ROUTES */}
-            <Route element={<AdminGuard />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/students" element={<AdminStudents />} />
-                <Route path="/admin/recruiters" element={<AdminRecruiters />} />
-                <Route path="/admin/companies" element={<AdminCompanies />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-            </Route>
+      {/* ADMIN ROUTES */}
+      <Route element={<AdminGuard />}>
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/students" element={<AdminStudents />} />
+        <Route path="/admin/recruiters" element={<AdminRecruiters />} />
+        <Route path="/admin/companies" element={<AdminCompanies />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
+      </Route>
 
-            {/* APP ROUTES */}
-            <Route element={<AppGuard />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/browse" element={<BrowseOpportunities />} />
-                <Route path="/match" element={<MatchesPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
+      {/* APP ROUTES */}
+      <Route element={<AppGuard />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/browse" element={<BrowseOpportunities />} />
+        <Route path="/match" element={<MatchesPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
 
-                {/* ORGANIZATION */}
-                <Route path="/organization" element={<OrganizationDashboard />} />
-                <Route path="/organization/interviews" element={<RecruiterInterviewsPage />} />
-                <Route path="/organization/qanda" element={<QAPage />} />
-                <Route path="/organization/applicants" element={<Applicants />} />
-                <Route
-                    path="/organization/applicants/:applicationId/profile"
-                    element={<ApplicantProfilePage />}
-                />
+        {/* FOOTER PAGES */}
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
 
-                {/* JOB FLOW */}
-                <Route path="/opportunities/:id" element={<JobDetailsPage />} />
-                <Route path="/apply/:applicationId/review" element={<ProfileReviewPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/change-password" element={<ChangePasswordPage />} />
-                <Route path="/application/:applicationId/review" element={<ApplicationReviewPage />} />
-                <Route path="/application/:applicationId/assessment/rules" element={<AssessmentRulesPage />} />
-                <Route path="/application/:applicationId/assessment/start" element={<AssessmentPage />} />
-                <Route path="/application/:applicationId/assessment" element={<AssessmentPage />} />
-                <Route path="/application/:applicationId/result" element={<ApplicationResultPage />} />
+        {/* ORGANIZATION */}
+        <Route path="/organization" element={<OrganizationDashboard />} />
+        <Route
+          path="/organization/interviews"
+          element={<RecruiterInterviewsPage />}
+        />
+        <Route path="/organization/qanda" element={<QAPage />} />
+        <Route path="/organization/applicants" element={<Applicants />} />
+        <Route
+          path="/organization/applicants/:applicationId/profile"
+          element={<ApplicantProfilePage />}
+        />
 
-                {/* PROFILE */}
-                <Route path="/profile" element={<ProfilePage />} />
-            </Route>
+        {/* JOB FLOW */}
+        <Route path="/opportunities/:id" element={<JobDetailsPage />} />
+        <Route
+          path="/apply/:applicationId/review"
+          element={<ProfileReviewPage />}
+        />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route
+          path="/application/:applicationId/review"
+          element={<ApplicationReviewPage />}
+        />
+        <Route
+          path="/application/:applicationId/assessment/rules"
+          element={<AssessmentRulesPage />}
+        />
+        <Route
+          path="/application/:applicationId/assessment/start"
+          element={<AssessmentPage />}
+        />
+        <Route
+          path="/application/:applicationId/assessment"
+          element={<AssessmentPage />}
+        />
+        <Route
+          path="/application/:applicationId/result"
+          element={<ApplicationResultPage />}
+        />
+      </Route>
 
-            {/* FALLBACK */}
-            <Route
-                path="*"
-                element={
-                    !user ? (
-                        <Navigate to="/login" replace />
-                    ) : (
-                        <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />
-                    )
-                }
-            />
-        </Routes>
-    );
+      {/* FALLBACK */}
+      <Route
+        path="*"
+        element={
+          !user ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />
+          )
+        }
+      />
+    </Routes>
+  );
 }

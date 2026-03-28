@@ -317,18 +317,24 @@ export default function AppLayout() {
             <div>
               <div className="al-footerTitle">Company</div>
               <ul className="al-footerList">
-                <li>About Us</li>
-                <li>Careers</li>
-                <li>Contact</li>
+                <li>
+                  <NavLink to="/about">About</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/contact">Contact</NavLink>
+                </li>
               </ul>
             </div>
 
             <div>
               <div className="al-footerTitle">Legal</div>
               <ul className="al-footerList">
-                <li>Terms of Service</li>
-                <li>Privacy Policy</li>
-                <li>Cookie Policy</li>
+                <li>
+                  <NavLink to="/terms">Terms of Service</NavLink>
+                </li>
+                <li>
+                  <NavLink to="/privacy">Privacy Policy</NavLink>
+                </li>
               </ul>
             </div>
           </div>

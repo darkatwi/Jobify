@@ -1,7 +1,3 @@
-/* =========================
-   FOOTER BASE
-========================= */
-
 .al-footer {
   border-top: 1px solid var(--border);
   background: var(--surface);
@@ -18,10 +14,6 @@
   margin: 0 auto;
 }
 
-/* =========================
-   LEFT SIDE (BRAND)
-========================= */
-
 .al-footerBrand {
   font-size: 20px;
   font-weight: 700;
@@ -35,10 +27,6 @@
   line-height: 1.6;
   color: var(--text-secondary);
 }
-
-/* =========================
-   LINKS
-========================= */
 
 .al-footerCols {
   display: flex;
@@ -57,29 +45,12 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  min-width: 220px;
 }
 
 .al-footerList li {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
-
-/* LINK STYLE */
-.al-footerList a {
-  text-decoration: none;
-  font-size: 14px;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-}
-
-/* Hover effect */
-.al-footerList a:hover {
-  color: var(--primary);
-  transform: translateX(2px);
-}
-
-/* =========================
-   BOTTOM BAR
-========================= */
 
 .al-footerBottom {
   border-top: 1px solid var(--border);
@@ -88,21 +59,63 @@
   font-size: 13px;
   color: var(--text-secondary);
 }
-/* clickable footer items */
-.footer-click {
+
+.footer-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
   transition: color 0.2s ease;
 }
 
-.footer-click:hover {
+.footer-toggle:hover {
   color: var(--primary);
 }
 
-/* dropdown content */
+.footer-toggle.open {
+  color: var(--primary);
+}
+
+.footer-arrow {
+  font-size: 14px;
+  transition: transform 0.25s ease;
+}
+
+.footer-toggle.open .footer-arrow {
+  transform: rotate(180deg);
+}
+
 .footer-dropdown {
-  margin-top: 6px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    max-height 0.3s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    margin-top 0.25s ease;
+  margin-top: 0;
+}
+
+.footer-dropdown.open {
+  max-height: 120px;
+  opacity: 1;
+  transform: translateY(0);
+  margin-top: 8px;
+}
+
+.footer-dropdownContent {
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-secondary);
-  padding-left: 4px;
+  padding-left: 2px;
 }

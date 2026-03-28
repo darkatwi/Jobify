@@ -16,6 +16,7 @@ import {
 import { api } from "../api/api";
 import { useTheme } from "./useTheme";
 import "../pages/styles/layout.css";
+import "../pages/styles/footer.css";
 
 export default function AppLayout() {
   const navigate = useNavigate();

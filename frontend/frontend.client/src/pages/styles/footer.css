@@ -1,0 +1,90 @@
+/* =========================
+   FOOTER BASE
+========================= */
+
+.al-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  margin-top: 40px;
+}
+
+.al-footerInner {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 32px 24px;
+  flex-wrap: wrap;
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+/* =========================
+   LEFT SIDE (BRAND)
+========================= */
+
+.al-footerBrand {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.al-footerText {
+  max-width: 420px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* =========================
+   LINKS
+========================= */
+
+.al-footerCols {
+  display: flex;
+  gap: 50px;
+  flex-wrap: wrap;
+}
+
+.al-footerTitle {
+  font-weight: 600;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.al-footerList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.al-footerList li {
+  margin-bottom: 8px;
+}
+
+/* LINK STYLE */
+.al-footerList a {
+  text-decoration: none;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+/* Hover effect */
+.al-footerList a:hover {
+  color: var(--primary);
+  transform: translateX(2px);
+}
+
+/* =========================
+   BOTTOM BAR
+========================= */
+
+.al-footerBottom {
+  border-top: 1px solid var(--border);
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}

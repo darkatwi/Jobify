@@ -91,10 +91,6 @@ public class AdditionalTests
         };
     }
 
-    // =========================
-    // GET ALL VALIDATION
-    // =========================
-
     [Fact]
     public async Task GetAll_InvalidType_ReturnsBadRequest()
     {
@@ -229,10 +225,6 @@ public class AdditionalTests
         Assert.Equal("Beirut Role", paged.Items[0].Title);
     }
 
-    // =========================
-    // CLOSE / REOPEN
-    // =========================
-
     [Fact]
     public async Task Close_ReturnsBadRequest_When_AlreadyClosed()
     {
@@ -264,10 +256,6 @@ public class AdditionalTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Opportunity is already open.", badRequest.Value);
     }
-
-    // =========================
-    // DELETE
-    // =========================
 
     [Fact]
     public async Task Delete_ReturnsNotFound_When_NotOwner()

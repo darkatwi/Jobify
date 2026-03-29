@@ -10,7 +10,7 @@ import {
     getExperience, addExperience, updateExperience, deleteExperience,
     getProjects, addProject, updateProject, deleteProject,
     getInterests, addInterest, deleteInterest
-} from '../api/studentData';
+} from '../api/StudentData';
 import {
     User, GraduationCap, Briefcase, Heart, Code2, FileText,
     TrendingUp, Building2, Settings, ShieldCheck, BarChart3,

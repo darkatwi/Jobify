@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import './styles/profile.css';
 
-import { extractSkillsFromCv } from "../api/cvExtract";
+import { extractSkillsFromCv } from "../api/CvExtract";
 
 /* ─────────────────────────────────────────────
    Top-level ProfilePage — keeps all API logic

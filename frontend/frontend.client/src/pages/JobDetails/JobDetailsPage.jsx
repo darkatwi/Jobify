@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "../../styles/JobDetailsPage.css";
+import "../styles/JobDetailsPage.css";
 
 import {
     MapPin,

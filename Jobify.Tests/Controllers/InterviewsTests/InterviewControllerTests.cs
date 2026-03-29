@@ -21,7 +21,6 @@ public class InterviewsControllerTests
         return new AppDbContext(options);
     }
 
-    // ✅ FIXED HELPER (IMPORTANT)
     private static InterviewsController CreateController(AppDbContext db, string? userId = null)
     {
         var controller = new InterviewsController(db);
@@ -39,7 +38,6 @@ public class InterviewsControllerTests
         }
         else
         {
-            // ❗ empty user instead of null (fixes crash)
             principal = new ClaimsPrincipal(new ClaimsIdentity());
         }
 
@@ -54,9 +52,6 @@ public class InterviewsControllerTests
         return controller;
     }
 
-    // =========================
-    // CREATE TESTS
-    // =========================
 
     [Fact]
     public async Task Create_Should_Return_Unauthorized_When_No_User()
@@ -177,9 +172,6 @@ public class InterviewsControllerTests
         Assert.Equal(ApplicationStatus.InterviewScheduled, savedApp!.Status);
     }
 
-    // =========================
-    // UPDATE TESTS
-    // =========================
 
     [Fact]
     public async Task Update_Should_Return_NotFound_When_Interview_Not_Found()
@@ -219,10 +211,6 @@ public class InterviewsControllerTests
 
         Assert.IsType<ForbidResult>(result);
     }
-
-    // =========================
-    // DELETE TESTS
-    // =========================
 
     [Fact]
     public async Task Delete_Should_Return_NotFound_When_Interview_Not_Found()

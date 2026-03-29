@@ -18,10 +18,6 @@ public class ProfileFileValidationTests
         return method!.Invoke(null, args);
     }
 
-    // =========================
-    // SafeExt
-    // =========================
-
     [Fact]
     public void SafeExt_Should_Return_Extension_For_Normal_File()
     {
@@ -55,10 +51,6 @@ public class ProfileFileValidationTests
         Assert.Equal(string.Empty, result1);
         Assert.Equal(string.Empty, result2);
     }
-
-    // =========================
-    // IsAllowedResumeType
-    // =========================
 
     [Theory]
     [InlineData("application/pdf", ".pdf", true)]
@@ -98,9 +90,6 @@ public class ProfileFileValidationTests
         Assert.True(result);
     }
 
-    // =========================
-    // IsAllowedProofType
-    // =========================
 
     [Theory]
     [InlineData("image/png", ".png", true)]
